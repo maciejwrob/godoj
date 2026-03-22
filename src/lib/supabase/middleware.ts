@@ -1,10 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const PUBLIC_PATHS = ["/", "/login", "/callback"];
+
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+  let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,9 +18,7 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -33,16 +31,47 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isLoginPage = request.nextUrl.pathname === "/login";
-  const isPublicPage = request.nextUrl.pathname === "/";
+  const pathname = request.nextUrl.pathname;
+  const isPublicPath = PUBLIC_PATHS.includes(pathname);
+  const isOnboarding = pathname === "/onboarding";
+  const isAdmin = pathname.startsWith("/admin");
 
-  if (!user && !isLoginPage && !isPublicPage) {
+  // Not logged in → redirect to /login (unless on public page)
+  if (!user) {
+    if (!isPublicPath) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
+
+  // Logged in — get user data for routing decisions
+  const { data: userData } = await supabase
+    .from("users")
+    .select("onboarding_complete, role")
+    .eq("id", user.id)
+    .single();
+
+  const onboardingComplete = userData?.onboarding_complete ?? false;
+  const userRole = userData?.role ?? "adult";
+
+  // Admin routes — only for admins
+  if (isAdmin && userRole !== "admin") {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  if (user && isLoginPage) {
+  // Logged in without onboarding → force /onboarding
+  if (!onboardingComplete && !isOnboarding && !isPublicPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/onboarding";
+    return NextResponse.redirect(url);
+  }
+
+  // Logged in with onboarding → redirect away from /login, /onboarding, /
+  if (onboardingComplete && (isPublicPath || isOnboarding)) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
