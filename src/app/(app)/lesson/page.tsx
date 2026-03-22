@@ -68,7 +68,8 @@ export default function LessonPage() {
   const profileRef = useRef({ language: "", agentId: "" });
 
   const conversation = useConversation({
-    onConnect: () => {
+    onConnect: ({ conversationId }) => {
+      console.log("ElevenLabs connected, conversationId:", conversationId);
       setLessonState("active");
       startTimeRef.current = Date.now();
       setTimeLeft(duration * 60);
@@ -118,10 +119,17 @@ export default function LessonPage() {
         }, silenceThreshold);
       }
     },
-    onError: (message) => {
-      console.error("Conversation error:", message);
+    onModeChange: (prop: { mode: string }) => {
+      console.log("Mode changed:", prop.mode);
+    },
+    onStatusChange: (prop: { status: string }) => {
+      console.log("Status changed:", prop.status);
+    },
+    onError: (message: string, context?: unknown) => {
+      console.error("Conversation error:", message, context);
       if (lessonState !== "ending") {
         setError("Utracono połączenie z tutorem. " + message);
+        setLessonState("error");
       }
     },
   });
@@ -194,7 +202,10 @@ export default function LessonPage() {
   const startConversation = async () => {
     setLessonState("connecting");
     try {
-      await conversation.startSession({
+      // Request microphone permission first
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      const conversationId = await conversation.startSession({
         signedUrl,
         overrides: {
           agent: {
@@ -204,10 +215,15 @@ export default function LessonPage() {
           },
         },
       });
+      console.log("Conversation started:", conversationId);
     } catch (err) {
       console.error("Start session error:", err);
-      setError("Nie udało się połączyć. Sprawdź mikrofon i spróbuj ponownie.");
-      setLessonState("ready");
+      const message =
+        err instanceof DOMException && err.name === "NotAllowedError"
+          ? "Musisz zezwolić na dostęp do mikrofonu. Kliknij ikonę kłódki w pasku adresu i włącz mikrofon."
+          : "Nie udało się połączyć. Sprawdź mikrofon i spróbuj ponownie.";
+      setError(message);
+      setLessonState("error");
     }
   };
 
