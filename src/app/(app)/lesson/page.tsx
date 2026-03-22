@@ -49,21 +49,21 @@ export default function LessonPage() {
   );
   const [sosActive, setSosActive] = useState(false);
 
-  // Hints
-  const [hints, setHints] = useState<Hint[]>([]);
+  // Hints — two levels
+  const [hintsL1, setHintsL1] = useState<Hint[]>([]);
+  const [hintsL2, setHintsL2] = useState<Hint[]>([]);
+  const [hintLevel, setHintLevel] = useState<0 | 1 | 2>(0); // 0=hidden, 1=words, 2=phrases
   const [hintsLoading, setHintsLoading] = useState(false);
-  const [hintsVisible, setHintsVisible] = useState(false);
 
   // Refs
-  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const silenceTimer1Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const silenceTimer2Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lessonTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const transcriptRef = useRef<TranscriptEntry[]>([]);
   const startTimeRef = useRef<number>(0);
   const hintCooldownRef = useRef(false);
 
-  // Determine silence threshold based on level
-  const silenceThreshold =
-    level === "A1" || level === "A2" ? 8000 : 6000;
+  // No longer need single threshold — using 3s/5s for two levels
 
   // Profile data for API calls
   const profileRef = useRef({ language: "", agentId: "" });
@@ -106,36 +106,37 @@ export default function LessonPage() {
 
       // Hide hints when user speaks
       if (source === "user") {
-        setHintsVisible(false);
+        clearSilenceTimers();
+        setHintLevel(0);
         hintCooldownRef.current = false;
-        // Reset silence timer — user is talking
-        if (silenceTimerRef.current) {
-          clearTimeout(silenceTimerRef.current);
-          silenceTimerRef.current = null;
-          console.log("Silence timer cleared: user speaking");
-        }
+        console.log("Hints hidden: user speaking");
       }
     },
     onModeChange: (prop: { mode: string }) => {
       console.log("Mode changed:", prop.mode);
 
       if (prop.mode === "listening") {
-        // Agent finished speaking — start silence timer
-        console.log(`Silence timer started: ${silenceThreshold}ms threshold`);
-        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = setTimeout(() => {
-          console.log("Silence detected! Triggering hint...");
+        // Agent finished speaking — start two-level silence timers
+        clearSilenceTimers();
+
+        // Level 1: after 3 seconds — show key words
+        silenceTimer1Ref.current = setTimeout(() => {
+          console.log("Silence 3s: triggering L1 hints (words)");
           if (!hintCooldownRef.current) {
-            triggerHint();
+            triggerHint(1);
           }
-        }, silenceThreshold);
+        }, 3000);
+
+        // Level 2: after 5 seconds — expand to full phrases
+        silenceTimer2Ref.current = setTimeout(() => {
+          console.log("Silence 5s: triggering L2 hints (phrases)");
+          triggerHint(2);
+        }, 5000);
       } else if (prop.mode === "speaking") {
-        // Agent started speaking — clear silence timer
-        if (silenceTimerRef.current) {
-          clearTimeout(silenceTimerRef.current);
-          silenceTimerRef.current = null;
-          console.log("Silence timer cleared: agent speaking");
-        }
+        // Agent started speaking — clear timers and hide hints
+        clearSilenceTimers();
+        setHintLevel(0);
+        console.log("Hints hidden: agent speaking");
       }
     },
     onStatusChange: (prop: { status: string }) => {
@@ -154,7 +155,8 @@ export default function LessonPage() {
   useEffect(() => {
     loadLessonData();
     return () => {
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (silenceTimer1Ref.current) clearTimeout(silenceTimer1Ref.current);
+      if (silenceTimer2Ref.current) clearTimeout(silenceTimer2Ref.current);
       if (lessonTimerRef.current) clearInterval(lessonTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -250,7 +252,7 @@ export default function LessonPage() {
     setLessonState("ending");
 
     // Clean up timers
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    clearSilenceTimers();
     if (lessonTimerRef.current) clearInterval(lessonTimerRef.current);
 
     try {
@@ -290,14 +292,26 @@ export default function LessonPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonState, lessonId, router]);
 
-  const triggerHint = async () => {
-    console.log("triggerHint called, hintsLoading:", hintsLoading, "cooldown:", hintCooldownRef.current);
-    if (hintsLoading || hintCooldownRef.current) return;
-    hintCooldownRef.current = true;
-    setHintsLoading(true);
-    console.log("Fetching hints from API...");
+  const clearSilenceTimers = () => {
+    if (silenceTimer1Ref.current) {
+      clearTimeout(silenceTimer1Ref.current);
+      silenceTimer1Ref.current = null;
+    }
+    if (silenceTimer2Ref.current) {
+      clearTimeout(silenceTimer2Ref.current);
+      silenceTimer2Ref.current = null;
+    }
+  };
 
-    // Get last few exchanges for context
+  const triggerHint = async (level: 1 | 2) => {
+    // For L1: only fetch if not already showing
+    // For L2: always fetch (upgrade from L1)
+    if (level === 1 && hintCooldownRef.current) return;
+    if (level === 1) hintCooldownRef.current = true;
+
+    console.log(`triggerHint L${level} called`);
+    if (level === 1) setHintsLoading(true);
+
     const recentTranscript = transcriptRef.current
       .slice(-6)
       .map((t) => `${t.source === "ai" ? "Tutor" : "Uczeń"}: ${t.message}`)
@@ -312,23 +326,25 @@ export default function LessonPage() {
           conversation_context: recentTranscript,
           target_language: profileRef.current.language,
           native_language: nativeLanguage,
+          hint_level: level,
         }),
       });
 
-      console.log("Hint API response status:", res.status);
+      console.log(`Hint L${level} API response:`, res.status);
       if (res.ok) {
         const data = await res.json();
-        console.log("Hints received:", data.hints);
-        setHints(data.hints);
-        setHintsVisible(true);
-
-        // Auto-hide after 15 seconds
-        setTimeout(() => setHintsVisible(false), 15000);
+        console.log(`Hints L${level} received:`, data.hints);
+        if (level === 1) {
+          setHintsL1(data.hints);
+        } else {
+          setHintsL2(data.hints);
+        }
+        setHintLevel(level);
       }
     } catch {
-      // Silently fail — hints are non-critical
+      // Non-critical
     } finally {
-      setHintsLoading(false);
+      if (level === 1) setHintsLoading(false);
     }
   };
 
@@ -562,22 +578,36 @@ export default function LessonPage() {
       {/* Hint loading indicator */}
       {hintsLoading && (
         <div className="absolute bottom-32 left-1/2 -translate-x-1/2">
-          <div className="flex items-center gap-2 rounded-full bg-bg-card px-4 py-2 text-sm text-text-secondary">
+          <div className="flex items-center gap-2 rounded-full bg-bg-card/80 px-4 py-2 text-sm text-text-secondary backdrop-blur-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
             Szukam podpowiedzi...
           </div>
         </div>
       )}
 
-      {/* Hint panel */}
-      {hintsVisible && hints.length > 0 && (
+      {/* Level 1 hints — subtle word bar */}
+      {hintLevel === 1 && hintsL1.length > 0 && (
+        <div className="absolute bottom-24 left-4 right-4 mx-auto max-w-md animate-slide-in-up">
+          <div className="flex items-center justify-center gap-4 rounded-full border border-border/50 bg-bg-card/70 px-5 py-3 backdrop-blur-sm">
+            {hintsL1.map((hint, i) => (
+              <span key={i} className="text-sm">
+                <span className="font-medium text-text-primary">{hint.phrase}</span>
+                <span className="text-text-secondary"> → {hint.translation}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Level 2 hints — full phrase panel */}
+      {hintLevel === 2 && hintsL2.length > 0 && (
         <div className="absolute bottom-24 left-4 right-4 mx-auto max-w-md animate-slide-in-up">
           <div className="rounded-2xl border border-border bg-bg-card p-4 shadow-xl">
             <div className="mb-3 text-xs font-medium text-text-secondary">
               Podpowiedzi
             </div>
             <div className="space-y-2">
-              {hints.map((hint, i) => (
+              {hintsL2.map((hint, i) => (
                 <div
                   key={i}
                   className="flex items-center justify-between rounded-xl bg-bg-card-hover p-3"
