@@ -72,6 +72,11 @@ export default function LessonPage() {
       console.log("ElevenLabs connected, conversationId:", conversationId);
       setLessonState("active");
       startTimeRef.current = Date.now();
+
+      // Inject user context as background info (doesn't interrupt conversation)
+      if (systemPrompt) {
+        conversation.sendContextualUpdate(systemPrompt);
+      }
       setTimeLeft(duration * 60);
       lessonTimerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
@@ -208,6 +213,12 @@ export default function LessonPage() {
       console.log("Starting session with signedUrl:", signedUrl?.substring(0, 80));
       const conversationId = await conversation.startSession({
         signedUrl,
+        dynamicVariables: {
+          user_name: displayName,
+          user_level: level,
+          lesson_topic: topic,
+          lesson_duration: String(duration),
+        },
       });
       console.log("Conversation started:", conversationId);
     } catch (err) {
