@@ -6,17 +6,24 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function checkInvitation(email: string) {
   // Use admin client to bypass RLS — user is not authenticated at login
   const supabase = createAdminClient();
+  const normalizedEmail = email.toLowerCase().trim();
 
-  const { data, error } = await supabase
+  // Check if any invitation exists for this email (accepted or not)
+  // Returning users have an accepted invitation — still allow login
+  const { data } = await supabase
     .from("invitations")
-    .select("id, token, expires_at, accepted_at")
-    .eq("email", email.toLowerCase().trim())
-    .is("accepted_at", null)
-    .gt("expires_at", new Date().toISOString())
+    .select("id, token, accepted_at, expires_at")
+    .eq("email", normalizedEmail)
     .limit(1)
     .single();
 
-  if (error || !data) {
+  if (!data) {
+    return { valid: false as const };
+  }
+
+  // Invitation exists (accepted = returning user, or fresh = new user)
+  // Only block if invitation expired AND was never accepted
+  if (!data.accepted_at && new Date(data.expires_at) < new Date()) {
     return { valid: false as const };
   }
 
