@@ -104,29 +104,39 @@ export default function LessonPage() {
       transcriptRef.current = [...transcriptRef.current, entry];
       setTranscript([...transcriptRef.current]);
 
-      // Reset silence timer
-      if (silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = null;
-      }
-
       // Hide hints when user speaks
       if (source === "user") {
         setHintsVisible(false);
         hintCooldownRef.current = false;
-      }
-
-      // Start silence timer after agent speaks
-      if (source === "ai" && lessonState === "active") {
-        silenceTimerRef.current = setTimeout(() => {
-          if (!hintCooldownRef.current) {
-            triggerHint();
-          }
-        }, silenceThreshold);
+        // Reset silence timer — user is talking
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = null;
+          console.log("Silence timer cleared: user speaking");
+        }
       }
     },
     onModeChange: (prop: { mode: string }) => {
       console.log("Mode changed:", prop.mode);
+
+      if (prop.mode === "listening") {
+        // Agent finished speaking — start silence timer
+        console.log(`Silence timer started: ${silenceThreshold}ms threshold`);
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(() => {
+          console.log("Silence detected! Triggering hint...");
+          if (!hintCooldownRef.current) {
+            triggerHint();
+          }
+        }, silenceThreshold);
+      } else if (prop.mode === "speaking") {
+        // Agent started speaking — clear silence timer
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = null;
+          console.log("Silence timer cleared: agent speaking");
+        }
+      }
     },
     onStatusChange: (prop: { status: string }) => {
       console.log("Status changed:", prop.status);
@@ -281,9 +291,11 @@ export default function LessonPage() {
   }, [lessonState, lessonId, router]);
 
   const triggerHint = async () => {
+    console.log("triggerHint called, hintsLoading:", hintsLoading, "cooldown:", hintCooldownRef.current);
     if (hintsLoading || hintCooldownRef.current) return;
     hintCooldownRef.current = true;
     setHintsLoading(true);
+    console.log("Fetching hints from API...");
 
     // Get last few exchanges for context
     const recentTranscript = transcriptRef.current
@@ -299,12 +311,14 @@ export default function LessonPage() {
           lesson_id: lessonId,
           conversation_context: recentTranscript,
           target_language: profileRef.current.language,
-          native_language: "pl",
+          native_language: nativeLanguage,
         }),
       });
 
+      console.log("Hint API response status:", res.status);
       if (res.ok) {
         const data = await res.json();
+        console.log("Hints received:", data.hints);
         setHints(data.hints);
         setHintsVisible(true);
 

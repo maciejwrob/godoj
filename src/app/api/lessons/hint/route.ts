@@ -15,6 +15,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    console.log("Hint API called for user:", user.id);
+
     const {
       lesson_id,
       conversation_context,
