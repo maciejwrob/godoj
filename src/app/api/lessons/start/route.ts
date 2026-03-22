@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       await Promise.all([
         supabase
           .from("users")
-          .select("display_name")
+          .select("display_name, native_language")
           .eq("id", user.id)
           .single(),
         supabase
@@ -57,6 +57,7 @@ export async function POST(request: Request) {
     const goals = profile?.learning_goals ?? [];
     const duration = profile?.preferred_duration_min ?? 15;
     const displayName = userData?.display_name ?? "Użytkownik";
+    const nativeLanguage = userData?.native_language ?? "pl";
 
     const langNames: Record<string, string> = {
       es: "hiszpańskim",
@@ -153,6 +154,7 @@ ZASADY:
       duration,
       display_name: displayName,
       level,
+      native_language: nativeLanguage,
     });
   } catch (error) {
     console.error("Start lesson error:", error);

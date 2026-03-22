@@ -10,7 +10,14 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
+
+const NATIVE_LANGUAGES = [
+  { id: "pl", name: "Polski", flag: "🇵🇱" },
+  { id: "en", name: "Angielski", flag: "🇬🇧" },
+  { id: "uk", name: "Ukraiński", flag: "🇺🇦" },
+  { id: "other", name: "Inne", flag: "🌍" },
+];
 
 // -- Data definitions --
 
@@ -187,6 +194,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState("");
 
   // Form state
+  const [nativeLang, setNativeLang] = useState("pl");
   const [selectedLang, setSelectedLang] = useState("");
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [showVariants, setShowVariants] = useState(false);
@@ -204,18 +212,20 @@ export default function OnboardingPage() {
   const canProceed = () => {
     switch (step) {
       case 1:
+        return !!nativeLang;
+      case 2:
         if (!selectedLang) return false;
         if (selectedLanguage?.variants && !selectedVariant) return false;
         return true;
-      case 2:
-        return !!level;
       case 3:
-        return goals.length >= 1;
+        return !!level;
       case 4:
-        return interests.length >= 2;
+        return goals.length >= 1;
       case 5:
-        return true;
+        return interests.length >= 2;
       case 6:
+        return true;
+      case 7:
         return !!tutor;
       default:
         return false;
@@ -261,6 +271,7 @@ export default function OnboardingPage() {
     setError("");
     startTransition(async () => {
       const data: OnboardingData = {
+        nativeLanguage: nativeLang,
         targetLanguage: selectedLang,
         languageVariant: selectedVariant,
         currentLevel: level,
@@ -310,6 +321,13 @@ export default function OnboardingPage() {
           className={`animate-${direction === "forward" ? "slide-in-right" : "slide-in-left"}`}
         >
           {step === 1 && (
+            <StepNativeLanguage
+              languages={NATIVE_LANGUAGES}
+              selected={nativeLang}
+              onSelect={setNativeLang}
+            />
+          )}
+          {step === 2 && (
             <StepLanguage
               languages={LANGUAGES}
               selected={selectedLang}
@@ -320,24 +338,24 @@ export default function OnboardingPage() {
               onVariant={setSelectedVariant}
             />
           )}
-          {step === 2 && (
+          {step === 3 && (
             <StepLevel levels={LEVELS} selected={level} onSelect={setLevel} />
           )}
-          {step === 3 && (
+          {step === 4 && (
             <StepGoals
               goals={GOALS}
               selected={goals}
               onToggle={(id) => toggleMulti(id, goals, setGoals)}
             />
           )}
-          {step === 4 && (
+          {step === 5 && (
             <StepInterests
               interests={INTERESTS}
               selected={interests}
               onToggle={(id) => toggleMulti(id, interests, setInterests)}
             />
           )}
-          {step === 5 && (
+          {step === 6 && (
             <StepPreferences
               duration={duration}
               frequency={frequency}
@@ -349,7 +367,7 @@ export default function OnboardingPage() {
               onReminders={setReminders}
             />
           )}
-          {step === 6 && (
+          {step === 7 && (
             <StepTutor
               tutors={filteredTutors}
               selected={tutor}
@@ -406,6 +424,45 @@ export default function OnboardingPage() {
 }
 
 // -- Step components --
+
+function StepNativeLanguage({
+  languages,
+  selected,
+  onSelect,
+}: {
+  languages: typeof NATIVE_LANGUAGES;
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div>
+      <h2 className="mb-2 text-2xl font-bold">Jaki jest Twój język ojczysty?</h2>
+      <p className="mb-6 text-text-secondary">
+        Dzięki temu tutor będzie mógł tłumaczyć w Twoim języku
+      </p>
+
+      <div className="space-y-3">
+        {languages.map((lang) => (
+          <button
+            key={lang.id}
+            onClick={() => onSelect(lang.id)}
+            className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all ${
+              selected === lang.id
+                ? "border-primary bg-primary/10"
+                : "border-border bg-bg-card hover:border-primary/50"
+            }`}
+          >
+            <span className="text-2xl">{lang.flag}</span>
+            <span className="font-medium">{lang.name}</span>
+            {selected === lang.id && (
+              <Check className="ml-auto h-5 w-5 text-primary" />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function StepLanguage({
   languages,

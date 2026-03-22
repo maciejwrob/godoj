@@ -37,6 +37,7 @@ export default function LessonPage() {
   const [duration, setDuration] = useState(15);
   const [signedUrl, setSignedUrl] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
+  const [nativeLanguage, setNativeLanguage] = useState("pl");
   const [error, setError] = useState("");
 
   // Lesson state
@@ -195,6 +196,7 @@ export default function LessonPage() {
       setDuration(data.duration);
       setDisplayName(data.display_name);
       setLevel(data.level);
+      setNativeLanguage(data.native_language ?? "pl");
       setLessonState("ready");
     } catch (err) {
       setError(
@@ -216,6 +218,7 @@ export default function LessonPage() {
         dynamicVariables: {
           user_name: displayName,
           user_level: level,
+          native_language: nativeLanguage,
           lesson_topic: topic,
           lesson_duration: String(duration),
         },

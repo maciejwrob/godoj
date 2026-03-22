@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export type OnboardingData = {
+  nativeLanguage: string;
   targetLanguage: string;
   languageVariant: string | null;
   currentLevel: string;
@@ -51,10 +52,13 @@ export async function saveOnboarding(data: OnboardingData) {
     return { success: false, error: "Nie udało się zapisać profilu." };
   }
 
-  // Mark onboarding as complete
+  // Update user: mark onboarding complete + save native language
   const { error: userError } = await supabase
     .from("users")
-    .update({ onboarding_complete: true })
+    .update({
+      onboarding_complete: true,
+      native_language: data.nativeLanguage,
+    })
     .eq("id", user.id);
 
   if (userError) {
