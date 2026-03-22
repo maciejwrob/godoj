@@ -205,15 +205,9 @@ export default function LessonPage() {
       // Request microphone permission first
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
+      console.log("Starting session with signedUrl:", signedUrl?.substring(0, 80));
       const conversationId = await conversation.startSession({
         signedUrl,
-        overrides: {
-          agent: {
-            prompt: {
-              prompt: systemPrompt,
-            },
-          },
-        },
       });
       console.log("Conversation started:", conversationId);
     } catch (err) {
