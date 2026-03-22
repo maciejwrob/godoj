@@ -1,9 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function checkInvitation(email: string) {
-  const supabase = await createClient();
+  // Use admin client to bypass RLS — user is not authenticated at login
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("invitations")
