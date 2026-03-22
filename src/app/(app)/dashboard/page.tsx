@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import {
   Flame,
   Clock,
@@ -79,13 +80,13 @@ export default async function DashboardPage() {
               Porozmawiaj z AI tutorem i ćwicz {langNames[targetLang]?.toLowerCase() ?? "język"}
             </p>
           </div>
-          <button
-            disabled
-            className="flex items-center gap-2 rounded-xl bg-primary/40 px-6 py-3 font-medium text-white/70 cursor-not-allowed"
+          <Link
+            href="/lesson"
+            className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-white transition-colors hover:bg-primary-dark"
           >
             <MessageCircle className="h-5 w-5" />
-            Wkrótce
-          </button>
+            Rozpocznij
+          </Link>
         </div>
       </div>
 
