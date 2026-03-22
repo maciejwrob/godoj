@@ -17,6 +17,15 @@ export async function POST(request: Request) {
 
     const { language, agent_id } = await request.json();
 
+    // Look up ElevenLabs agent ID from agents_config
+    const { data: agentConfig } = await supabase
+      .from("agents_config")
+      .select("elevenlabs_agent_id")
+      .eq("id", agent_id)
+      .single();
+
+    const elevenlabsAgentId = agentConfig?.elevenlabs_agent_id ?? agent_id;
+
     // Get user data
     const [{ data: userData }, { data: profile }, { data: lastLesson }] =
       await Promise.all([
@@ -95,7 +104,7 @@ ZASADY:
 
     // Get signed URL from ElevenLabs
     const signedUrlResponse = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${agent_id}`,
+      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${elevenlabsAgentId}`,
       {
         method: "GET",
         headers: {
