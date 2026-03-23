@@ -13,7 +13,6 @@ import {
   Play,
   ArrowLeft,
   RefreshCw,
-  Bug,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -58,20 +57,12 @@ export default function LessonPage() {
   const [hintLevel, setHintLevel] = useState<0 | 1 | 2>(0);
   const [hintsLoading, setHintsLoading] = useState(false);
 
-  // Debug overlay
-  const [debugInfo, setDebugInfo] = useState({
-    mode: "—",
-    lastSpeaker: "—",
-    silenceMs: 0,
-    hintsTriggered: 0,
-    events: [] as string[],
-  });
+  // Debug refs (console only, no UI)
   const debugRef = useRef({
     mode: "—",
     lastSpeaker: "—",
     silenceStart: 0,
     hintsTriggered: 0,
-    events: [] as string[],
   });
 
   // Refs
@@ -79,7 +70,6 @@ export default function LessonPage() {
   const hintTimer2Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
   const agentDoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lessonTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const debugTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const transcriptRef = useRef<TranscriptEntry[]>([]);
   const startTimeRef = useRef<number>(0);
 
@@ -91,7 +81,7 @@ export default function LessonPage() {
   const lessonActiveRef = useRef(false);
   const hintLevelRef = useRef(0); // mirror of hintLevel for use in callbacks
 
-  const HINT_COOLDOWN_MS = 15_000;
+  const HINT_COOLDOWN_MS = 12_000;
   const HINT_GRACE_MS = 3_000;
   const L1_MS = 2_000;
   const L2_MS = 4_000;
@@ -106,7 +96,6 @@ export default function LessonPage() {
   // ---- Debug log helper ----
   const dbg = (msg: string) => {
     console.log(`[hint] ${msg}`);
-    debugRef.current.events = [...debugRef.current.events.slice(-9), msg];
   };
 
   // ---- Hint timer helpers ----
@@ -185,23 +174,9 @@ export default function LessonPage() {
         });
       }, 1000);
 
-      // Debug overlay updater
-      debugTimerRef.current = setInterval(() => {
-        const silenceMs = debugRef.current.silenceStart > 0
-          ? Date.now() - debugRef.current.silenceStart
-          : 0;
-        setDebugInfo({
-          mode: debugRef.current.mode,
-          lastSpeaker: debugRef.current.lastSpeaker,
-          silenceMs,
-          hintsTriggered: debugRef.current.hintsTriggered,
-          events: [...debugRef.current.events],
-        });
-      }, 500);
     },
     onDisconnect: () => {
       lessonActiveRef.current = false;
-      if (debugTimerRef.current) clearInterval(debugTimerRef.current);
       if (lessonState === "active") handleEndLesson();
     },
     onMessage: ({ message, source }) => {
@@ -323,22 +298,13 @@ export default function LessonPage() {
     }
   };
 
-  // ---- Test button handler ----
-  const testHints = () => {
-    dbg("Manual test hint triggered");
-    lastHintTimeRef.current = 0; // Reset cooldown for test
-    fetchHint(1);
-    setTimeout(() => fetchHint(2), 2000);
-  };
-
   // ---- Lifecycle ----
   useEffect(() => {
     loadLessonData();
     return () => {
       clearHintTimers();
       if (lessonTimerRef.current) clearInterval(lessonTimerRef.current);
-      if (debugTimerRef.current) clearInterval(debugTimerRef.current);
-    };
+      };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -416,7 +382,6 @@ export default function LessonPage() {
     lessonActiveRef.current = false;
     clearHintTimers();
     if (lessonTimerRef.current) clearInterval(lessonTimerRef.current);
-    if (debugTimerRef.current) clearInterval(debugTimerRef.current);
     try { await conversation.endSession(); } catch {}
 
     const durationSeconds = Math.round((Date.now() - startTimeRef.current) / 1000);
@@ -510,18 +475,6 @@ export default function LessonPage() {
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center bg-bg-dark px-4">
-      {/* Debug overlay */}
-      <div className="absolute top-6 right-4 z-50 max-w-xs rounded-lg bg-black/80 p-3 font-mono text-[10px] text-green-400 backdrop-blur-sm">
-        <div>Mode: {debugInfo.mode} | Speaker: {debugInfo.lastSpeaker}</div>
-        <div>Silence: {debugInfo.silenceMs > 0 ? `${(debugInfo.silenceMs / 1000).toFixed(1)}s` : "—"} | Hints: {debugInfo.hintsTriggered}x | Level: {hintLevel}</div>
-        <div className="mt-1 max-h-20 overflow-y-auto text-[9px] text-green-300/70">
-          {debugInfo.events.map((e, i) => <div key={i}>{e}</div>)}
-        </div>
-        <button onClick={testHints} className="mt-2 rounded bg-green-700 px-2 py-1 text-[10px] text-white hover:bg-green-600">
-          <Bug className="mr-1 inline h-3 w-3" />Test Hints
-        </button>
-      </div>
-
       {/* Timer */}
       <div className="absolute top-6 left-1/2 -translate-x-1/2">
         <div className={`rounded-full px-5 py-2 text-lg font-mono font-bold ${

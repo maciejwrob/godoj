@@ -62,9 +62,19 @@ export async function POST(request: Request) {
         situationDesc = "Użytkownik milczy — nie wie jak odpowiedzieć.";
     }
 
+    const safetyRules = `IMPORTANT RULES FOR HINTS:
+- Hints must be appropriate for a language learning context
+- Never suggest anything sexual, offensive, rude, or inappropriate
+- Keep suggestions related to the conversation topic
+- Hints should help the user express everyday, normal thoughts
+- Focus on practical vocabulary: food, travel, work, hobbies, weather, family, daily life
+- If the conversation context seems to be going in an inappropriate direction, redirect with neutral suggestions`;
+
     const prompt =
       level === 1
         ? `Jesteś asystentem nauki ${targetLangName} na poziomie ${cefrLevel}.
+
+${safetyRules}
 
 Ostatnia wypowiedź tutora: "${last_agent_message || "brak"}"
 Sytuacja: ${situationDesc}
@@ -77,6 +87,8 @@ Odpowiedz TYLKO w formacie JSON (bez markdown):
 
 Słowa w języku ${targetLangName}, tłumaczenia po ${nativeLangName}.`
         : `Jesteś asystentem nauki ${targetLangName} na poziomie ${cefrLevel}.
+
+${safetyRules}
 
 Ostatnia wypowiedź tutora: "${last_agent_message || "brak"}"
 Sytuacja: ${situationDesc}
