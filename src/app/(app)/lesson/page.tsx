@@ -57,6 +57,11 @@ export default function LessonPage() {
   const [hintLevel, setHintLevel] = useState<0 | 1 | 2>(0);
   const [hintsLoading, setHintsLoading] = useState(false);
 
+  // Enrichment words
+  const [enrichmentWords, setEnrichmentWords] = useState<{ word: string; translation: string }[]>([]);
+  const enrichmentTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const enrichmentWordsShownRef = useRef<string[]>([]);
+
   // Debug refs (console only, no UI)
   const debugRef = useRef({
     mode: "—",
@@ -174,9 +179,18 @@ export default function LessonPage() {
         });
       }, 1000);
 
+      // Start enrichment words timer (every 25s, first after 15s)
+      setTimeout(() => fetchEnrichment(), 15000);
+      enrichmentTimerRef.current = setInterval(() => {
+        // Don't show enrichment while hints are visible
+        if (hintLevelRef.current === 0 && !agentSpeakingRef.current) {
+          fetchEnrichment();
+        }
+      }, 25000);
     },
     onDisconnect: () => {
       lessonActiveRef.current = false;
+      if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current);
       if (lessonState === "active") handleEndLesson();
     },
     onMessage: ({ message, source }) => {
@@ -298,13 +312,52 @@ export default function LessonPage() {
     }
   };
 
+  // ---- Enrichment words ----
+  const fetchEnrichment = async () => {
+    try {
+      const res = await fetch("/api/lessons/enrichment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          current_topic: topic,
+          language: profileRef.current.language,
+          user_level: level,
+          recent_vocabulary: enrichmentWordsShownRef.current,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.words?.length > 0) {
+          setEnrichmentWords(data.words);
+          enrichmentWordsShownRef.current = [
+            ...enrichmentWordsShownRef.current,
+            ...data.words.map((w: { word: string }) => w.word),
+          ];
+          // Auto-hide after 10s
+          setTimeout(() => setEnrichmentWords([]), 10000);
+        }
+      }
+    } catch { /* non-critical */ }
+  };
+
+  const addEnrichmentToVocab = async (word: string, translation: string) => {
+    try {
+      await fetch("/api/vocabulary/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word, translation, language: profileRef.current.language, lesson_id: lessonId }),
+      });
+    } catch { /* non-critical */ }
+  };
+
   // ---- Lifecycle ----
   useEffect(() => {
     loadLessonData();
     return () => {
       clearHintTimers();
       if (lessonTimerRef.current) clearInterval(lessonTimerRef.current);
-      };
+      if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -382,6 +435,7 @@ export default function LessonPage() {
     lessonActiveRef.current = false;
     clearHintTimers();
     if (lessonTimerRef.current) clearInterval(lessonTimerRef.current);
+    if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current);
     try { await conversation.endSession(); } catch {}
 
     const durationSeconds = Math.round((Date.now() - startTimeRef.current) / 1000);
@@ -394,6 +448,12 @@ export default function LessonPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lesson_id: lessonId, transcript: transcriptText, duration_seconds: durationSeconds }),
       });
+      // Check achievements in background
+      fetch("/api/achievements/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lesson_id: lessonId }),
+      }).catch(() => {});
       router.push(res.ok ? `/lesson/${lessonId}/summary` : "/dashboard");
     } catch { router.push("/dashboard"); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -482,6 +542,25 @@ export default function LessonPage() {
         }`}>{formatTime(timeLeft)}</div>
         {timeLeft === 0 && <div className="mt-2 text-center text-xs text-text-secondary">Czas minął — zakończ kiedy chcesz</div>}
       </div>
+
+      {/* Enrichment words — above visualization, only when no hints */}
+      {enrichmentWords.length > 0 && hintLevel === 0 && (
+        <div className="absolute top-20 left-4 right-4 mx-auto flex max-w-md justify-center gap-3">
+          {enrichmentWords.map((w, i) => (
+            <div key={i} className="flex items-center gap-2 rounded-full border border-border/30 bg-bg-card/60 px-4 py-2 text-sm backdrop-blur-sm">
+              <div>
+                <span className="font-medium text-primary">{w.word}</span>
+                <span className="text-text-secondary"> — {w.translation}</span>
+              </div>
+              <button
+                onClick={() => { addEnrichmentToVocab(w.word, w.translation); setEnrichmentWords((prev) => prev.filter((_, j) => j !== i)); }}
+                className="rounded-full bg-primary/10 px-1.5 py-0.5 text-xs text-primary hover:bg-primary/20"
+                title="Dodaj do słowniczka"
+              >+</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Voice viz */}
       <div className="flex flex-col items-center gap-8">
