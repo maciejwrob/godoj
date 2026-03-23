@@ -77,6 +77,7 @@ export default function LessonPage() {
   // Refs
   const hintTimer1Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hintTimer2Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const agentDoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lessonTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const debugTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const transcriptRef = useRef<TranscriptEntry[]>([]);
@@ -106,6 +107,7 @@ export default function LessonPage() {
   const clearHintTimers = () => {
     if (hintTimer1Ref.current) { clearTimeout(hintTimer1Ref.current); hintTimer1Ref.current = null; }
     if (hintTimer2Ref.current) { clearTimeout(hintTimer2Ref.current); hintTimer2Ref.current = null; }
+    if (agentDoneTimerRef.current) { clearTimeout(agentDoneTimerRef.current); agentDoneTimerRef.current = null; }
   };
 
   const canTriggerHint = (): boolean => {
@@ -150,9 +152,10 @@ export default function LessonPage() {
     }, L1_MS);
 
     hintTimer2Ref.current = setTimeout(() => {
+      // Don't check cooldown for L2 — it's an upgrade from L1
       if (!lessonActiveRef.current || agentSpeakingRef.current) return;
       dbg("→ L2 firing");
-      fetchHint(2);
+      fetchHint(2, true);
     }, L2_MS);
   };
 
@@ -208,37 +211,45 @@ export default function LessonPage() {
 
       if (source === "ai") {
         lastAgentMsgRef.current = clean;
-        dbg(`Agent said: "${clean.substring(0, 50)}..."`);
+        agentSpeakingRef.current = true;
+        debugRef.current.mode = "speaking";
+        dbg(`Agent: "${clean.substring(0, 50)}"`);
+
+        // Clear any pending hint timers while agent is talking
+        clearHintTimers();
+        if (hintLevel !== 0) setHintLevel(0);
+
+        // Debounce: if no new AI message for 1.5s → agent finished speaking
+        if (agentDoneTimerRef.current) clearTimeout(agentDoneTimerRef.current);
+        agentDoneTimerRef.current = setTimeout(() => {
+          agentSpeakingRef.current = false;
+          debugRef.current.mode = "listening";
+          debugRef.current.silenceStart = Date.now();
+          dbg("Agent finished speaking (1.5s debounce)");
+
+          // Now schedule hint timers
+          scheduleHints("agent finished, waiting for user");
+        }, 1500);
       }
 
       if (source === "user") {
         lastUserMsgRef.current = clean;
-        dbg(`User said: "${clean.substring(0, 50)}"`);
+        dbg(`User: "${clean.substring(0, 50)}"`);
+
+        // User is talking — cancel everything, hide hints
+        agentSpeakingRef.current = false;
         hideHints();
 
-        // Check for fillers
+        // Check for fillers — schedule hints after filler
         if (isFiller(clean)) {
-          dbg(`Filler detected: "${clean}"`);
+          dbg(`Filler: "${clean}"`);
           scheduleHints("filler words");
         }
       }
     },
     onModeChange: (prop: { mode: string }) => {
-      dbg(`Mode: ${prop.mode}`);
-      debugRef.current.mode = prop.mode;
-
-      if (prop.mode === "speaking") {
-        agentSpeakingRef.current = true;
-        clearHintTimers();
-        if (hintLevel !== 0) setHintLevel(0);
-        debugRef.current.silenceStart = 0;
-      } else if (prop.mode === "listening") {
-        agentSpeakingRef.current = false;
-        debugRef.current.silenceStart = Date.now();
-
-        // Agent just finished — start hint timers for "no response" case
-        scheduleHints("agent finished, waiting for user");
-      }
+      // Log only — actual detection uses onMessage debounce
+      dbg(`ModeEvent: ${prop.mode}`);
     },
     onStatusChange: (prop: { status: string }) => {
       dbg(`Status: ${prop.status}`);
@@ -253,9 +264,9 @@ export default function LessonPage() {
   });
 
   // ---- Fetch hints ----
-  const fetchHint = async (hintLvl: 1 | 2) => {
+  const fetchHint = async (hintLvl: 1 | 2, isUpgrade = false) => {
     if (hintLvl === 1) setHintsLoading(true);
-    lastHintTimeRef.current = Date.now();
+    if (!isUpgrade) lastHintTimeRef.current = Date.now();
     debugRef.current.hintsTriggered++;
 
     const recentTranscript = transcriptRef.current
