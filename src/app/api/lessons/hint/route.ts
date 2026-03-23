@@ -21,12 +21,14 @@ export async function POST(request: Request) {
       target_language,
       native_language,
       hint_level,
+      last_agent_message,
+      user_attempt,
+      stuck_type,
     } = await request.json();
 
     const level = hint_level ?? 1;
-    console.log(`Hint API called: user=${user.id}, level=${level}`);
+    console.log(`Hint API: user=${user.id}, L${level}, stuck=${stuck_type}`);
 
-    // Get user CEFR level
     const { data: lesson } = await supabase
       .from("lessons")
       .select("level_at_start")
@@ -47,32 +49,44 @@ export async function POST(request: Request) {
     const targetLangName = langNames[target_language] ?? target_language;
     const nativeLangName = langNames[native_language] ?? "polskim";
 
+    // Build context-aware situation description
+    let situationDesc: string;
+    switch (stuck_type) {
+      case "filler_words":
+        situationDesc = `Użytkownik próbuje odpowiedzieć ale mówi tylko "eee", "hmm" — nie może znaleźć słów.${user_attempt ? ` Powiedział: "${user_attempt}"` : ""}`;
+        break;
+      case "incomplete_sentence":
+        situationDesc = `Użytkownik zaczął zdanie ale się zatrzymał w połowie: "${user_attempt}"`;
+        break;
+      default:
+        situationDesc = "Użytkownik milczy — nie wie jak odpowiedzieć.";
+    }
+
     const prompt =
       level === 1
-        ? `Użytkownik uczy się ${targetLangName} na poziomie ${cefrLevel}.
+        ? `Jesteś asystentem nauki ${targetLangName} na poziomie ${cefrLevel}.
+
+Ostatnia wypowiedź tutora: "${last_agent_message || "brak"}"
+Sytuacja: ${situationDesc}
 Kontekst rozmowy: ${conversation_context}
 
-Użytkownik zawiesił się. Podaj 2-3 POJEDYNCZE słowa kluczowe, które pomogą mu kontynuować.
-Tylko słowa, nie frazy ani zdania.
+Podaj 2-3 POJEDYNCZE słowa kluczowe${stuck_type === "incomplete_sentence" ? " które pomogą DOKOŃCZYĆ zaczętą myśl" : " które pomogą zacząć odpowiedź"}.
 
 Odpowiedz TYLKO w formacie JSON (bez markdown):
-[
-  {"phrase": "słowo", "translation": "tłumaczenie"},
-  {"phrase": "słowo", "translation": "tłumaczenie"}
-]
+[{"phrase": "słowo", "translation": "tłumaczenie"}]
 
 Słowa w języku ${targetLangName}, tłumaczenia po ${nativeLangName}.`
-        : `Użytkownik uczy się ${targetLangName} na poziomie ${cefrLevel}.
+        : `Jesteś asystentem nauki ${targetLangName} na poziomie ${cefrLevel}.
+
+Ostatnia wypowiedź tutora: "${last_agent_message || "brak"}"
+Sytuacja: ${situationDesc}
 Kontekst rozmowy: ${conversation_context}
 
-Użytkownik zawiesił się i potrzebuje więcej pomocy. Podaj 2-3 PEŁNE frazy lub zdania, które może użyć żeby kontynuować rozmowę.
+Podaj 2-3 PEŁNE frazy/zdania${stuck_type === "incomplete_sentence" ? " które KONTYNUUJĄ zaczętą myśl użytkownika" : " które użytkownik może powiedzieć jako odpowiedź"}.
+Frazy powinny być naturalne i na poziomie ${cefrLevel}.
 
 Odpowiedz TYLKO w formacie JSON (bez markdown):
-[
-  {"phrase": "pełna fraza", "translation": "tłumaczenie"},
-  {"phrase": "pełna fraza", "translation": "tłumaczenie"},
-  {"phrase": "pełna fraza", "translation": "tłumaczenie"}
-]
+[{"phrase": "pełna fraza", "translation": "tłumaczenie"}]
 
 Frazy w języku ${targetLangName}, tłumaczenia po ${nativeLangName}.`;
 
@@ -84,7 +98,6 @@ Frazy w języku ${targetLangName}, tłumaczenia po ${nativeLangName}.`;
 
     const text =
       response.content[0].type === "text" ? response.content[0].text : "[]";
-
     const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
     const hints = JSON.parse(cleaned);
 
