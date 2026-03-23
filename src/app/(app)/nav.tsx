@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   MessageCircle,
   BookOpen,
+  Dumbbell,
   BarChart3,
   Trophy,
   Settings,
@@ -20,13 +21,14 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/lesson", label: "Lekcja", icon: MessageCircle },
   { href: "/vocabulary", label: "Słowniczek", icon: BookOpen },
+  { href: "/exercises", label: "Ćwiczenia", icon: Dumbbell },
   { href: "/progress", label: "Postępy", icon: BarChart3 },
   { href: "/achievements", label: "Odznaki", icon: Trophy },
   { href: "/settings", label: "Ustawienia", icon: Settings },
 ];
 
-const MOBILE_MAIN = NAV_ITEMS.slice(0, 4);
-const MOBILE_MORE = NAV_ITEMS.slice(4);
+const MOBILE_MAIN = NAV_ITEMS.slice(0, 5);
+const MOBILE_MORE = NAV_ITEMS.slice(5);
 
 export default function AppNav({
   displayName,
