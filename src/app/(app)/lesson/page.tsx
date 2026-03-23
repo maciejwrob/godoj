@@ -89,13 +89,19 @@ export default function LessonPage() {
   const lastAgentMsgRef = useRef("");
   const hintPauseSentRef = useRef(false);
   const lessonActiveRef = useRef(false);
+  const hintLevelRef = useRef(0); // mirror of hintLevel for use in callbacks
 
-  const HINT_COOLDOWN_MS = 20_000;
-  const HINT_GRACE_MS = 10_000;
-  const L1_MS = 3_000;
-  const L2_MS = 5_000;
+  const HINT_COOLDOWN_MS = 15_000;
+  const HINT_GRACE_MS = 3_000;
+  const L1_MS = 2_000;
+  const L2_MS = 4_000;
 
   const profileRef = useRef({ language: "", agentId: "" });
+
+  const setHintLevelSynced = (lvl: 0 | 1 | 2) => {
+    hintLevelRef.current = lvl;
+    setHintLevel(lvl);
+  };
 
   // ---- Debug log helper ----
   const dbg = (msg: string) => {
@@ -126,7 +132,7 @@ export default function LessonPage() {
 
   const hideHints = () => {
     clearHintTimers();
-    if (hintLevel !== 0) setHintLevel(0);
+    if (hintLevelRef.current !== 0) setHintLevelSynced(0);
     if (hintPauseSentRef.current) {
       try { conversation.sendContextualUpdate("The user is ready to continue."); } catch {}
       hintPauseSentRef.current = false;
@@ -217,19 +223,19 @@ export default function LessonPage() {
 
         // Clear any pending hint timers while agent is talking
         clearHintTimers();
-        if (hintLevel !== 0) setHintLevel(0);
+        if (hintLevelRef.current !== 0) setHintLevelSynced(0);
 
-        // Debounce: if no new AI message for 1.5s → agent finished speaking
+        // Debounce: if no new AI message for 1s → agent finished speaking
         if (agentDoneTimerRef.current) clearTimeout(agentDoneTimerRef.current);
         agentDoneTimerRef.current = setTimeout(() => {
           agentSpeakingRef.current = false;
           debugRef.current.mode = "listening";
           debugRef.current.silenceStart = Date.now();
-          dbg("Agent finished speaking (1.5s debounce)");
+          dbg("Agent finished (1s debounce) → scheduling hints");
 
-          // Now schedule hint timers
+          // Schedule hint timers
           scheduleHints("agent finished, waiting for user");
-        }, 1500);
+        }, 1000);
       }
 
       if (source === "user") {
@@ -308,7 +314,7 @@ export default function LessonPage() {
         } else {
           setHintsL2(data.hints ?? []);
         }
-        setHintLevel(hintLvl);
+        setHintLevelSynced(hintLvl as 0 | 1 | 2);
       }
     } catch (err) {
       dbg(`Hint fetch error: ${err}`);
