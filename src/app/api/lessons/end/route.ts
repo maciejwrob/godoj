@@ -17,8 +17,8 @@ export async function POST(request: Request) {
 
     const { lesson_id, transcript, duration_seconds } = await request.json();
 
-    // Get lesson and profile data
-    const [{ data: lesson }, { data: profile }] = await Promise.all([
+    // Get lesson, profile, and user data
+    const [{ data: lesson }, { data: profile }, { data: userData }] = await Promise.all([
       supabase
         .from("lessons")
         .select("language, level_at_start")
@@ -30,7 +30,13 @@ export async function POST(request: Request) {
         .eq("user_id", user.id)
         .limit(1)
         .single(),
+      supabase
+        .from("users")
+        .select("display_name")
+        .eq("id", user.id)
+        .single(),
     ]);
+    const userName = userData?.display_name ?? "Użytkownik";
 
     if (!lesson) {
       return NextResponse.json(
@@ -55,6 +61,8 @@ export async function POST(request: Request) {
         {
           role: "user",
           content: `Jesteś ekspertem od nauki języków. Przeanalizuj poniższy transkrypt rozmowy.
+Zwracaj się bezpośrednio do użytkownika po imieniu (${userName}). Mów "Ty", nie "uczeń" czy "uczestnik".
+Np. "${userName}, świetna robota! Nauczyłeś się 5 nowych słów." Bądź ciepły i motywujący.
 
 Język: ${langName}
 Poziom ucznia: ${lesson.level_at_start}

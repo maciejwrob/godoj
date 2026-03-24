@@ -92,6 +92,35 @@ export async function POST(request: Request) {
         ? topicResponse.content[0].text.trim()
         : "Luźna rozmowa";
 
+    // Generate dynamic first message
+    const lastLessonDate = lastLesson ? "niedawno" : null;
+    const lastLessonSummary = lastLesson?.summary_json
+      ? (lastLesson.summary_json as Record<string, unknown>).next_lesson_context ?? ""
+      : "";
+
+    const firstMsgResponse = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 80,
+      messages: [{
+        role: "user",
+        content: `Jesteś ${agentName}, tutor ${languageNameEn}. Użytkownik to ${displayName}.
+${lastLessonSummary ? `Kontekst z poprzedniej lekcji: ${lastLessonSummary}` : "To pierwsza lekcja tego użytkownika."}
+Dzisiejszy temat: ${topic}.
+
+Wygeneruj naturalne powitanie w ${languageNameEn} (max 2 krótkie zdania) na poziomie ${level}.
+- Jeśli to pierwsza lekcja: przywitaj się i przedstaw krótko
+- Jeśli była poprzednia lekcja: nawiąż do niej naturalnie
+- Bądź naturalny, ciepły, jak przyjaciel
+- NIE mów zawsze "Hvordan går det?" — bądź kreatywny
+
+Odpowiedz TYLKO tekstem powitania w ${languageNameEn}, nic więcej.`,
+      }],
+    });
+
+    const firstMessage = firstMsgResponse.content[0].type === "text"
+      ? firstMsgResponse.content[0].text.trim()
+      : "";
+
     // Build system prompt override
     const lastLessonContext = lastLesson?.summary_json
       ? `\n\nKontekst z poprzedniej lekcji: ${(lastLesson.summary_json as Record<string, unknown>).next_lesson_context ?? "brak"}`
@@ -165,6 +194,7 @@ ZASADY:
       native_language: nativeLanguage,
       language_name: languageNameEn,
       agent_name: agentName,
+      first_message: firstMessage,
     });
   } catch (error) {
     console.error("Start lesson error:", error);

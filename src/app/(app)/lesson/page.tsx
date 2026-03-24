@@ -2,35 +2,31 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useConversation } from "@11labs/react";
-import {
-  Mic,
-  MicOff,
-  PhoneOff,
-  Loader2,
-  MessageCircle,
-  Volume2,
-  LifeBuoy,
-  Play,
-  ArrowLeft,
-  RefreshCw,
-} from "lucide-react";
+import { Loader2, Play, ArrowLeft, RefreshCw, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { TutorAvatar } from "@/components/tutor-avatars";
 
 type Hint = { phrase: string; translation: string };
-type TranscriptEntry = { source: "user" | "ai"; message: string; ts: number };
+type ChatMessage = {
+  id: number;
+  source: "user" | "ai" | "hint" | "enrichment";
+  message: string;
+  ts: number;
+  hints?: Hint[];
+};
 type LessonState = "loading" | "ready" | "connecting" | "active" | "ending" | "error";
 
-// Strip ElevenLabs emotion tags like [Happy], [Patient], etc.
 function cleanCaption(text: string): string {
   return text.replace(/\[.*?\]\s*/g, "").trim();
 }
 
-// Filler words indicating struggling
 const FILLER_RE = /^(e+h*|u+h*m*|h+m+|a+h+|y+|øh*|eh+m+|hm+|mm+|ah+)$/i;
 function isFiller(text: string): boolean {
   const words = text.trim().split(/\s+/).filter(Boolean);
   return words.length > 0 && words.every((w) => FILLER_RE.test(w));
 }
+
+let msgIdCounter = 0;
 
 export default function LessonPage() {
   const router = useRouter();
@@ -44,41 +40,34 @@ export default function LessonPage() {
   const [systemPrompt, setSystemPrompt] = useState("");
   const [nativeLanguage, setNativeLanguage] = useState("pl");
   const [languageName, setLanguageName] = useState("Norwegian");
-  const [agentName, setAgentName] = useState("");
+  const [agentName, setAgentName] = useState("Mia");
+  const [agentId, setAgentId] = useState("ingrid");
+  const [firstMessage, setFirstMessage] = useState("");
   const [error, setError] = useState("");
 
   const [timeLeft, setTimeLeft] = useState(0);
-  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
-  const [currentCaption, setCurrentCaption] = useState("");
-  const [captionSource, setCaptionSource] = useState<"user" | "ai" | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [sosActive, setSosActive] = useState(false);
 
   // Hints
-  const [hintsL1, setHintsL1] = useState<Hint[]>([]);
-  const [hintsL2, setHintsL2] = useState<Hint[]>([]);
   const [hintLevel, setHintLevel] = useState<0 | 1 | 2>(0);
   const [hintsLoading, setHintsLoading] = useState(false);
+  const hintLevelRef = useRef(0);
+  const setHintLevelSynced = (lvl: 0 | 1 | 2) => { hintLevelRef.current = lvl; setHintLevel(lvl); };
 
-  // Enrichment words
+  // Enrichment
   const [enrichmentWords, setEnrichmentWords] = useState<{ word: string; translation: string }[]>([]);
   const enrichmentTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const enrichmentWordsShownRef = useRef<string[]>([]);
-
-  // Debug refs (console only, no UI)
-  const debugRef = useRef({
-    mode: "—",
-    lastSpeaker: "—",
-    silenceStart: 0,
-    hintsTriggered: 0,
-  });
 
   // Refs
   const hintTimer1Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hintTimer2Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
   const agentDoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lessonTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const transcriptRef = useRef<TranscriptEntry[]>([]);
+  const transcriptRef = useRef<{ source: "user" | "ai"; message: string }[]>([]);
   const startTimeRef = useRef<number>(0);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const lastHintTimeRef = useRef(0);
   const agentSpeakingRef = useRef(false);
@@ -86,7 +75,6 @@ export default function LessonPage() {
   const lastAgentMsgRef = useRef("");
   const hintPauseSentRef = useRef(false);
   const lessonActiveRef = useRef(false);
-  const hintLevelRef = useRef(0); // mirror of hintLevel for use in callbacks
 
   const HINT_COOLDOWN_MS = 12_000;
   const HINT_GRACE_MS = 3_000;
@@ -95,17 +83,18 @@ export default function LessonPage() {
 
   const profileRef = useRef({ language: "", agentId: "" });
 
-  const setHintLevelSynced = (lvl: 0 | 1 | 2) => {
-    hintLevelRef.current = lvl;
-    setHintLevel(lvl);
+  // Auto-scroll chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const addChatMessage = (source: ChatMessage["source"], message: string, hints?: Hint[]) => {
+    setChatMessages((prev) => [...prev, { id: ++msgIdCounter, source, message, ts: Date.now(), hints }]);
   };
 
-  // ---- Debug log helper ----
-  const dbg = (msg: string) => {
-    console.log(`[hint] ${msg}`);
-  };
+  const dbg = (msg: string) => console.log(`[hint] ${msg}`);
 
-  // ---- Hint timer helpers ----
+  // ---- Hint helpers ----
   const clearHintTimers = () => {
     if (hintTimer1Ref.current) { clearTimeout(hintTimer1Ref.current); hintTimer1Ref.current = null; }
     if (hintTimer2Ref.current) { clearTimeout(hintTimer2Ref.current); hintTimer2Ref.current = null; }
@@ -115,15 +104,7 @@ export default function LessonPage() {
   const canTriggerHint = (): boolean => {
     const elapsed = Date.now() - startTimeRef.current;
     const sinceLast = Date.now() - lastHintTimeRef.current;
-    const ok =
-      lessonActiveRef.current &&
-      !agentSpeakingRef.current &&
-      elapsed > HINT_GRACE_MS &&
-      (lastHintTimeRef.current === 0 || sinceLast > HINT_COOLDOWN_MS);
-    if (!ok) {
-      dbg(`canTrigger=false: active=${lessonActiveRef.current} agentSpeaking=${agentSpeakingRef.current} elapsed=${Math.round(elapsed/1000)}s sinceLast=${Math.round(sinceLast/1000)}s`);
-    }
-    return ok;
+    return lessonActiveRef.current && !agentSpeakingRef.current && elapsed > HINT_GRACE_MS && (lastHintTimeRef.current === 0 || sinceLast > HINT_COOLDOWN_MS);
   };
 
   const hideHints = () => {
@@ -138,30 +119,21 @@ export default function LessonPage() {
   const scheduleHints = (reason: string) => {
     if (!canTriggerHint()) return;
     clearHintTimers();
-    debugRef.current.silenceStart = Date.now();
     dbg(`Scheduling hints: ${reason}`);
 
     hintTimer1Ref.current = setTimeout(() => {
       if (!lessonActiveRef.current || agentSpeakingRef.current) return;
-      dbg("→ L1 firing");
-      try {
-        conversation.sendContextualUpdate(
-          "The user is thinking and reading hints on screen. Wait for them to speak. Do not interrupt."
-        );
-        hintPauseSentRef.current = true;
-      } catch {}
+      try { conversation.sendContextualUpdate("The user is thinking and reading hints. Wait for them."); hintPauseSentRef.current = true; } catch {}
       fetchHint(1);
     }, L1_MS);
 
     hintTimer2Ref.current = setTimeout(() => {
-      // Don't check cooldown for L2 — it's an upgrade from L1
       if (!lessonActiveRef.current || agentSpeakingRef.current) return;
-      dbg("→ L2 firing");
       fetchHint(2, true);
     }, L2_MS);
   };
 
-  // ---- ElevenLabs conversation ----
+  // ---- ElevenLabs ----
   const conversation = useConversation({
     onConnect: ({ conversationId }) => {
       dbg(`Connected: ${conversationId}`);
@@ -169,25 +141,17 @@ export default function LessonPage() {
       lessonActiveRef.current = true;
       startTimeRef.current = Date.now();
 
-      if (systemPrompt) {
-        conversation.sendContextualUpdate(systemPrompt);
-      }
+      if (systemPrompt) conversation.sendContextualUpdate(systemPrompt);
 
       setTimeLeft(duration * 60);
       lessonTimerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) { if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); return 0; }
-          return prev - 1;
-        });
+        setTimeLeft((prev) => { if (prev <= 1) { if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); return 0; } return prev - 1; });
       }, 1000);
 
-      // Start enrichment words timer (every 25s, first after 15s)
+      // Enrichment timer
       setTimeout(() => fetchEnrichment(), 15000);
       enrichmentTimerRef.current = setInterval(() => {
-        // Don't show enrichment while hints are visible
-        if (hintLevelRef.current === 0 && !agentSpeakingRef.current) {
-          fetchEnrichment();
-        }
+        if (hintLevelRef.current === 0 && !agentSpeakingRef.current) fetchEnrichment();
       }, 25000);
     },
     onDisconnect: () => {
@@ -197,169 +161,99 @@ export default function LessonPage() {
     },
     onMessage: ({ message, source }) => {
       const clean = cleanCaption(message);
-      setCurrentCaption(clean);
-      setCaptionSource(source);
+      if (!clean) return;
 
-      const entry: TranscriptEntry = { source, message: clean, ts: Date.now() };
-      transcriptRef.current = [...transcriptRef.current, entry];
-      setTranscript([...transcriptRef.current]);
+      // Add to chat
+      addChatMessage(source, clean);
 
-      debugRef.current.lastSpeaker = source;
+      // Track for transcript
+      transcriptRef.current = [...transcriptRef.current, { source, message: clean }];
 
       if (source === "ai") {
         lastAgentMsgRef.current = clean;
         agentSpeakingRef.current = true;
-        debugRef.current.mode = "speaking";
-        dbg(`Agent: "${clean.substring(0, 50)}"`);
-
-        // Clear any pending hint timers while agent is talking
         clearHintTimers();
-        if (hintLevelRef.current !== 0) setHintLevelSynced(0);
 
-        // Debounce: if no new AI message for 1s → agent finished speaking
         if (agentDoneTimerRef.current) clearTimeout(agentDoneTimerRef.current);
         agentDoneTimerRef.current = setTimeout(() => {
           agentSpeakingRef.current = false;
-          debugRef.current.mode = "listening";
-          debugRef.current.silenceStart = Date.now();
-          dbg("Agent finished (1s debounce) → scheduling hints");
-
-          // Schedule hint timers
-          scheduleHints("agent finished, waiting for user");
+          scheduleHints("agent finished");
         }, 1000);
       }
 
       if (source === "user") {
         lastUserMsgRef.current = clean;
-        dbg(`User: "${clean.substring(0, 50)}"`);
-
-        // User is talking — cancel everything, hide hints
         agentSpeakingRef.current = false;
         hideHints();
-
-        // Check for fillers — schedule hints after filler
-        if (isFiller(clean)) {
-          dbg(`Filler: "${clean}"`);
-          scheduleHints("filler words");
-        }
+        if (isFiller(clean)) scheduleHints("filler words");
       }
     },
-    onModeChange: (prop: { mode: string }) => {
-      // Log only — actual detection uses onMessage debounce
-      dbg(`ModeEvent: ${prop.mode}`);
-    },
-    onStatusChange: (prop: { status: string }) => {
-      dbg(`Status: ${prop.status}`);
-    },
-    onError: (message: string, context?: unknown) => {
-      console.error("Conversation error:", message, context);
-      if (lessonState !== "ending") {
-        setError("Utracono połączenie z tutorem. " + message);
-        setLessonState("error");
-      }
+    onModeChange: (prop: { mode: string }) => { dbg(`Mode: ${prop.mode}`); },
+    onStatusChange: (prop: { status: string }) => { dbg(`Status: ${prop.status}`); },
+    onError: (message: string) => {
+      console.error("Conversation error:", message);
+      if (lessonState !== "ending") { setError("Utracono polaczenie. " + message); setLessonState("error"); }
     },
   });
 
-  // ---- Fetch hints ----
+  // ---- Fetch hints (add to chat as hint message) ----
   const fetchHint = async (hintLvl: 1 | 2, isUpgrade = false) => {
     if (hintLvl === 1) setHintsLoading(true);
     if (!isUpgrade) lastHintTimeRef.current = Date.now();
-    debugRef.current.hintsTriggered++;
 
-    const recentTranscript = transcriptRef.current
-      .slice(-6)
-      .map((t) => `${t.source === "ai" ? "Tutor" : "Uczeń"}: ${t.message}`)
-      .join("\n");
-
+    const recentTranscript = transcriptRef.current.slice(-6).map((t) => `${t.source === "ai" ? "Tutor" : "User"}: ${t.message}`).join("\n");
     const userAttempt = lastUserMsgRef.current.trim();
-    const stuckType = !userAttempt
-      ? "no_response"
-      : isFiller(userAttempt)
-        ? "filler_words"
-        : "incomplete_sentence";
-
-    dbg(`Fetching L${hintLvl} hint, stuck=${stuckType}`);
+    const stuckType = !userAttempt ? "no_response" : isFiller(userAttempt) ? "filler_words" : "incomplete_sentence";
 
     try {
       const res = await fetch("/api/lessons/hint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lesson_id: lessonId,
-          conversation_context: recentTranscript,
-          target_language: profileRef.current.language,
-          native_language: nativeLanguage,
-          hint_level: hintLvl,
-          last_agent_message: lastAgentMsgRef.current,
-          user_attempt: userAttempt,
-          stuck_type: stuckType,
+          lesson_id: lessonId, conversation_context: recentTranscript,
+          target_language: profileRef.current.language, native_language: nativeLanguage,
+          hint_level: hintLvl, last_agent_message: lastAgentMsgRef.current,
+          user_attempt: userAttempt, stuck_type: stuckType,
         }),
       });
-
-      dbg(`Hint API response: ${res.status}`);
       if (res.ok) {
         const data = await res.json();
-        dbg(`Got ${data.hints?.length ?? 0} hints`);
-        if (hintLvl === 1) {
-          setHintsL1(data.hints ?? []);
-        } else {
-          setHintsL2(data.hints ?? []);
+        if (data.hints?.length > 0) {
+          // Add hint as chat message (persists in chat)
+          addChatMessage("hint", hintLvl === 1 ? "Podpowiedzi" : "Podpowiedzi (frazy)", data.hints);
+          setHintLevelSynced(hintLvl);
         }
-        setHintLevelSynced(hintLvl as 0 | 1 | 2);
       }
-    } catch (err) {
-      dbg(`Hint fetch error: ${err}`);
-    } finally {
-      if (hintLvl === 1) setHintsLoading(false);
-    }
+    } catch {} finally { if (hintLvl === 1) setHintsLoading(false); }
   };
 
-  // ---- Enrichment words ----
+  // ---- Enrichment ----
   const fetchEnrichment = async () => {
     try {
       const res = await fetch("/api/lessons/enrichment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          current_topic: topic,
-          language: profileRef.current.language,
-          user_level: level,
-          recent_vocabulary: enrichmentWordsShownRef.current,
-        }),
+        body: JSON.stringify({ current_topic: topic, language: profileRef.current.language, user_level: level, recent_vocabulary: enrichmentWordsShownRef.current }),
       });
       if (res.ok) {
         const data = await res.json();
         if (data.words?.length > 0) {
           setEnrichmentWords(data.words);
-          enrichmentWordsShownRef.current = [
-            ...enrichmentWordsShownRef.current,
-            ...data.words.map((w: { word: string }) => w.word),
-          ];
-          // Auto-hide after 10s
+          enrichmentWordsShownRef.current = [...enrichmentWordsShownRef.current, ...data.words.map((w: { word: string }) => w.word)];
           setTimeout(() => setEnrichmentWords([]), 10000);
         }
       }
-    } catch { /* non-critical */ }
+    } catch {}
   };
 
   const addEnrichmentToVocab = async (word: string, translation: string) => {
-    try {
-      await fetch("/api/vocabulary/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ word, translation, language: profileRef.current.language, lesson_id: lessonId }),
-      });
-    } catch { /* non-critical */ }
+    try { await fetch("/api/vocabulary/add", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ word, translation, language: profileRef.current.language, lesson_id: lessonId }) }); } catch {}
   };
 
   // ---- Lifecycle ----
   useEffect(() => {
     loadLessonData();
-    return () => {
-      clearHintTimers();
-      if (lessonTimerRef.current) clearInterval(lessonTimerRef.current);
-      if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current);
-    };
+    return () => { clearHintTimers(); if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -368,280 +262,267 @@ export default function LessonPage() {
       const profileRes = await fetch("/api/user/profile");
       if (!profileRes.ok) throw new Error("Failed to load profile");
       const profileData = await profileRes.json();
-      profileRef.current = {
-        language: profileData.target_language,
-        agentId: profileData.selected_agent_id ?? "default",
-      };
+      profileRef.current = { language: profileData.target_language, agentId: profileData.selected_agent_id ?? "default" };
+      setAgentId(profileData.selected_agent_id ?? "ingrid");
       await prepareLesson(profileData.target_language, profileData.selected_agent_id);
-    } catch {
-      setError("Nie udało się załadować danych. Spróbuj ponownie.");
-      setLessonState("error");
-    }
+    } catch { setError("Nie udalo sie zaladowac danych."); setLessonState("error"); }
   };
 
-  const prepareLesson = async (language: string, agentId?: string) => {
-    setLessonState("loading");
-    setError("");
+  const prepareLesson = async (language: string, agId?: string) => {
+    setLessonState("loading"); setError("");
     try {
-      const res = await fetch("/api/lessons/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ language, agent_id: agentId ?? "default" }),
-      });
-      if (!res.ok) { const data = await res.json(); throw new Error(data.error ?? "Błąd serwera"); }
+      const res = await fetch("/api/lessons/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language, agent_id: agId ?? "default" }) });
+      if (!res.ok) { const data = await res.json(); throw new Error(data.error ?? "Blad serwera"); }
       const data = await res.json();
-      setLessonId(data.lesson_id);
-      setTopic(data.topic);
-      setSignedUrl(data.signed_url);
-      setSystemPrompt(data.system_prompt_override);
-      setDuration(data.duration);
-      setDisplayName(data.display_name);
-      setLevel(data.level);
-      setNativeLanguage(data.native_language ?? "pl");
-      setLanguageName(data.language_name ?? "Norwegian");
-      setAgentName(data.agent_name ?? "");
+      setLessonId(data.lesson_id); setTopic(data.topic); setSignedUrl(data.signed_url);
+      setSystemPrompt(data.system_prompt_override); setDuration(data.duration);
+      setDisplayName(data.display_name); setLevel(data.level);
+      setNativeLanguage(data.native_language ?? "pl"); setLanguageName(data.language_name ?? "Norwegian");
+      setAgentName(data.agent_name ?? "Tutor"); setFirstMessage(data.first_message ?? "");
       setLessonState("ready");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Nie udało się przygotować lekcji");
-      setLessonState("error");
-    }
+    } catch (err) { setError(err instanceof Error ? err.message : "Blad"); setLessonState("error"); }
   };
 
   const startConversation = async () => {
     setLessonState("connecting");
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
-      const cid = await conversation.startSession({
+      await conversation.startSession({
         signedUrl,
         dynamicVariables: {
-          user_name: displayName,
-          user_level: level,
-          native_language: nativeLanguage,
-          language_name: languageName,
-          agent_name: agentName,
-          lesson_topic: topic,
-          lesson_duration: String(duration),
+          user_name: displayName, user_level: level, native_language: nativeLanguage,
+          language_name: languageName, agent_name: agentName, lesson_topic: topic,
+          lesson_duration: String(duration), first_message: firstMessage,
         },
       });
-      console.log("Conversation started:", cid);
     } catch (err) {
-      console.error("Start session error:", err);
-      setError(
-        err instanceof DOMException && err.name === "NotAllowedError"
-          ? "Musisz zezwolić na dostęp do mikrofonu."
-          : "Nie udało się połączyć. Sprawdź mikrofon."
-      );
-      setLessonState("error");
+      const msg = err instanceof DOMException && err.name === "NotAllowedError" ? "Zezwol na dostep do mikrofonu." : "Nie udalo sie polaczyc.";
+      setError(msg); setLessonState("error");
     }
   };
 
   const handleEndLesson = useCallback(async () => {
     if (lessonState === "ending") return;
-    setLessonState("ending");
-    lessonActiveRef.current = false;
-    clearHintTimers();
-    if (lessonTimerRef.current) clearInterval(lessonTimerRef.current);
+    setLessonState("ending"); lessonActiveRef.current = false;
+    clearHintTimers(); if (lessonTimerRef.current) clearInterval(lessonTimerRef.current);
     if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current);
     try { await conversation.endSession(); } catch {}
 
     const durationSeconds = Math.round((Date.now() - startTimeRef.current) / 1000);
-    const transcriptText = transcriptRef.current
-      .map((t) => `${t.source === "ai" ? "Tutor" : "Uczeń"}: ${t.message}`)
-      .join("\n");
+    const transcriptText = transcriptRef.current.map((t) => `${t.source === "ai" ? "Tutor" : "User"}: ${t.message}`).join("\n");
     try {
-      const res = await fetch("/api/lessons/end", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lesson_id: lessonId, transcript: transcriptText, duration_seconds: durationSeconds }),
-      });
-      // Check achievements in background
-      fetch("/api/achievements/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lesson_id: lessonId }),
-      }).catch(() => {});
+      const res = await fetch("/api/lessons/end", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lesson_id: lessonId, transcript: transcriptText, duration_seconds: durationSeconds }) });
+      fetch("/api/achievements/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lesson_id: lessonId }) }).catch(() => {});
       router.push(res.ok ? `/lesson/${lessonId}/summary` : "/dashboard");
     } catch { router.push("/dashboard"); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonState, lessonId, router]);
 
   const handleSOS = () => {
-    conversation.sendContextualUpdate("Użytkownik prosi o pomoc. Zwolnij, uprość język i powtórz ostatnią myśl prostszymi słowami.");
-    setSosActive(true);
-    setTimeout(() => setSosActive(false), 5000);
+    conversation.sendContextualUpdate("User needs help. Slow down, simplify, repeat.");
+    setSosActive(true); setTimeout(() => setSosActive(false), 5000);
   };
 
-  const playHintTTS = async (text: string) => {
+  const playTTS = async (text: string) => {
     try {
-      const res = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, language: profileRef.current.language }),
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.play();
-        audio.onended = () => URL.revokeObjectURL(url);
-      }
+      const res = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language: profileRef.current.language }) });
+      if (res.ok) { const blob = await res.blob(); const url = URL.createObjectURL(blob); const audio = new Audio(url); audio.play(); audio.onended = () => URL.revokeObjectURL(url); }
     } catch {}
   };
 
   const refreshTopic = () => prepareLesson(profileRef.current.language, profileRef.current.agentId);
-
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
   // ---- RENDER ----
 
-  if (lessonState === "error") {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <div className="max-w-sm space-y-6 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10"><MicOff className="h-8 w-8 text-red-400" /></div>
-          <h1 className="text-xl font-bold">Coś poszło nie tak</h1>
-          <p className="text-text-secondary">{error}</p>
-          <div className="flex gap-3">
-            <button onClick={() => router.push("/dashboard")} className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary">Dashboard</button>
-            <button onClick={loadLessonData} className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white">Spróbuj ponownie</button>
-          </div>
+  if (lessonState === "error") return (
+    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      <div className="max-w-sm space-y-6 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
+          <span className="material-symbols-outlined text-3xl text-red-400">error</span>
         </div>
-      </main>
-    );
-  }
-
-  if (lessonState === "loading") return <main className="flex min-h-screen flex-col items-center justify-center px-4"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-text-secondary">Przygotowuję lekcję...</p></main>;
-
-  if (lessonState === "ready") {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <div className="w-full max-w-md space-y-8 text-center">
-          <div><MessageCircle className="mx-auto h-12 w-12 text-primary" /><h1 className="mt-4 text-2xl font-bold">Gotowy do rozmowy?</h1></div>
-          <div className="rounded-xl border border-border bg-bg-card p-6 text-left">
-            <div className="mb-4">
-              <div className="text-sm text-text-secondary">Temat dnia</div>
-              <div className="mt-1 flex items-center justify-between">
-                <span className="text-lg font-medium">{topic}</span>
-                <button onClick={refreshTopic} className="rounded-lg p-2 text-text-secondary hover:text-primary"><RefreshCw className="h-4 w-4" /></button>
-              </div>
-            </div>
-            <div className="space-y-2 text-sm text-text-secondary"><div>Poziom: {level}</div><div>Czas: {duration} min</div></div>
-          </div>
-          <button onClick={startConversation} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-lg font-medium text-white hover:bg-primary-dark"><Mic className="h-5 w-5" />Rozpocznij rozmowę</button>
-          <button onClick={() => router.push("/dashboard")} className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary"><ArrowLeft className="h-4 w-4" />Wróć do Dashboard</button>
+        <h1 className="text-xl font-bold">Cos poszlo nie tak</h1>
+        <p className="text-on-surface-variant">{error}</p>
+        <div className="flex gap-3">
+          <button onClick={() => router.push("/dashboard")} className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-slate-400">Dashboard</button>
+          <button onClick={loadLessonData} className="flex-1 rounded-xl bg-godoj-blue py-2.5 text-sm font-bold text-white">Sprobuj ponownie</button>
         </div>
-      </main>
-    );
-  }
+      </div>
+    </div>
+  );
 
-  if (lessonState === "connecting") return <main className="flex min-h-screen flex-col items-center justify-center px-4"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-text-secondary">Łączę z tutorem...</p></main>;
-  if (lessonState === "ending") return <main className="flex min-h-screen flex-col items-center justify-center px-4"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-text-secondary">Analizuję lekcję...</p></main>;
+  if (lessonState === "loading") return (
+    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Przygotowuje lekcje...</p>
+    </div>
+  );
 
+  if (lessonState === "ready") return (
+    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      <div className="w-full max-w-md space-y-8 text-center">
+        <TutorAvatar agentId={agentId} size={100} />
+        <div>
+          <h1 className="text-2xl font-extrabold">{agentName}</h1>
+          <p className="mt-1 text-on-surface-variant">{languageName} · Poziom {level}</p>
+        </div>
+        <div className="rounded-2xl border border-white/5 bg-surface-container-high p-6 text-left">
+          <div className="text-sm text-on-surface-variant">Temat dnia</div>
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-lg font-bold">{topic}</span>
+            <button onClick={refreshTopic} className="text-slate-400 hover:text-primary"><RefreshCw className="h-4 w-4" /></button>
+          </div>
+          <div className="mt-3 text-sm text-slate-500">Czas: {duration} min</div>
+        </div>
+        <button onClick={startConversation} className="flex w-full items-center justify-center gap-3 rounded-2xl bg-godoj-blue px-6 py-4 text-lg font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
+          Rozpocznij rozmowe
+        </button>
+        <button onClick={() => router.push("/dashboard")} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
+          <ArrowLeft className="h-4 w-4" />Wroc do Dashboard
+        </button>
+      </div>
+    </div>
+  );
+
+  if (lessonState === "connecting") return (
+    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Lacze z {agentName}...</p>
+    </div>
+  );
+
+  if (lessonState === "ending") return (
+    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Analizuje lekcje...</p>
+    </div>
+  );
+
+  // ---- ACTIVE LESSON ----
   const isSpeaking = conversation.isSpeaking;
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center bg-bg-dark px-4">
-      {/* Timer */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2">
-        <div className={`rounded-full px-5 py-2 text-lg font-mono font-bold ${
-          timeLeft <= 60 ? "bg-red-500/20 text-red-400" : timeLeft <= 180 ? "bg-yellow-500/20 text-yellow-400" : "bg-bg-card text-text-secondary"
-        }`}>{formatTime(timeLeft)}</div>
-        {timeLeft === 0 && <div className="mt-2 text-center text-xs text-text-secondary">Czas minął — zakończ kiedy chcesz</div>}
+    <div className="flex h-screen flex-col bg-gradient-to-b from-surface via-surface to-surface-container">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <TutorAvatar agentId={agentId} size={36} speaking={isSpeaking} />
+          <div>
+            <span className="text-sm font-bold text-white">{agentName}</span>
+            {hintsLoading && <span className="ml-2 text-xs text-tertiary">myśli...</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className={`rounded-full px-3 py-1 text-sm font-mono font-bold ${
+            timeLeft <= 60 ? "bg-red-500/20 text-red-400" : timeLeft <= 180 ? "bg-tertiary/20 text-tertiary" : "bg-surface-container-high text-slate-400"
+          }`}>{formatTime(timeLeft)}</div>
+          <button onClick={handleEndLesson} className="rounded-lg p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
-      {/* Enrichment words — above visualization, only when no hints */}
+      {/* Enrichment words (above chat) */}
       {enrichmentWords.length > 0 && hintLevel === 0 && (
-        <div className="absolute top-20 left-4 right-4 mx-auto flex max-w-md justify-center gap-3">
+        <div className="flex items-center justify-center gap-3 border-b border-white/5 px-4 py-2 bg-surface-container/50">
           {enrichmentWords.map((w, i) => (
-            <div key={i} className="flex items-center gap-2 rounded-full border border-border/30 bg-bg-card/60 px-4 py-2 text-sm backdrop-blur-sm">
-              <div>
-                <span className="font-medium text-primary">{w.word}</span>
-                <span className="text-text-secondary"> — {w.translation}</span>
-              </div>
-              <button
-                onClick={() => { addEnrichmentToVocab(w.word, w.translation); setEnrichmentWords((prev) => prev.filter((_, j) => j !== i)); }}
-                className="rounded-full bg-primary/10 px-1.5 py-0.5 text-xs text-primary hover:bg-primary/20"
-                title="Dodaj do słowniczka"
-              >+</button>
+            <div key={i} className="flex items-center gap-2 rounded-full border border-white/10 bg-surface-container-high px-3 py-1.5 text-xs">
+              <span className="font-medium text-primary">{w.word}</span>
+              <span className="text-slate-500">— {w.translation}</span>
+              <button onClick={() => { addEnrichmentToVocab(w.word, w.translation); setEnrichmentWords((prev) => prev.filter((_, j) => j !== i)); }} className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/20">+</button>
             </div>
           ))}
         </div>
       )}
 
-      {/* Voice viz */}
-      <div className="flex flex-col items-center gap-8">
-        <div className="relative">
-          <div className={`flex h-40 w-40 items-center justify-center rounded-full transition-all duration-300 ${
-            isSpeaking ? "animate-pulse bg-primary/20 ring-4 ring-primary/40" : conversation.status === "connected" ? "bg-bg-card ring-2 ring-border" : "bg-bg-card"
-          }`}>
-            <div className={`flex h-24 w-24 items-center justify-center rounded-full transition-all duration-300 ${isSpeaking ? "bg-primary/30" : "bg-bg-card-hover"}`}>
-              {isSpeaking ? <Volume2 className="h-10 w-10 text-primary animate-pulse" /> : <Mic className="h-10 w-10 text-text-secondary" />}
-            </div>
+      {/* Chat area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        {chatMessages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
+            <TutorAvatar agentId={agentId} size={64} speaking={isSpeaking} />
+            <p className="mt-3 text-sm text-slate-500">{isSpeaking ? `${agentName} mowi...` : "Czekam na rozmowe..."}</p>
           </div>
-        </div>
+        )}
 
-        <div className="min-h-[80px] max-w-md text-center">
-          {currentCaption && (
-            <div className={`rounded-xl px-6 py-3 text-sm ${captionSource === "ai" ? "bg-bg-card text-text-primary" : "bg-primary/10 text-primary"}`}>
-              <span className="text-xs text-text-secondary">{captionSource === "ai" ? "Tutor" : "Ty"}</span>
-              <p className="mt-1">{currentCaption}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Hint loading */}
-      {hintsLoading && (
-        <div className="absolute bottom-32 left-1/2 -translate-x-1/2">
-          <div className="flex items-center gap-2 rounded-full bg-bg-card/80 px-4 py-2 text-sm text-text-secondary backdrop-blur-sm">
-            <Loader2 className="h-4 w-4 animate-spin" />Szukam podpowiedzi...
-          </div>
-        </div>
-      )}
-
-      {/* L1 hints — subtle word bar */}
-      {hintLevel === 1 && hintsL1.length > 0 && (
-        <div className="absolute bottom-24 left-4 right-4 mx-auto max-w-md animate-slide-in-up">
-          <div className="flex flex-wrap items-center justify-center gap-3 rounded-full border border-border/50 bg-bg-card/70 px-5 py-3 backdrop-blur-sm">
-            {hintsL1.map((h, i) => (
-              <span key={i} className="text-sm">
-                <span className="font-medium text-text-primary">{h.phrase}</span>
-                <span className="text-text-secondary"> → {h.translation}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* L2 hints — full panel */}
-      {hintLevel === 2 && hintsL2.length > 0 && (
-        <div className="absolute bottom-24 left-4 right-4 mx-auto max-w-md animate-slide-in-up">
-          <div className="rounded-2xl border border-border bg-bg-card p-4 shadow-xl">
-            <div className="mb-3 text-xs font-medium text-text-secondary">Podpowiedzi</div>
-            <div className="space-y-2">
-              {hintsL2.map((h, i) => (
-                <div key={i} className="flex items-center justify-between rounded-xl bg-bg-card-hover p-3">
-                  <div>
-                    <div className="font-medium text-text-primary">{h.phrase}</div>
-                    <div className="text-sm text-text-secondary">{h.translation}</div>
-                  </div>
-                  <button onClick={() => playHintTTS(h.phrase)} className="rounded-lg p-2 text-text-secondary hover:text-primary"><Play className="h-4 w-4" /></button>
+        {chatMessages.map((msg) => {
+          if (msg.source === "ai") return (
+            <div key={msg.id} className="flex items-start gap-2 max-w-[85%]">
+              <TutorAvatar agentId={agentId} size={28} />
+              <div>
+                <div className="rounded-2xl rounded-tl-sm bg-surface-container-high px-4 py-2.5 text-sm text-on-surface">
+                  {msg.message}
                 </div>
-              ))}
+                <span className="ml-2 text-[10px] text-slate-600">{new Date(msg.ts).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}</span>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          );
+
+          if (msg.source === "user") return (
+            <div key={msg.id} className="flex justify-end">
+              <div className="max-w-[85%]">
+                <div className="rounded-2xl rounded-tr-sm bg-godoj-blue/20 px-4 py-2.5 text-sm text-on-surface">
+                  {msg.message}
+                </div>
+                <span className="mr-2 float-right text-[10px] text-slate-600">{new Date(msg.ts).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}</span>
+              </div>
+            </div>
+          );
+
+          if (msg.source === "hint" && msg.hints) return (
+            <div key={msg.id} className="mx-auto max-w-[90%]">
+              <div className="rounded-2xl border border-tertiary/20 bg-tertiary/5 p-3">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-tertiary mb-2">
+                  <span className="material-symbols-outlined text-sm">lightbulb</span>
+                  Podpowiedzi
+                </div>
+                <div className="space-y-1.5">
+                  {msg.hints.map((h, i) => (
+                    <div key={i} className="flex items-center justify-between rounded-xl bg-surface-container-high px-3 py-2">
+                      <div>
+                        <span className="text-sm font-medium text-on-surface">{h.phrase}</span>
+                        <span className="ml-2 text-xs text-slate-500">{h.translation}</span>
+                      </div>
+                      <button onClick={() => playTTS(h.phrase)} className="text-slate-500 hover:text-primary">
+                        <Play className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+
+          return null;
+        })}
+        <div ref={chatEndRef} />
+      </div>
 
       {/* Bottom controls */}
-      <div className="absolute bottom-8 left-0 right-0 flex items-center justify-between px-8">
-        <button onClick={handleSOS} className={`flex h-14 w-14 items-center justify-center rounded-full text-sm font-bold transition-all ${sosActive ? "bg-orange-500 text-white ring-4 ring-orange-500/30" : "bg-bg-card text-orange-400 hover:bg-orange-500/20"}`} title="Pomoc">
-          <LifeBuoy className="h-6 w-6" />
+      <div className="flex items-center justify-between border-t border-white/5 bg-surface px-6 py-4">
+        <button onClick={handleSOS} className={`flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all ${sosActive ? "bg-tertiary text-black ring-4 ring-tertiary/30" : "bg-surface-container-high text-tertiary hover:bg-tertiary/10"}`}>
+          <span className="material-symbols-outlined text-lg">sos</span>
+          Pomoc
         </button>
-        <button onClick={handleEndLesson} className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30" title="Zakończ">
-          <PhoneOff className="h-6 w-6" />
+
+        {/* Recording indicator */}
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          {!isSpeaking && conversation.status === "connected" && (
+            <>
+              <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              Slucham...
+            </>
+          )}
+          {isSpeaking && (
+            <>
+              <span className="material-symbols-outlined text-primary animate-pulse text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>volume_up</span>
+              {agentName} mowi...
+            </>
+          )}
+        </div>
+
+        <button onClick={handleEndLesson} className="flex items-center gap-2 rounded-2xl bg-red-500/10 px-5 py-3 text-sm font-bold text-red-400 hover:bg-red-500/20">
+          <span className="material-symbols-outlined text-lg">call_end</span>
+          Zakoncz
         </button>
       </div>
-    </main>
+    </div>
   );
 }
