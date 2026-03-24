@@ -43,6 +43,8 @@ export default function LessonPage() {
   const [signedUrl, setSignedUrl] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [nativeLanguage, setNativeLanguage] = useState("pl");
+  const [languageName, setLanguageName] = useState("Norwegian");
+  const [agentName, setAgentName] = useState("");
   const [error, setError] = useState("");
 
   const [timeLeft, setTimeLeft] = useState(0);
@@ -396,6 +398,8 @@ export default function LessonPage() {
       setDisplayName(data.display_name);
       setLevel(data.level);
       setNativeLanguage(data.native_language ?? "pl");
+      setLanguageName(data.language_name ?? "Norwegian");
+      setAgentName(data.agent_name ?? "");
       setLessonState("ready");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nie udało się przygotować lekcji");
@@ -413,6 +417,8 @@ export default function LessonPage() {
           user_name: displayName,
           user_level: level,
           native_language: nativeLanguage,
+          language_name: languageName,
+          agent_name: agentName,
           lesson_topic: topic,
           lesson_duration: String(duration),
         },

@@ -20,11 +20,12 @@ export async function POST(request: Request) {
     // Look up ElevenLabs agent ID from agents_config
     const { data: agentConfig } = await supabase
       .from("agents_config")
-      .select("elevenlabs_agent_id")
+      .select("elevenlabs_agent_id, voice_name")
       .eq("id", agent_id)
       .single();
 
     const elevenlabsAgentId = agentConfig?.elevenlabs_agent_id ?? agent_id;
+    const agentName = agentConfig?.voice_name ?? agent_id;
 
     // Get user data
     const [{ data: userData }, { data: profile }, { data: lastLesson }] =
@@ -66,6 +67,13 @@ export async function POST(request: Request) {
       fr: "francuskim",
     };
     const langName = langNames[language] ?? language;
+
+    const langNamesEn: Record<string, string> = {
+      no: "Norwegian", es: "Spanish", en: "English", fr: "French",
+      sv: "Swedish", it: "Italian", pt: "Portuguese", de: "German",
+      hu: "Hungarian", fi: "Finnish",
+    };
+    const languageNameEn = langNamesEn[language] ?? language;
 
     // Generate topic via Claude
     const topicResponse = await anthropic.messages.create({
@@ -155,6 +163,8 @@ ZASADY:
       display_name: displayName,
       level,
       native_language: nativeLanguage,
+      language_name: languageNameEn,
+      agent_name: agentName,
     });
   } catch (error) {
     console.error("Start lesson error:", error);
