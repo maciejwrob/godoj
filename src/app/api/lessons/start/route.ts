@@ -61,10 +61,9 @@ export async function POST(request: Request) {
     const nativeLanguage = userData?.native_language ?? "pl";
 
     const langNames: Record<string, string> = {
-      es: "hiszpańskim",
-      en: "angielskim",
-      no: "norweskim",
-      fr: "francuskim",
+      es: "hiszpańskim", en: "angielskim", no: "norweskim", fr: "francuskim",
+      it: "włoskim", sv: "szwedzkim", de: "niemieckim", fi: "fińskim",
+      pt: "portugalskim", hu: "węgierskim",
     };
     const langName = langNames[language] ?? language;
 

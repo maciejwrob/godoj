@@ -32,7 +32,7 @@ export default async function DashboardPage() {
   const totalVocab = typeof vocabCount === "number" ? vocabCount : 0;
   const totalMinutes = (lessons ?? []).reduce((sum, l) => sum + Math.round((l.duration_seconds ?? 0) / 60), 0);
 
-  const langNames: Record<string, string> = { es: "Hiszpański", en: "Angielski", no: "Norweski", fr: "Francuski" };
+  const langNames: Record<string, string> = { es: "Hiszpanski", en: "Angielski", no: "Norweski", fr: "Francuski", it: "Wloski", sv: "Szwedzki", de: "Niemiecki", fi: "Finski", pt: "Portugalski", hu: "Wegierski" };
 
   const weeklyPct = weeklyGoal > 0 ? Math.min(100, Math.round((weeklyDone / weeklyGoal) * 100)) : 0;
 

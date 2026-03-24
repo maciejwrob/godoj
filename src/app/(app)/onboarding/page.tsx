@@ -30,34 +30,34 @@ type Language = {
 };
 
 const LANGUAGES: Language[] = [
+  { id: "no", name: "Norweski", flag: "\uD83C\uDDF3\uD83C\uDDF4", active: true },
+  { id: "fr", name: "Francuski", flag: "\uD83C\uDDEB\uD83C\uDDF7", active: true },
   {
     id: "es",
-    name: "Hiszpański",
-    flag: "🇪🇸",
+    name: "Hiszpanski",
+    flag: "\uD83C\uDDEA\uD83C\uDDF8",
     active: true,
     variants: [
-      { id: "es-EU", name: "Europejski", flag: "🇪🇸" },
-      { id: "es-LATAM", name: "Latynoamerykański", flag: "🇲🇽" },
+      { id: "es-EU", name: "Europejski", flag: "\uD83C\uDDEA\uD83C\uDDF8" },
+      { id: "es-LATAM", name: "Latynoamerykanski", flag: "\uD83C\uDDF2\uD83C\uDDFD" },
     ],
   },
   {
     id: "en",
     name: "Angielski",
-    flag: "🇬🇧",
+    flag: "\uD83C\uDDEC\uD83C\uDDE7",
     active: true,
     variants: [
-      { id: "en-US", name: "Amerykański", flag: "🇺🇸" },
-      { id: "en-GB", name: "Brytyjski", flag: "🇬🇧" },
+      { id: "en-US", name: "Amerykanski", flag: "\uD83C\uDDFA\uD83C\uDDF8" },
+      { id: "en-GB", name: "Brytyjski", flag: "\uD83C\uDDEC\uD83C\uDDE7" },
     ],
   },
-  { id: "no", name: "Norweski", flag: "🇳🇴", active: true },
-  { id: "fr", name: "Francuski", flag: "🇫🇷", active: true },
-  { id: "it", name: "Włoski", flag: "🇮🇹", active: false },
-  { id: "pt", name: "Portugalski", flag: "🇵🇹", active: false },
-  { id: "sv", name: "Szwedzki", flag: "🇸🇪", active: false },
-  { id: "de", name: "Niemiecki", flag: "🇩🇪", active: false },
-  { id: "hu", name: "Węgierski", flag: "🇭🇺", active: false },
-  { id: "fi", name: "Fiński", flag: "🇫🇮", active: false },
+  { id: "it", name: "Wloski", flag: "\uD83C\uDDEE\uD83C\uDDF9", active: true },
+  { id: "sv", name: "Szwedzki", flag: "\uD83C\uDDF8\uD83C\uDDEA", active: true },
+  { id: "de", name: "Niemiecki", flag: "\uD83C\uDDE9\uD83C\uDDEA", active: true },
+  { id: "fi", name: "Finski", flag: "\uD83C\uDDEB\uD83C\uDDEE", active: true },
+  { id: "pt", name: "Portugalski", flag: "\uD83C\uDDF5\uD83C\uDDF9", active: false },
+  { id: "hu", name: "Wegierski", flag: "\uD83C\uDDED\uD83C\uDDFA", active: false },
 ];
 
 const LEVELS = [
