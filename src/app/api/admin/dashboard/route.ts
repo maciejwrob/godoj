@@ -9,39 +9,34 @@ export async function GET() {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  // Active users in last 7 days (distinct user_ids with a lesson)
-  const { count: activeUsers7d } = await supabase
-    .from("lessons")
-    .select("user_id", { count: "exact", head: true })
-    .gte("started_at", sevenDaysAgo);
-
-  // Lessons this month
-  const { count: lessonsThisMonth } = await supabase
-    .from("lessons")
-    .select("*", { count: "exact", head: true })
-    .gte("started_at", monthStart);
-
-  // Total minutes this month
-  const { data: minutesData } = await supabase
-    .from("lessons")
-    .select("duration_seconds")
-    .gte("started_at", monthStart);
+  const [{ count: activeUsers7d }, { count: lessonsThisMonth }, { data: minutesData }, { data: recentLessonsRaw }] =
+    await Promise.all([
+      supabase.from("lessons").select("user_id", { count: "exact", head: true }).gte("started_at", sevenDaysAgo),
+      supabase.from("lessons").select("*", { count: "exact", head: true }).gte("started_at", monthStart),
+      supabase.from("lessons").select("duration_seconds").gte("started_at", monthStart),
+      supabase.from("lessons").select("id, started_at, duration_seconds, language, user_id, users(display_name)").order("started_at", { ascending: false }).limit(5),
+    ]);
 
   const minutesThisMonth = Math.round(
     (minutesData ?? []).reduce((sum, l) => sum + (l.duration_seconds ?? 0), 0) / 60
   );
 
-  // Recent 5 lessons with user display_name
-  const { data: recentLessons } = await supabase
-    .from("lessons")
-    .select("id, started_at, duration_seconds, language, user_id, users(display_name)")
-    .order("started_at", { ascending: false })
-    .limit(5);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recentLessons = (recentLessonsRaw ?? []).map((l: any) => {
+    const user = Array.isArray(l.users) ? l.users[0] : l.users;
+    return {
+      id: l.id,
+      userName: user?.display_name ?? "Nieznany",
+      agentName: l.language ?? "—",
+      duration: l.duration_seconds ? Math.round(l.duration_seconds / 60) : 0,
+      createdAt: l.started_at,
+    };
+  });
 
   return NextResponse.json({
-    active_users_7d: activeUsers7d ?? 0,
-    lessons_this_month: lessonsThisMonth ?? 0,
-    minutes_this_month: minutesThisMonth,
-    recent_lessons: recentLessons ?? [],
+    activeUsers: activeUsers7d ?? 0,
+    lessonsThisMonth: lessonsThisMonth ?? 0,
+    minutesThisMonth,
+    recentLessons,
   });
 }
