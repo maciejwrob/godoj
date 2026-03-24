@@ -16,11 +16,19 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  const { data: userData } = await supabase
-    .from("users")
-    .select("display_name, role, onboarding_complete")
-    .eq("id", user.id)
-    .single();
+  const [{ data: userData }, { data: profile }] = await Promise.all([
+    supabase
+      .from("users")
+      .select("display_name, role, onboarding_complete")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("user_profiles")
+      .select("current_level")
+      .eq("user_id", user.id)
+      .limit(1)
+      .single(),
+  ]);
 
   return (
     <div className="min-h-screen">
@@ -28,9 +36,13 @@ export default async function AppLayout({
         <AppNav
           displayName={userData?.display_name ?? "Użytkownik"}
           role={userData?.role ?? "adult"}
+          level={profile?.current_level ?? "A1"}
         />
       )}
-      {children}
+      {/* Main content area: offset for sidebar on desktop, bottom nav on mobile */}
+      <main className={userData?.onboarding_complete ? "pb-20 pt-16 lg:ml-64 lg:pb-0 lg:pt-0" : ""}>
+        {children}
+      </main>
     </div>
   );
 }
