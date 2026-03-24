@@ -55,14 +55,15 @@ export async function POST(request: Request) {
 
     const langNames: Record<string, string> = {
       es: "hiszpański", en: "angielski", no: "norweski", fr: "francuski",
+      it: "włoski", sv: "szwedzki", de: "niemiecki", fi: "fiński",
     };
     const lang = langNames[profile.target_language] ?? profile.target_language;
     const level = is_challenge ? "jeden poziom wyżej niż " + profile.current_level : profile.current_level;
 
     // Generate exercise data via Claude
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 3000,
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 2000,
       messages: [{
         role: "user",
         content: `Generuję ćwiczenia językowe (${lang}, poziom ${level}).
@@ -96,11 +97,11 @@ Odpowiedz TYLKO jako JSON array (bez markdown):
     }
 
     // Build exercises with mixed types
+    // Shuffle type order for variety, avoid consecutive same type
+    const shuffledTypes = [...EXERCISE_TYPES].sort(() => Math.random() - 0.5);
     const exercises = selectedWords.map((vocab, i) => {
       const data = exerciseData[i] || exerciseData[0];
-      // Cycle through exercise types for variety
-      const typeIndex = i % EXERCISE_TYPES.length;
-      const type = EXERCISE_TYPES[typeIndex];
+      const type = shuffledTypes[i % shuffledTypes.length];
 
       return {
         id: i,

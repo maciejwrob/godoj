@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 
 export type OnboardingData = {
@@ -65,8 +66,9 @@ export async function saveOnboarding(data: OnboardingData) {
     return { success: false, error: "Nie udało się zaktualizować profilu." };
   }
 
-  // Create streaks row
-  await supabase.from("streaks").upsert(
+  // Create streaks row (admin client to bypass RLS)
+  const adminDb = createAdminClient();
+  await adminDb.from("streaks").upsert(
     {
       user_id: user.id,
       current_streak: 0,

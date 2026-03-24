@@ -63,11 +63,14 @@ export default function LoginPage() {
           <MessageCircle className="h-10 w-10 text-primary" />
           <h1 className="text-3xl font-bold">Godoj</h1>
           <p className="text-text-secondary">
-            Podaj swój e-mail, aby się zalogować
+            Podaj swoj e-mail, aby sie zalogowac
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
+          <p className="text-xs text-on-surface-variant text-center">
+            Wyslemy Ci link do logowania na podany adres email. Kliknij go zeby sie zalogowac — nie potrzebujesz hasla.
+          </p>
           <div>
             <input
               type="email"

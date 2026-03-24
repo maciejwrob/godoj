@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic();
@@ -153,9 +154,10 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
       await supabase.from("vocabulary").insert(vocabItems);
     }
 
-    // Update streaks
+    // Update streaks (use admin client to bypass RLS)
+    const adminDb = createAdminClient();
     const today = new Date().toISOString().split("T")[0];
-    const { data: streak } = await supabase
+    const { data: streak } = await adminDb
       .from("streaks")
       .select("*")
       .eq("user_id", user.id)
@@ -177,7 +179,7 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
       const minutesDone =
         streak.weekly_minutes_done + Math.round(duration_seconds / 60);
 
-      await supabase
+      await adminDb
         .from("streaks")
         .update({
           current_streak: newStreak,
@@ -186,6 +188,16 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
           weekly_minutes_done: minutesDone,
         })
         .eq("user_id", user.id);
+    } else {
+      // Create streaks row if missing
+      await adminDb.from("streaks").insert({
+        user_id: user.id,
+        current_streak: 1,
+        longest_streak: 1,
+        last_lesson_date: today,
+        weekly_minutes_goal: 30,
+        weekly_minutes_done: Math.round(duration_seconds / 60),
+      });
     }
 
     return NextResponse.json({ summary });

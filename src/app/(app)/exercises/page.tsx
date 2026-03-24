@@ -91,9 +91,9 @@ export default function ExercisesPage() {
 
   // ---- Submit answer ----
 
-  const submitAnswer = useCallback((correct: boolean, answer = "") => {
+  const submitAnswer = useCallback((correct: boolean, answer = "", neutral = false) => {
     if (!current) return;
-    setLastCorrect(correct);
+    setLastCorrect(neutral ? null : correct);
     setLastAnswer(answer);
     setResults((prev) => [...prev, {
       vocabulary_id: current.vocabulary_id,
@@ -274,24 +274,33 @@ export default function ExercisesPage() {
   // ---- RENDER: Feedback ----
 
   if (state === "feedback" && current) {
+    const isNeutral = lastCorrect === null;
     return (
-      <main className="mx-auto max-w-lg px-4 py-8">
+      <main className="flex min-h-screen flex-col items-center justify-center px-4">
+        <div className="w-full max-w-lg">
         <ProgressBar current={currentIndex + 1} total={total} />
 
         <div className="mt-12 text-center">
           <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${
-            lastCorrect ? "bg-green-500/20" : "bg-red-500/20"
+            isNeutral ? "bg-tertiary/20" : lastCorrect ? "bg-green-500/20" : "bg-red-500/20"
           }`}>
-            {lastCorrect
-              ? <Check className="h-8 w-8 text-green-400" />
-              : <X className="h-8 w-8 text-red-400" />}
+            {isNeutral
+              ? <span className="material-symbols-outlined text-3xl text-tertiary">psychology</span>
+              : lastCorrect
+                ? <Check className="h-8 w-8 text-green-400" />
+                : <X className="h-8 w-8 text-red-400" />}
           </div>
           <h2 className="text-xl font-bold">
-            {lastCorrect ? "Dobrze!" : "Nie tym razem"}
+            {isNeutral ? "Do powtorki!" : lastCorrect ? "Dobrze!" : "Nie tym razem"}
           </h2>
-          {!lastCorrect && (
-            <p className="mt-2 text-text-secondary">
-              Poprawna odpowiedź: <span className="font-medium text-text-primary">{current.word}</span> → {current.translation}
+          {isNeutral && (
+            <p className="mt-2 text-on-surface-variant">
+              {current.word} → {current.translation}
+            </p>
+          )}
+          {lastCorrect === false && (
+            <p className="mt-2 text-on-surface-variant">
+              Poprawna odpowiedz: <span className="font-medium text-on-surface">{current.word}</span> → {current.translation}
             </p>
           )}
         </div>
@@ -303,6 +312,7 @@ export default function ExercisesPage() {
           {currentIndex + 1 >= total ? "Podsumowanie" : "Dalej"}
           <ArrowRight className="h-4 w-4" />
         </button>
+        </div>
       </main>
     );
   }
@@ -311,7 +321,8 @@ export default function ExercisesPage() {
 
   if (state === "exercise" && current) {
     return (
-      <main className="mx-auto max-w-lg px-4 py-8">
+      <main className="flex min-h-screen flex-col items-center justify-center px-4">
+        <div className="w-full max-w-lg">
         <ProgressBar current={currentIndex + 1} total={total} />
 
         <div className="mt-8">
@@ -323,7 +334,7 @@ export default function ExercisesPage() {
               question={current.word}
               questionLabel="Jak to przetłumaczysz?"
               correct={current.translation}
-              options={shuffle([current.translation, ...current.distractors_translations.slice(0, 3)])}
+              options={dedupeOptions(current.translation, current.distractors_translations)}
               onResult={submitAnswer}
               onTTS={() => playTTS(current.word, current.language)}
               showTTS
@@ -334,7 +345,7 @@ export default function ExercisesPage() {
               question={current.translation}
               questionLabel="Wybierz słowo"
               correct={current.word}
-              options={shuffle([current.word, ...current.distractors_words.slice(0, 3)])}
+              options={dedupeOptions(current.word, current.distractors_words)}
               onResult={submitAnswer}
             />
           )}
@@ -363,7 +374,7 @@ export default function ExercisesPage() {
               word={current.word}
               language={current.language}
               correct={current.word}
-              options={shuffle([current.word, ...current.distractors_words.slice(0, 3)])}
+              options={dedupeOptions(current.word, current.distractors_words)}
               onResult={submitAnswer}
               onTTS={playTTS}
             />
@@ -374,10 +385,11 @@ export default function ExercisesPage() {
               question={current.word}
               questionLabel="Jak to przetłumaczysz?"
               correct={current.translation}
-              options={shuffle([current.translation, ...current.distractors_translations.slice(0, 3)])}
+              options={dedupeOptions(current.translation, current.distractors_translations)}
               onResult={submitAnswer}
             />
           )}
+        </div>
         </div>
       </main>
     );
@@ -395,6 +407,12 @@ function shuffle<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+// Deduplicate: ensure correct answer is in array exactly once
+function dedupeOptions(correct: string, distractors: string[]): string[] {
+  const unique = distractors.filter((d) => d.toLowerCase() !== correct.toLowerCase());
+  return shuffle([correct, ...unique.slice(0, 3)]);
 }
 
 function ProgressBar({ current, total }: { current: number; total: number }) {
@@ -415,7 +433,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 
 function FlashcardExercise({ ex, onResult, onTTS }: {
   ex: Exercise;
-  onResult: (correct: boolean) => void;
+  onResult: (correct: boolean, answer?: string, neutral?: boolean) => void;
   onTTS: (text: string, lang: string) => void;
 }) {
   const [flipped, setFlipped] = useState(false);
@@ -452,14 +470,14 @@ function FlashcardExercise({ ex, onResult, onTTS }: {
 
       {flipped && (
         <div className="mt-6 flex gap-3">
-          <button onClick={() => onResult(false)} className="flex-1 rounded-xl border border-red-500/30 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10">
-            Nie znałem
+          <button onClick={() => onResult(false, "", true)} className="flex-1 rounded-xl border border-slate-500/30 py-3 text-sm font-medium text-slate-400 hover:bg-slate-500/10">
+            Nie znalem
           </button>
-          <button onClick={() => onResult(true)} className="flex-1 rounded-xl border border-yellow-500/30 py-3 text-sm font-medium text-yellow-400 hover:bg-yellow-500/10">
+          <button onClick={() => onResult(true, "", true)} className="flex-1 rounded-xl border border-tertiary/30 py-3 text-sm font-medium text-tertiary hover:bg-tertiary/10">
             Trudne
           </button>
           <button onClick={() => onResult(true)} className="flex-1 rounded-xl border border-green-500/30 py-3 text-sm font-medium text-green-400 hover:bg-green-500/10">
-            Łatwe
+            Latwe
           </button>
         </div>
       )}
@@ -495,20 +513,20 @@ function MultipleChoiceExercise({ question, questionLabel, correct, options, onR
           </button>
         )}
       </div>
-      <div className="space-y-3">
+      <div className="space-y-3" style={{ minHeight: "240px" }}>
         {options.map((opt) => (
           <button
             key={opt}
             onClick={() => handleSelect(opt)}
             disabled={!!selected}
-            className={`w-full rounded-xl border p-4 text-left font-medium transition-all ${
+            className={`w-full rounded-xl border p-4 text-left font-medium transition-colors h-14 ${
               selected === opt
                 ? opt === correct
                   ? "border-green-500 bg-green-500/10 text-green-400"
                   : "border-red-500 bg-red-500/10 text-red-400"
                 : selected && opt === correct
                   ? "border-green-500 bg-green-500/10 text-green-400"
-                  : "border-border bg-bg-card hover:border-primary/50"
+                  : "border-white/10 bg-surface-container-high hover:border-primary/50"
             }`}
           >
             {opt}
@@ -620,7 +638,7 @@ function MatchingExercise({ pairs, onResult }: {
 }) {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [matched, setMatched] = useState<string[]>([]);
-  const shuffledTranslations = shuffle(pairs.map((p) => p.translation));
+  const [shuffledTranslations] = useState(() => shuffle(pairs.map((p) => p.translation)));
 
   const handleWordClick = (word: string) => {
     if (matched.includes(word)) return;
