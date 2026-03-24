@@ -10,7 +10,6 @@ const AVATAR_MAP: Record<string, { src: string; name: string }> = {
   "godoj-sv-adult-astrid": { src: "/avatars/astrid.jpg", name: "Astrid" },
   "godoj-de-adult-heidi": { src: "/avatars/heidi.jpg", name: "Heidi" },
   "godoj-fi-adult-sanna": { src: "/avatars/sanna.jpg", name: "Sanna" },
-  // Legacy ID
   ingrid: { src: "/avatars/mia.jpg", name: "Mia" },
 };
 
@@ -26,30 +25,56 @@ export function TutorAvatar({
   const avatar = AVATAR_MAP[agentId];
   const initials = avatar?.name?.[0] ?? agentId?.[0]?.toUpperCase() ?? "?";
 
+  // Border width scales with size
+  const borderWidth = size >= 100 ? 3 : size >= 48 ? 2 : 1;
+
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div
+      className="relative mx-auto shrink-0"
+      style={{ width: size, height: size }}
+    >
       {avatar ? (
-        <Image
-          src={avatar.src}
-          alt={avatar.name}
-          width={size}
-          height={size}
-          className={`rounded-full object-cover ${speaking ? "ring-3 ring-primary/50" : ""}`}
-          style={{ width: size, height: size }}
-        />
+        <div
+          className="overflow-hidden rounded-full"
+          style={{
+            width: size,
+            height: size,
+            border: `${borderWidth}px solid rgba(132, 173, 255, 0.25)`,
+          }}
+        >
+          <Image
+            src={avatar.src}
+            alt={avatar.name}
+            width={size * 2}
+            height={size * 2}
+            className="h-full w-full object-cover object-top"
+            style={{ width: "100%", height: "100%" }}
+            priority={size >= 100}
+          />
+        </div>
       ) : (
         <div
-          className={`flex items-center justify-center rounded-full bg-godoj-blue/20 text-lg font-bold text-godoj-blue ${speaking ? "ring-3 ring-primary/50" : ""}`}
-          style={{ width: size, height: size }}
+          className="flex items-center justify-center rounded-full bg-godoj-blue/20 font-bold text-godoj-blue"
+          style={{
+            width: size,
+            height: size,
+            fontSize: size * 0.4,
+            border: `${borderWidth}px solid rgba(132, 173, 255, 0.25)`,
+          }}
         >
           {initials}
         </div>
       )}
+
+      {/* Speaking indicator ring */}
       {speaking && (
-        <div
-          className="absolute inset-0 rounded-full ring-4 ring-primary/30 animate-ping"
-          style={{ animationDuration: "1.5s" }}
-        />
+        <>
+          <div
+            className="absolute inset-0 rounded-full border-2 border-primary/40 animate-ping"
+            style={{ animationDuration: "1.5s" }}
+          />
+          <div className="absolute inset-0 rounded-full border-2 border-primary/30" />
+        </>
       )}
     </div>
   );

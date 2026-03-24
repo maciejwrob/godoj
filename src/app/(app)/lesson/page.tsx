@@ -359,10 +359,10 @@ export default function LessonPage() {
 
   if (lessonState === "ready") return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-8 text-center">
-        <TutorAvatar agentId={agentId} size={100} />
-        <div>
-          <h1 className="text-2xl font-extrabold">{agentName}</h1>
+      <div className="w-full max-w-md space-y-6 text-center">
+        <TutorAvatar agentId={agentId} size={160} />
+        <div className="mt-2">
+          <h1 className="text-3xl font-extrabold">{agentName}</h1>
           <p className="mt-1 text-on-surface-variant">{languageName} · Poziom {level}</p>
         </div>
         <div className="rounded-2xl border border-white/5 bg-surface-container-high p-6 text-left">
@@ -404,7 +404,7 @@ export default function LessonPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <TutorAvatar agentId={agentId} size={36} speaking={isSpeaking} />
+          <TutorAvatar agentId={agentId} size={40} speaking={isSpeaking} />
           <div>
             <span className="text-sm font-bold text-white">{agentName}</span>
             {hintsLoading && <span className="ml-2 text-xs text-tertiary">myśli...</span>}
@@ -437,7 +437,7 @@ export default function LessonPage() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {chatMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
-            <TutorAvatar agentId={agentId} size={64} speaking={isSpeaking} />
+            <TutorAvatar agentId={agentId} size={80} speaking={isSpeaking} />
             <p className="mt-3 text-sm text-slate-500">{isSpeaking ? `${agentName} mowi...` : "Czekam na rozmowe..."}</p>
           </div>
         )}
@@ -445,7 +445,7 @@ export default function LessonPage() {
         {chatMessages.map((msg) => {
           if (msg.source === "ai") return (
             <div key={msg.id} className="flex items-start gap-2 max-w-[85%]">
-              <TutorAvatar agentId={agentId} size={28} />
+              <TutorAvatar agentId={agentId} size={32} />
               <div>
                 <div className="rounded-2xl rounded-tl-sm bg-surface-container-high px-4 py-2.5 text-sm text-on-surface">
                   {msg.message}
