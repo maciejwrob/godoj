@@ -13,9 +13,22 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://godoj.co"),
   title: "Godoj — Gadoj po swojemu",
   description:
-    "Ucz się języków obcych rozmawiając z AI. Godoj to Twój prywatny tutor konwersacyjny.",
+    "Ucz sie jezykow obcych rozmawiajac z AI. Godoj to Twoj prywatny tutor konwersacyjny.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "Godoj — Gadoj po swojemu",
+    description: "Ucz sie jezykow obcych rozmawiajac z AI.",
+    images: [{ url: "/icon-512.png", width: 512, height: 512 }],
+  },
 };
 
 export default function RootLayout({

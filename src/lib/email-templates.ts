@@ -4,7 +4,8 @@ const BASE_STYLES = `
   .card { max-width: 480px; margin: 0 auto; background-color: #1E293B; border-radius: 16px; overflow: hidden; }
   .card-body { padding: 40px 32px; }
   .logo { text-align: center; margin-bottom: 24px; }
-  .logo-text { color: #1A73E8; font-size: 28px; font-weight: 800; text-decoration: none; letter-spacing: -0.02em; }
+  .logo img { width: 48px; height: 48px; border-radius: 12px; display: inline-block; vertical-align: middle; margin-right: 8px; }
+  .logo-text { color: #1A73E8; font-size: 28px; font-weight: 800; text-decoration: none; letter-spacing: -0.02em; vertical-align: middle; }
   .heading { color: #FFFFFF; font-size: 24px; font-weight: 700; text-align: center; margin: 0 0 16px 0; }
   .text { color: #94A3B8; font-size: 15px; line-height: 1.6; text-align: center; margin: 0 0 32px 0; }
   .btn-wrapper { text-align: center; margin-bottom: 24px; }
@@ -23,7 +24,7 @@ export function magicLinkEmail(magicLinkUrl: string): string {
   <div class="card">
     <div class="card-body">
       <div class="logo">
-        <span class="logo-text">Godoj</span>
+        <img src="https://godoj.co/logo.png" alt="Godoj" /><span class="logo-text">Godoj</span>
       </div>
       <h1 class="heading">Zaloguj sie</h1>
       <p class="text">Kliknij ponizszy przycisk zeby sie zalogowac do Godoj. Link jest wazny przez 24 godziny.</p>
@@ -49,7 +50,7 @@ export function invitationEmail(inviteUrl: string, adminName: string): string {
   <div class="card">
     <div class="card-body">
       <div class="logo">
-        <span class="logo-text">Godoj</span>
+        <img src="https://godoj.co/logo.png" alt="Godoj" /><span class="logo-text">Godoj</span>
       </div>
       <h1 class="heading">Zaproszenie do Godoj</h1>
       <p class="text">${adminName} zaprasza Cie do nauki jezykow z AI!<br><br>Godoj to aplikacja do nauki jezykow przez rozmowe z inteligentnymi tutorami AI. Dolacz i zacznij mowic!</p>

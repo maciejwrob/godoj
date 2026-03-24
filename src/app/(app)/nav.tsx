@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LogoFull, LogoIcon } from "@/components/logo";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
@@ -55,12 +56,7 @@ export default function AppNav({
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col border-r border-white/5 bg-surface shadow-2xl shadow-black/50 lg:flex">
         {/* Logo */}
         <div className="p-8 pb-10">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-godoj-blue">
-              <MaterialIcon name="settings_voice" filled className="text-2xl text-white" />
-            </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-godoj-blue">Godoj</h1>
-          </Link>
+          <LogoFull size={40} />
         </div>
 
         {/* Nav items */}
@@ -134,12 +130,7 @@ export default function AppNav({
 
       {/* Mobile top bar */}
       <header className="fixed left-0 right-0 top-0 z-40 flex items-center justify-between border-b border-white/5 bg-surface/80 px-4 py-3 backdrop-blur-xl lg:hidden">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-godoj-blue">
-            <MaterialIcon name="settings_voice" filled className="text-lg text-white" />
-          </div>
-          <span className="text-lg font-extrabold text-godoj-blue">Godoj</span>
-        </Link>
+        <LogoFull size={32} />
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-slate-400">
           <MaterialIcon name={mobileOpen ? "close" : "menu"} className="text-2xl" />
         </button>
