@@ -23,6 +23,9 @@ const BADGE_IMAGES: Set<string> = new Set([
   "exercises_first", "exercises_10", "exercises_50",
   "exercises_streak_7", "exercises_streak_30",
   "perfect_session", "perfect_3", "speed_demon", "challenge_complete",
+  // Kids
+  "kids_first_lesson", "kids_streak_3", "kids_streak_7",
+  "kids_vocab_10", "kids_vocab_50", "kids_lessons_10", "kids_perfect",
 ]);
 
 export function BadgeIcon({
