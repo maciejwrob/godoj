@@ -398,130 +398,162 @@ export default function LessonPage() {
 
   // ---- ACTIVE LESSON ----
   const isSpeaking = conversation.isSpeaking;
+  const elapsed = duration * 60 - timeLeft;
+  const progressPct = duration > 0 ? Math.min(100, Math.round((elapsed / (duration * 60)) * 100)) : 0;
 
   return (
-    <div className="flex h-screen flex-col bg-gradient-to-b from-surface via-surface to-surface-container">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+    <div className="flex h-screen flex-col bg-[#0F172A] overflow-hidden">
+      {/* Header */}
+      <header className="flex h-16 shrink-0 items-center justify-between px-4 lg:px-8 bg-surface/50 backdrop-blur-md border-b border-white/5 z-20">
         <div className="flex items-center gap-3">
-          <TutorAvatar agentId={agentId} size={40} speaking={isSpeaking} />
-          <div>
-            <span className="text-sm font-bold text-white">{agentName}</span>
-            {hintsLoading && <span className="ml-2 text-xs text-tertiary">myśli...</span>}
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className={`rounded-full px-3 py-1 text-sm font-mono font-bold ${
-            timeLeft <= 60 ? "bg-red-500/20 text-red-400" : timeLeft <= 180 ? "bg-tertiary/20 text-tertiary" : "bg-surface-container-high text-slate-400"
-          }`}>{formatTime(timeLeft)}</div>
-          <button onClick={handleEndLesson} className="rounded-lg p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10">
-            <X className="h-5 w-5" />
+          <button onClick={() => router.push("/dashboard")} className="h-9 w-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-white transition-colors">
+            <span className="material-symbols-outlined text-xl">arrow_back</span>
           </button>
-        </div>
-      </div>
-
-      {/* Enrichment words (above chat) */}
-      {enrichmentWords.length > 0 && hintLevel === 0 && (
-        <div className="flex items-center justify-center gap-3 border-b border-white/5 px-4 py-2 bg-surface-container/50">
-          {enrichmentWords.map((w, i) => (
-            <div key={i} className="flex items-center gap-2 rounded-full border border-white/10 bg-surface-container-high px-3 py-1.5 text-xs">
-              <span className="font-medium text-primary">{w.word}</span>
-              <span className="text-slate-500">— {w.translation}</span>
-              <button onClick={() => { addEnrichmentToVocab(w.word, w.translation); setEnrichmentWords((prev) => prev.filter((_, j) => j !== i)); }} className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/20">+</button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Chat area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {chatMessages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
-            <TutorAvatar agentId={agentId} size={80} speaking={isSpeaking} />
-            <p className="mt-3 text-sm text-slate-500">{isSpeaking ? `${agentName} mowi...` : "Czekam na rozmowe..."}</p>
+          <div className="hidden sm:block">
+            <h2 className="text-sm font-extrabold text-white leading-tight">{topic}</h2>
+            <p className="text-[10px] text-on-surface-variant">{agentName} · {languageName}</p>
           </div>
-        )}
-
-        {chatMessages.map((msg) => {
-          if (msg.source === "ai") return (
-            <div key={msg.id} className="flex items-start gap-2 max-w-[85%]">
-              <TutorAvatar agentId={agentId} size={32} />
-              <div>
-                <div className="rounded-2xl rounded-tl-sm bg-surface-container-high px-4 py-2.5 text-sm text-on-surface">
-                  {msg.message}
-                </div>
-                <span className="ml-2 text-[10px] text-slate-600">{new Date(msg.ts).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}</span>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* Progress bar */}
+          <div className="hidden sm:flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2">
+              <div className="w-32 lg:w-48 h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${progressPct}%` }} />
               </div>
+              <span className="text-xs font-bold text-primary">{progressPct}%</span>
             </div>
-          );
+          </div>
+          {/* Timer */}
+          <div className={`rounded-full px-3 py-1 text-xs font-mono font-bold ${
+            timeLeft <= 60 ? "bg-red-500/20 text-red-400" : "bg-surface-container-high text-slate-400"
+          }`}>{formatTime(timeLeft)}</div>
+        </div>
+      </header>
 
-          if (msg.source === "user") return (
-            <div key={msg.id} className="flex justify-end">
-              <div className="max-w-[85%]">
-                <div className="rounded-2xl rounded-tr-sm bg-godoj-blue/20 px-4 py-2.5 text-sm text-on-surface">
-                  {msg.message}
-                </div>
-                <span className="mr-2 float-right text-[10px] text-slate-600">{new Date(msg.ts).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}</span>
-              </div>
-            </div>
-          );
-
-          if (msg.source === "hint" && msg.hints) return (
-            <div key={msg.id} className="mx-auto max-w-[90%]">
-              <div className="rounded-2xl border border-tertiary/20 bg-tertiary/5 p-3">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-tertiary mb-2">
-                  <span className="material-symbols-outlined text-sm">lightbulb</span>
-                  Podpowiedzi
-                </div>
-                <div className="space-y-1.5">
-                  {msg.hints.map((h, i) => (
-                    <div key={i} className="flex items-center justify-between rounded-xl bg-surface-container-high px-3 py-2">
-                      <div>
-                        <span className="text-sm font-medium text-on-surface">{h.phrase}</span>
-                        <span className="ml-2 text-xs text-slate-500">{h.translation}</span>
-                      </div>
-                      <button onClick={() => playTTS(h.phrase)} className="text-slate-500 hover:text-primary">
-                        <Play className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-
-          return null;
-        })}
-        <div ref={chatEndRef} />
-      </div>
-
-      {/* Bottom controls */}
-      <div className="flex items-center justify-between border-t border-white/5 bg-surface px-6 py-4">
-        <button onClick={handleSOS} className={`flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all ${sosActive ? "bg-tertiary text-black ring-4 ring-tertiary/30" : "bg-surface-container-high text-tertiary hover:bg-tertiary/10"}`}>
-          <span className="material-symbols-outlined text-lg">sos</span>
-          Pomoc
-        </button>
-
-        {/* Recording indicator */}
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          {!isSpeaking && conversation.status === "connected" && (
-            <>
-              <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              Slucham...
-            </>
-          )}
-          {isSpeaking && (
-            <>
-              <span className="material-symbols-outlined text-primary animate-pulse text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>volume_up</span>
-              {agentName} mowi...
-            </>
-          )}
+      {/* Main content: avatar + chat */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Tutor avatar — left panel (desktop only) */}
+        <div className="hidden lg:flex w-1/3 items-end justify-center p-8 relative">
+          <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full pointer-events-none" />
+          <div className="relative z-10 flex items-end justify-center h-full w-full">
+            <TutorAvatar agentId={agentId} size={240} speaking={isSpeaking} />
+          </div>
         </div>
 
-        <button onClick={handleEndLesson} className="flex items-center gap-2 rounded-2xl bg-red-500/10 px-5 py-3 text-sm font-bold text-red-400 hover:bg-red-500/20">
-          <span className="material-symbols-outlined text-lg">call_end</span>
-          Zakoncz
-        </button>
+        {/* Chat + bottom controls */}
+        <div className="flex-1 flex flex-col relative">
+          {/* Enrichment words */}
+          {enrichmentWords.length > 0 && hintLevel === 0 && (
+            <div className="flex items-center justify-center gap-2 px-4 py-2 border-b border-white/5 bg-surface-container/30">
+              {enrichmentWords.map((w, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-full border border-white/10 bg-surface-container-high px-3 py-1.5 text-xs">
+                  <span className="font-medium text-primary">{w.word}</span>
+                  <span className="text-slate-500">— {w.translation}</span>
+                  <button onClick={() => { addEnrichmentToVocab(w.word, w.translation); setEnrichmentWords((prev) => prev.filter((_, j) => j !== i)); }} className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/20">+</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Chat messages */}
+          <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-6 pb-48 space-y-6" style={{ scrollbarWidth: "thin", scrollbarColor: "#334155 transparent" }}>
+            {chatMessages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
+                <TutorAvatar agentId={agentId} size={80} speaking={isSpeaking} />
+                <p className="mt-4 text-sm text-slate-500">{isSpeaking ? `${agentName} mowi...` : "Rozmowa zaraz sie zacznie..."}</p>
+              </div>
+            )}
+
+            {chatMessages.map((msg) => {
+              if (msg.source === "ai") return (
+                <div key={msg.id} className="flex flex-col items-start gap-1.5">
+                  <div className="flex items-center gap-2 pl-2">
+                    <span className="text-[10px] font-bold text-primary tracking-widest uppercase">{agentName}</span>
+                    <div className="w-1 h-1 rounded-full bg-primary" />
+                  </div>
+                  <div className="max-w-lg rounded-[1.5rem] rounded-tl-none bg-surface-container border border-white/5 px-5 py-4 shadow-xl">
+                    <p className="text-base lg:text-lg font-medium leading-relaxed">{msg.message}</p>
+                  </div>
+                  <span className="pl-2 text-[10px] text-slate-600">{new Date(msg.ts).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+              );
+
+              if (msg.source === "user") return (
+                <div key={msg.id} className="flex flex-col items-end gap-1.5">
+                  <div className="flex items-center gap-2 pr-2">
+                    <div className="w-1 h-1 rounded-full bg-godoj-blue" />
+                    <span className="text-[10px] font-bold text-godoj-blue tracking-widest uppercase">Ty</span>
+                  </div>
+                  <div className="max-w-lg rounded-[1.5rem] rounded-tr-none bg-godoj-blue px-5 py-4 shadow-[0_10px_30px_rgba(26,115,232,0.2)]">
+                    <p className="text-base lg:text-lg font-semibold leading-relaxed text-white">{msg.message}</p>
+                  </div>
+                  <span className="pr-2 text-[10px] text-slate-600">{new Date(msg.ts).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+              );
+
+              if (msg.source === "hint" && msg.hints) return (
+                <div key={msg.id} className="w-full max-w-2xl mx-auto">
+                  <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 p-5 rounded-3xl shadow-2xl">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="material-symbols-outlined text-sm text-tertiary" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
+                      <span className="text-xs font-bold text-tertiary tracking-wider uppercase">Podpowiedzi</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {msg.hints.map((h, i) => (
+                        <button key={i} onClick={() => playTTS(h.phrase)} className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all text-left group">
+                          <div>
+                            <p className="text-sm font-bold text-primary">{h.phrase}</p>
+                            <p className="text-[10px] text-on-surface-variant">{h.translation}</p>
+                          </div>
+                          <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">play_circle</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+
+              return null;
+            })}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Bottom controls — floating */}
+          <div className="absolute bottom-0 left-0 right-0 z-30 flex flex-col items-center pb-6 pointer-events-none">
+            {/* SOS + Mic + End */}
+            <div className="flex items-end gap-6 pointer-events-auto">
+              {/* SOS */}
+              <button onClick={handleSOS} className={`h-12 w-12 rounded-full flex items-center justify-center transition-all ${sosActive ? "bg-tertiary text-black ring-4 ring-tertiary/30" : "bg-surface-container-high text-tertiary hover:bg-tertiary/10 border border-white/5"}`} title="Pomoc">
+                <span className="material-symbols-outlined">sos</span>
+              </button>
+
+              {/* Mic button */}
+              <div className="relative flex flex-col items-center">
+                {!isSpeaking && conversation.status === "connected" && (
+                  <div className="absolute -inset-3 bg-primary/20 blur-2xl rounded-full animate-pulse" style={{ animationDuration: "2s" }} />
+                )}
+                <div className={`relative h-20 w-20 rounded-full flex flex-col items-center justify-center shadow-[0_0_40px_rgba(59,130,246,0.3)] transition-all ${
+                  isSpeaking ? "bg-surface-container-high ring-2 ring-primary/30" : "bg-primary hover:scale-110 active:scale-95"
+                }`}>
+                  <span className="material-symbols-outlined text-3xl text-white" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    {isSpeaking ? "volume_up" : "mic"}
+                  </span>
+                </div>
+                <div className="mt-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                  <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">
+                    {isSpeaking ? `${agentName} mowi...` : hintsLoading ? "Szukam podpowiedzi..." : "Slucham..."}
+                  </p>
+                </div>
+              </div>
+
+              {/* End */}
+              <button onClick={handleEndLesson} className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500/20 border border-white/5 transition-all" title="Zakoncz">
+                <span className="material-symbols-outlined">call_end</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
