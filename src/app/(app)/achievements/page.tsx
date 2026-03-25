@@ -46,14 +46,19 @@ export default async function AchievementsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: allAchievements }, { data: userAchievements }] = await Promise.all([
+  const [{ data: allAchievements }, { data: userAchievements }, { data: profileData }] = await Promise.all([
     supabase.from("achievements").select("*").order("category").order("requirement_value"),
     supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id),
+    supabase.from("user_profiles").select("is_kids_mode").eq("user_id", user.id).limit(1).single(),
   ]);
 
-  const achievements = (allAchievements ?? []) as Achievement[];
+  const isKids = profileData?.is_kids_mode ?? false;
+  // Filter: show only kids badges for kids, only adult badges for adults
+  const achievements = ((allAchievements ?? []) as Achievement[]).filter(
+    (a) => isKids ? a.id.startsWith("kids_") : !a.id.startsWith("kids_")
+  );
   const earned = new Map((userAchievements ?? [] as UserAchievement[]).map((ua: UserAchievement) => [ua.achievement_id, ua.earned_at]));
-  const earnedCount = earned.size;
+  const earnedCount = achievements.filter((a) => earned.has(a.id)).length;
   const totalCount = achievements.length;
 
   const categories = [...new Set(achievements.map((a) => a.category))];

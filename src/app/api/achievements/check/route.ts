@@ -9,6 +9,15 @@ export async function POST(request: Request) {
 
     const { lesson_id } = await request.json();
 
+    // Check if user is in kids mode
+    const { data: userProfile } = await supabase
+      .from("user_profiles")
+      .select("is_kids_mode")
+      .eq("user_id", user.id)
+      .limit(1)
+      .single();
+    const isKids = userProfile?.is_kids_mode ?? false;
+
     // Fetch all needed data in parallel
     const [
       { data: allAchievements },
@@ -74,6 +83,10 @@ export async function POST(request: Request) {
 
     for (const a of (allAchievements ?? [])) {
       if (earned.has(a.id)) continue;
+      // Skip kids badges for adults and vice versa
+      const isKidsBadge = a.id.startsWith("kids_");
+      if (isKids && !isKidsBadge) continue;
+      if (!isKids && isKidsBadge) continue;
 
       let qualifies = false;
       switch (a.requirement_type) {
