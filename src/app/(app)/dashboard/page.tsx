@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { BadgeIcon } from "@/components/badge-icon";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -150,7 +151,7 @@ export default async function DashboardPage() {
                     const ach = Array.isArray(ua.achievements) ? ua.achievements[0] : ua.achievements;
                     return (
                       <div key={ua.achievement_id} className="flex items-center gap-4 rounded-2xl border border-white/5 bg-surface-container-high p-4">
-                        <span className="text-2xl">{ach?.icon}</span>
+                        <BadgeIcon achievementId={ua.achievement_id} emoji={ach?.icon ?? ""} size={48} earned={true} />
                         <div>
                           <p className="font-bold text-white">{ach?.name_pl}</p>
                           <p className="text-xs text-slate-500">{new Date(ua.earned_at).toLocaleDateString("pl-PL")}</p>

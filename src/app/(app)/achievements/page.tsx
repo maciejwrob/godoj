@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Trophy } from "lucide-react";
+import { BadgeIcon } from "@/components/badge-icon";
 
 type Achievement = {
   id: string;
@@ -101,15 +102,7 @@ export default async function AchievementsPage() {
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-lg ${
-                          isEarned
-                            ? `bg-gradient-to-br ${TIER_COLORS[a.tier]} text-white`
-                            : "bg-bg-card-hover text-text-secondary"
-                        }`}
-                      >
-                        {a.icon}
-                      </div>
+                      <BadgeIcon achievementId={a.id} emoji={a.icon} size={64} earned={isEarned} />
                       <div className="flex-1">
                         <div className="font-medium">{a.name_pl}</div>
                         <div className="text-sm text-text-secondary">{a.description_pl}</div>
