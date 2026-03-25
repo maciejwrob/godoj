@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
@@ -32,10 +33,10 @@ export async function GET(request: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
+    console.error("Exchange code error:", error.message);
     return NextResponse.redirect(`${origin}/login`);
   }
 
-  // Get the authenticated user
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -44,15 +45,18 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login`);
   }
 
+  // Use admin client for DB operations (bypass RLS)
+  const adminDb = createAdminClient();
+
   // Mark invitation as accepted
-  await supabase
+  await adminDb
     .from("invitations")
     .update({ accepted_at: new Date().toISOString() })
     .eq("email", user.email!)
     .is("accepted_at", null);
 
   // Check if onboarding is complete
-  const { data: userData } = await supabase
+  const { data: userData } = await adminDb
     .from("users")
     .select("onboarding_complete")
     .eq("id", user.id)

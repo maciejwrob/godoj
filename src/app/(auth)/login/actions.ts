@@ -2,10 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Resend } from "resend";
-import { magicLinkEmail } from "@/lib/email-templates";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function checkInvitation(email: string) {
   const supabase = createAdminClient();
@@ -39,48 +35,19 @@ export async function sendMagicLink(email: string) {
     };
   }
 
-  const normalizedEmail = email.toLowerCase().trim();
-  const adminClient = createAdminClient();
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email: email.toLowerCase().trim(),
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/callback`,
+    },
+  });
 
-  // Generate magic link via Supabase admin API
-  const { data: linkData, error: linkError } =
-    await adminClient.auth.admin.generateLink({
-      type: "magiclink",
-      email: normalizedEmail,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/callback`,
-      },
-    });
-
-  if (linkError || !linkData?.properties?.action_link) {
-    // Fallback: use standard OTP (sends default Supabase email)
-    const supabase = await createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: normalizedEmail,
-      options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/callback`,
-      },
-    });
-
-    if (error) {
-      return { success: false as const, error: "Nie udało się wysłać linku. Spróbuj ponownie." };
-    }
-    return { success: true as const };
-  }
-
-  // Send custom email via Resend
-  const magicLink = linkData.properties.action_link;
-
-  try {
-    await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL ?? "noreply@godoj.co",
-      to: normalizedEmail,
-      subject: "Zaloguj się do Godoj",
-      html: magicLinkEmail(magicLink),
-    });
-  } catch (emailError) {
-    console.error("Resend email error:", emailError);
-    return { success: false as const, error: "Nie udało się wysłać emaila." };
+  if (error) {
+    return {
+      success: false as const,
+      error: "Nie udało się wysłać linku. Spróbuj ponownie.",
+    };
   }
 
   return { success: true as const };
