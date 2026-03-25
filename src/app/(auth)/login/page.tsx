@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { sendMagicLink } from "./actions";
-import { Mail, ArrowLeft, Loader2, MessageCircle } from "lucide-react";
+import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -60,8 +61,12 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-col items-center gap-3 text-center">
-          <MessageCircle className="h-10 w-10 text-primary" />
-          <h1 className="text-3xl font-bold">Godoj</h1>
+          <div className="flex items-center gap-3">
+            <div className="overflow-hidden rounded-xl" style={{ width: 40, height: 40 }}>
+              <Image src="/logo-icon.png" alt="Godoj" width={80} height={80} className="h-full w-full object-cover" style={{ width: 40, height: 40 }} priority />
+            </div>
+            <span className="text-2xl font-extrabold tracking-tight text-white" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>godoj.co</span>
+          </div>
           <p className="text-text-secondary">
             Podaj swoj e-mail, aby sie zalogowac
           </p>
