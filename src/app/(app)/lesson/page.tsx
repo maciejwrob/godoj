@@ -36,6 +36,7 @@ export default function LessonPage() {
   const [level, setLevel] = useState("A1");
   const [displayName, setDisplayName] = useState("");
   const [duration, setDuration] = useState(15);
+  const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [signedUrl, setSignedUrl] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [nativeLanguage, setNativeLanguage] = useState("pl");
@@ -147,7 +148,8 @@ export default function LessonPage() {
 
       if (systemPrompt) conversation.sendContextualUpdate(systemPrompt);
 
-      setTimeLeft(duration * 60);
+      const effectiveDuration = selectedDuration ?? duration;
+      setTimeLeft(effectiveDuration * 60);
       lessonTimerRef.current = setInterval(() => {
         setTimeLeft((prev) => { if (prev <= 1) { if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); return 0; } return prev - 1; });
       }, 1000);
@@ -298,7 +300,7 @@ export default function LessonPage() {
         dynamicVariables: {
           user_name: displayName, user_level: level, native_language: nativeLanguage,
           language_name: languageName, agent_name: agentName, lesson_topic: topic,
-          lesson_duration: String(duration), first_message: firstMessage,
+          lesson_duration: String(selectedDuration ?? duration), first_message: firstMessage,
         },
       });
     } catch (err) {
@@ -388,7 +390,18 @@ export default function LessonPage() {
             <span className="text-lg font-bold">{topic}</span>
             <button onClick={refreshTopic} className="text-slate-400 hover:text-primary"><RefreshCw className="h-4 w-4" /></button>
           </div>
-          <div className="mt-3 text-sm text-slate-500">Czas: {duration} min</div>
+        </div>
+        {/* Duration picker */}
+        <div>
+          <div className="mb-2 text-sm text-on-surface-variant text-center">Czas lekcji</div>
+          <div className="flex justify-center gap-2">
+            {[5, 10, 15].map((d) => (
+              <button key={d} onClick={() => setSelectedDuration(d)}
+                className={`rounded-full px-5 py-2 text-sm font-bold transition-all ${(selectedDuration ?? duration) === d ? "bg-godoj-blue text-white shadow-lg shadow-godoj-blue/30" : "border border-white/10 text-on-surface-variant hover:border-primary/50"}`}>
+                {d} min
+              </button>
+            ))}
+          </div>
         </div>
         <button onClick={startConversation} className="flex w-full items-center justify-center gap-3 rounded-2xl bg-godoj-blue px-6 py-4 text-lg font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
@@ -415,8 +428,9 @@ export default function LessonPage() {
 
   // ---- ACTIVE LESSON ----
   const isSpeaking = conversation.isSpeaking;
-  const elapsed = duration * 60 - timeLeft;
-  const progressPct = duration > 0 ? Math.min(100, Math.round((elapsed / (duration * 60)) * 100)) : 0;
+  const effectiveDur = selectedDuration ?? duration;
+  const elapsed = effectiveDur * 60 - timeLeft;
+  const progressPct = effectiveDur > 0 ? Math.min(100, Math.round((elapsed / (effectiveDur * 60)) * 100)) : 0;
 
   return (
     <div className="flex h-screen flex-col bg-[#0F172A] overflow-hidden">
