@@ -1,13 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { sendMagicLink } from "./actions";
 import { Mail, ArrowLeft, Loader2, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Handle magic link hash fragment (#access_token=...)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes("access_token")) {
+      const supabase = createClient();
+      // Supabase client auto-detects the hash and sets the session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          // Check onboarding status
+          supabase
+            .from("users")
+            .select("onboarding_complete")
+            .eq("id", session.user.id)
+            .single()
+            .then(({ data }) => {
+              if (data?.onboarding_complete) {
+                router.push("/dashboard");
+              } else {
+                router.push("/onboarding");
+              }
+            });
+        } else {
+          setAuthLoading(false);
+        }
+      });
+    } else {
+      setAuthLoading(false);
+    }
+  }, [router]);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
@@ -25,6 +59,15 @@ export default function LoginPage() {
     }
     setLoading(false);
   };
+
+  if (authLoading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center px-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-on-surface-variant">Loguję...</p>
+      </main>
+    );
+  }
 
   if (sent) {
     return (
