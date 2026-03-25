@@ -192,7 +192,7 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
       const isNewWeek = !streak.week_start || streak.week_start < weekStart;
       const weeklyMinutes = isNewWeek ? lessonMinutes : streak.weekly_minutes_done + lessonMinutes;
 
-      await adminDb
+      const { error: streakError } = await adminDb
         .from("streaks")
         .update({
           current_streak: newStreak,
@@ -202,6 +202,9 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
           week_start: isNewWeek ? weekStart : streak.week_start,
         })
         .eq("user_id", user.id);
+
+      if (streakError) console.error("Streak update error:", streakError);
+      else console.log("Streak updated:", { newStreak, today, weeklyMinutes });
     } else {
       // Create streaks row if missing
       await adminDb.from("streaks").insert({

@@ -47,12 +47,14 @@ export default function LessonPage() {
 
   const [timeLeft, setTimeLeft] = useState(0);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [sosActive, setSosActive] = useState(false);
+  const [hintsEnabled, setHintsEnabled] = useState(true); // SOS toggle
 
   // Hints
   const [hintLevel, setHintLevel] = useState<0 | 1 | 2>(0);
   const [hintsLoading, setHintsLoading] = useState(false);
   const hintLevelRef = useRef(0);
+  const hintsEnabledRef = useRef(true);
+  const hintShownThisTurnRef = useRef(false); // max 1 hint per agent turn
   const setHintLevelSynced = (lvl: 0 | 1 | 2) => { hintLevelRef.current = lvl; setHintLevel(lvl); };
 
   // Enrichment
@@ -102,6 +104,8 @@ export default function LessonPage() {
   };
 
   const canTriggerHint = (): boolean => {
+    if (!hintsEnabledRef.current) return false;
+    if (hintShownThisTurnRef.current) return false;
     const elapsed = Date.now() - startTimeRef.current;
     const sinceLast = Date.now() - lastHintTimeRef.current;
     return lessonActiveRef.current && !agentSpeakingRef.current && elapsed > HINT_GRACE_MS && (lastHintTimeRef.current === 0 || sinceLast > HINT_COOLDOWN_MS);
@@ -172,13 +176,14 @@ export default function LessonPage() {
       if (source === "ai") {
         lastAgentMsgRef.current = clean;
         agentSpeakingRef.current = true;
+        hintShownThisTurnRef.current = false; // reset for new turn
         clearHintTimers();
 
         if (agentDoneTimerRef.current) clearTimeout(agentDoneTimerRef.current);
         agentDoneTimerRef.current = setTimeout(() => {
           agentSpeakingRef.current = false;
           scheduleHints("agent finished");
-        }, 1000);
+        }, 2000); // 2s debounce to ensure agent truly finished
       }
 
       if (source === "user") {
@@ -200,6 +205,7 @@ export default function LessonPage() {
   const fetchHint = async (hintLvl: 1 | 2, isUpgrade = false) => {
     if (hintLvl === 1) setHintsLoading(true);
     if (!isUpgrade) lastHintTimeRef.current = Date.now();
+    hintShownThisTurnRef.current = true;
 
     const recentTranscript = transcriptRef.current.slice(-6).map((t) => `${t.source === "ai" ? "Tutor" : "User"}: ${t.message}`).join("\n");
     const userAttempt = lastUserMsgRef.current.trim();
@@ -318,9 +324,20 @@ export default function LessonPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonState, lessonId, router]);
 
-  const handleSOS = () => {
-    conversation.sendContextualUpdate("User needs help. Slow down, simplify, repeat.");
-    setSosActive(true); setTimeout(() => setSosActive(false), 5000);
+  const handleHintToggle = () => {
+    if (hintsEnabled) {
+      // First: show hints immediately
+      if (!hintShownThisTurnRef.current) {
+        fetchHint(1);
+      }
+      // Then disable for future
+      setHintsEnabled(false);
+      hintsEnabledRef.current = false;
+      clearHintTimers();
+    } else {
+      setHintsEnabled(true);
+      hintsEnabledRef.current = true;
+    }
   };
 
   const playTTS = async (text: string) => {
@@ -524,8 +541,9 @@ export default function LessonPage() {
             {/* SOS + Mic + End */}
             <div className="flex items-end gap-6 pointer-events-auto">
               {/* SOS */}
-              <button onClick={handleSOS} className={`h-12 w-12 rounded-full flex items-center justify-center transition-all ${sosActive ? "bg-tertiary text-black ring-4 ring-tertiary/30" : "bg-surface-container-high text-tertiary hover:bg-tertiary/10 border border-white/5"}`} title="Pomoc">
-                <span className="material-symbols-outlined">sos</span>
+              <button onClick={handleHintToggle} className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${hintsEnabled ? "bg-tertiary/10 text-tertiary border border-tertiary/20" : "bg-surface-container-high text-slate-500 border border-white/5"}`} title={hintsEnabled ? "Wylacz podpowiedzi" : "Wlacz podpowiedzi"}>
+                <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: hintsEnabled ? "'FILL' 1" : undefined }}>lightbulb</span>
+                <span className="hidden sm:inline">{hintsEnabled ? "Wl." : "Wyl."}</span>
               </button>
 
               {/* Mic button */}

@@ -35,7 +35,7 @@ export function TutorAvatar({
     >
       {avatar ? (
         <div
-          className="overflow-hidden rounded-full"
+          className="overflow-hidden rounded-full bg-[#0F172A]"
           style={{
             width: size,
             height: size,
@@ -47,7 +47,7 @@ export function TutorAvatar({
             alt={avatar.name}
             width={size * 2}
             height={size * 2}
-            className="h-full w-full object-cover object-top"
+            className="h-full w-full rounded-full object-cover object-[center_20%]"
             style={{ width: "100%", height: "100%" }}
             priority={size >= 100}
           />
