@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { BadgeIcon } from "@/components/badge-icon";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -17,19 +18,21 @@ export default async function DashboardPage() {
     { count: vocabCount },
   ] = await Promise.all([
     supabase.from("users").select("display_name, role").eq("id", user.id).single(),
-    supabase.from("user_profiles").select("target_language, current_level").eq("user_id", user.id).limit(1).single(),
+    supabase.from("user_profiles").select("target_language, current_level, language_variant").eq("user_id", user.id).order("created_at"),
     supabase.from("streaks").select("current_streak, longest_streak, weekly_minutes_goal, weekly_minutes_done").eq("user_id", user.id).single(),
     supabase.from("lessons").select("id, started_at, duration_seconds, topic, fluency_score").eq("user_id", user.id).not("ended_at", "is", null).order("started_at", { ascending: false }).limit(5),
     supabase.from("user_achievements").select("achievement_id, earned_at, achievements(name_pl, icon)").eq("user_id", user.id).order("earned_at", { ascending: false }).limit(3),
     supabase.from("vocabulary").select("id", { count: "exact", head: true }).eq("user_id", user.id),
   ]);
 
-  const displayName = userData?.display_name ?? "Użytkownik";
+  const allProfiles = (profile ?? []) as { target_language: string; current_level: string; language_variant: string | null }[];
+  const firstProfile = allProfiles[0];
+  const displayName = userData?.display_name ?? "Uzytkownik";
   const currentStreak = streak?.current_streak ?? 0;
   const weeklyGoal = streak?.weekly_minutes_goal ?? 30;
   const weeklyDone = streak?.weekly_minutes_done ?? 0;
-  const currentLevel = profile?.current_level ?? "A1";
-  const targetLang = profile?.target_language ?? "no";
+  const currentLevel = firstProfile?.current_level ?? "A1";
+  const targetLang = firstProfile?.target_language ?? "no";
   const totalVocab = typeof vocabCount === "number" ? vocabCount : 0;
   const totalMinutes = (lessons ?? []).reduce((sum, l) => sum + Math.round((l.duration_seconds ?? 0) / 60), 0);
 
@@ -51,6 +54,8 @@ export default async function DashboardPage() {
               {langNames[targetLang] ?? targetLang} · Poziom {currentLevel}
             </p>
           </div>
+          {/* Language switcher */}
+          <LanguageSwitcher languages={allProfiles} />
         </section>
 
         {/* Hero Bento Grid */}

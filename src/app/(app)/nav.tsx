@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogoFull, LogoIcon } from "@/components/logo";
+import { getLangFlag } from "@/lib/languages";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
@@ -35,10 +36,12 @@ export default function AppNav({
   displayName,
   role,
   level,
+  activeLang,
 }: {
   displayName: string;
   role: string;
   level?: string;
+  activeLang?: string;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -118,7 +121,7 @@ export default function AppNav({
             <div className="overflow-hidden">
               <p className="truncate font-bold text-white">{displayName}</p>
               <p className="text-[10px] font-bold uppercase text-slate-500">
-                Poziom {level ?? "A1"}
+                {activeLang ? getLangFlag(activeLang) + " " : ""}Poziom {level ?? "A1"}
               </p>
             </div>
             <button onClick={handleLogout} className="ml-auto text-slate-500 hover:text-white" title="Wyloguj się">
