@@ -19,7 +19,7 @@ export function magicLinkEmail(magicLinkUrl: string): string {
       <p style="color:#475569;font-size:11px;text-align:center;word-break:break-all;margin:0;">${magicLinkUrl}</p>
     </div>
     <div style="padding:24px 32px;border-top:1px solid rgba(255,255,255,0.05);">
-      <p style="color:#475569;font-size:12px;text-align:center;margin:0;">godoj.co &#8212; Gadoj. Ucz si&#281;. P&#322;ynnie.</p>
+      <p style="color:#475569;font-size:12px;text-align:center;margin:0;">godoj.co &#8212; Godoj. Ucz si&#281;. P&#322;ynnie.</p>
     </div>
   </div>
 </div>
@@ -45,7 +45,7 @@ export function invitationEmail(inviteUrl: string, adminName: string): string {
       <p style="color:#475569;font-size:11px;text-align:center;word-break:break-all;margin:0;">${inviteUrl}</p>
     </div>
     <div style="padding:24px 32px;border-top:1px solid rgba(255,255,255,0.05);">
-      <p style="color:#475569;font-size:12px;text-align:center;margin:0;">godoj.co &#8212; Gadoj. Ucz si&#281;. P&#322;ynnie.</p>
+      <p style="color:#475569;font-size:12px;text-align:center;margin:0;">godoj.co &#8212; Godoj. Ucz si&#281;. P&#322;ynnie.</p>
     </div>
   </div>
 </div>

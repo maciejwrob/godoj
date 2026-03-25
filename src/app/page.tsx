@@ -16,7 +16,7 @@ export default function Home() {
         </div>
 
         <p className="text-xl text-on-surface-variant">
-          Gadoj. Ucz sie. Plynnie.
+          Godoj. Ucz sie. Plynnie.
         </p>
 
         <div className="mt-4 rounded-2xl border border-white/5 bg-surface-container-high px-6 py-4 text-sm text-on-surface-variant">

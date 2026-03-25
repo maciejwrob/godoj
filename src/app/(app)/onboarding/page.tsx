@@ -7,8 +7,8 @@ import {
   ArrowRight,
   Loader2,
   Check,
-  MessageCircle,
 } from "lucide-react";
+import { LogoFull } from "@/components/logo";
 
 const TOTAL_STEPS = 7;
 
@@ -297,9 +297,8 @@ export default function OnboardingPage() {
     <main className="flex min-h-screen flex-col items-center px-4 py-8">
       <div className="w-full max-w-lg">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-center gap-2">
-          <MessageCircle className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold">Godoj</span>
+        <div className="mb-8 flex items-center justify-center">
+          <LogoFull size={32} href="/onboarding" />
         </div>
 
         {/* Progress bar */}
