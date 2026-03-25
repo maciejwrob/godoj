@@ -1,41 +1,25 @@
-const BASE_STYLES = `
-  body { margin: 0; padding: 0; background-color: #0F172A; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-  .wrapper { background-color: #0F172A; padding: 40px 20px; }
-  .card { max-width: 480px; margin: 0 auto; background-color: #1E293B; border-radius: 16px; overflow: hidden; }
-  .card-body { padding: 40px 32px; }
-  .logo { text-align: center; margin-bottom: 24px; }
-  .logo img { width: 48px; height: 48px; border-radius: 12px; display: inline-block; vertical-align: middle; margin-right: 8px; }
-  .logo-text { color: #1A73E8; font-size: 28px; font-weight: 800; text-decoration: none; letter-spacing: -0.02em; vertical-align: middle; }
-  .heading { color: #FFFFFF; font-size: 24px; font-weight: 700; text-align: center; margin: 0 0 16px 0; }
-  .text { color: #94A3B8; font-size: 15px; line-height: 1.6; text-align: center; margin: 0 0 32px 0; }
-  .btn-wrapper { text-align: center; margin-bottom: 24px; }
-  .btn { display: inline-block; background-color: #1A73E8; color: #FFFFFF !important; font-size: 16px; font-weight: 700; text-decoration: none; padding: 14px 40px; border-radius: 12px; }
-  .link-fallback { color: #64748B; font-size: 12px; text-align: center; margin: 0 0 8px 0; }
-  .link-url { color: #475569; font-size: 11px; text-align: center; word-break: break-all; margin: 0; }
-  .footer { padding: 24px 32px; border-top: 1px solid rgba(255,255,255,0.05); }
-  .footer-text { color: #475569; font-size: 12px; text-align: center; margin: 0; }
-`;
+// No images — email clients block them. Text logo only. Inline CSS only.
 
 export function magicLinkEmail(magicLinkUrl: string): string {
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>${BASE_STYLES}</style></head>
-<body>
-<div class="wrapper">
-  <div class="card">
-    <div class="card-body">
-      <div class="logo">
-        <img src="https://godoj.co/logo.png" alt="Godoj" /><span class="logo-text">Godoj</span>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:0;background-color:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<div style="background-color:#0F172A;padding:40px 20px;">
+  <div style="max-width:480px;margin:0 auto;background-color:#1E293B;border-radius:16px;overflow:hidden;">
+    <div style="padding:40px 32px;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <span style="color:#1A73E8;font-size:28px;font-weight:800;letter-spacing:-0.02em;">&#127897; Godoj</span>
       </div>
-      <h1 class="heading">Zaloguj sie</h1>
-      <p class="text">Kliknij ponizszy przycisk zeby sie zalogowac do Godoj. Link jest wazny przez 24 godziny.</p>
-      <div class="btn-wrapper">
-        <a href="${magicLinkUrl}" class="btn">Zaloguj sie do Godoj</a>
+      <h1 style="color:#FFFFFF;font-size:24px;font-weight:700;text-align:center;margin:0 0 16px 0;">Cze&#347;&#263;!</h1>
+      <p style="color:#94A3B8;font-size:15px;line-height:1.6;text-align:center;margin:0 0 32px 0;">Kliknij poni&#380;szy przycisk &#380;eby si&#281; zalogowa&#263; do Godoj.<br>Link jest wa&#380;ny przez 24 godziny.</p>
+      <div style="text-align:center;margin-bottom:24px;">
+        <a href="${magicLinkUrl}" style="display:inline-block;background-color:#1A73E8;color:#FFFFFF;font-size:16px;font-weight:700;text-decoration:none;padding:14px 40px;border-radius:12px;">Zaloguj si&#281;</a>
       </div>
-      <p class="link-fallback">Jesli przycisk nie dziala, skopiuj ten link:</p>
-      <p class="link-url">${magicLinkUrl}</p>
+      <p style="color:#64748B;font-size:12px;text-align:center;margin:0 0 8px 0;">Je&#347;li przycisk nie dzia&#322;a, skopiuj ten link:</p>
+      <p style="color:#475569;font-size:11px;text-align:center;word-break:break-all;margin:0;">${magicLinkUrl}</p>
     </div>
-    <div class="footer">
-      <p class="footer-text">Godoj — Gadoj. Ucz sie. Plynnie.</p>
+    <div style="padding:24px 32px;border-top:1px solid rgba(255,255,255,0.05);">
+      <p style="color:#475569;font-size:12px;text-align:center;margin:0;">Godoj &#8212; Gadoj. Ucz si&#281;. P&#322;ynnie.</p>
     </div>
   </div>
 </div>
@@ -44,24 +28,24 @@ export function magicLinkEmail(magicLinkUrl: string): string {
 
 export function invitationEmail(inviteUrl: string, adminName: string): string {
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>${BASE_STYLES}</style></head>
-<body>
-<div class="wrapper">
-  <div class="card">
-    <div class="card-body">
-      <div class="logo">
-        <img src="https://godoj.co/logo.png" alt="Godoj" /><span class="logo-text">Godoj</span>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:0;background-color:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<div style="background-color:#0F172A;padding:40px 20px;">
+  <div style="max-width:480px;margin:0 auto;background-color:#1E293B;border-radius:16px;overflow:hidden;">
+    <div style="padding:40px 32px;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <span style="color:#1A73E8;font-size:28px;font-weight:800;letter-spacing:-0.02em;">&#127897; Godoj</span>
       </div>
-      <h1 class="heading">Zaproszenie do Godoj</h1>
-      <p class="text">${adminName} zaprasza Cie do nauki jezykow z AI!<br><br>Godoj to aplikacja do nauki jezykow przez rozmowe z inteligentnymi tutorami AI. Dolacz i zacznij mowic!</p>
-      <div class="btn-wrapper">
-        <a href="${inviteUrl}" class="btn">Dolacz do Godoj</a>
+      <h1 style="color:#FFFFFF;font-size:24px;font-weight:700;text-align:center;margin:0 0 16px 0;">Zaproszenie do Godoj</h1>
+      <p style="color:#94A3B8;font-size:15px;line-height:1.6;text-align:center;margin:0 0 32px 0;">${adminName} zaprasza Ci&#281; do nauki j&#281;zyk&#243;w z AI!<br><br>Godoj to aplikacja do nauki j&#281;zyk&#243;w przez rozmow&#281; z inteligentnymi tutorami AI. Do&#322;&#261;cz i zacznij m&#243;wi&#263;!</p>
+      <div style="text-align:center;margin-bottom:24px;">
+        <a href="${inviteUrl}" style="display:inline-block;background-color:#1A73E8;color:#FFFFFF;font-size:16px;font-weight:700;text-decoration:none;padding:14px 40px;border-radius:12px;">Do&#322;&#261;cz do Godoj</a>
       </div>
-      <p class="link-fallback">Jesli przycisk nie dziala, skopiuj ten link:</p>
-      <p class="link-url">${inviteUrl}</p>
+      <p style="color:#64748B;font-size:12px;text-align:center;margin:0 0 8px 0;">Je&#347;li przycisk nie dzia&#322;a, skopiuj ten link:</p>
+      <p style="color:#475569;font-size:11px;text-align:center;word-break:break-all;margin:0;">${inviteUrl}</p>
     </div>
-    <div class="footer">
-      <p class="footer-text">Godoj — Gadoj. Ucz sie. Plynnie.</p>
+    <div style="padding:24px 32px;border-top:1px solid rgba(255,255,255,0.05);">
+      <p style="color:#475569;font-size:12px;text-align:center;margin:0;">Godoj &#8212; Gadoj. Ucz si&#281;. P&#322;ynnie.</p>
     </div>
   </div>
 </div>

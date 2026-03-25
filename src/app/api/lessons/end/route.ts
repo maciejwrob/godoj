@@ -156,7 +156,17 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
 
     // Update streaks (use admin client to bypass RLS)
     const adminDb = createAdminClient();
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const lessonMinutes = Math.max(1, Math.round(duration_seconds / 60));
+
+    // Calculate Monday of current week
+    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const monday = new Date(now);
+    monday.setDate(monday.getDate() - mondayOffset);
+    const weekStart = monday.toISOString().split("T")[0];
+
     const { data: streak } = await adminDb
       .from("streaks")
       .select("*")
@@ -165,19 +175,22 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
 
     if (streak) {
       const lastDate = streak.last_lesson_date;
-      const yesterday = new Date(Date.now() - 86400000)
-        .toISOString()
-        .split("T")[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
 
+      // Calculate streak
       let newStreak = streak.current_streak;
-      if (lastDate === yesterday) {
+      if (lastDate === today) {
+        // Already counted today — don't change streak
+      } else if (lastDate === yesterday) {
         newStreak += 1;
-      } else if (lastDate !== today) {
+      } else {
+        // Gap > 1 day — reset streak
         newStreak = 1;
       }
 
-      const minutesDone =
-        streak.weekly_minutes_done + Math.round(duration_seconds / 60);
+      // Weekly minutes: reset if new week, otherwise add
+      const isNewWeek = !streak.week_start || streak.week_start < weekStart;
+      const weeklyMinutes = isNewWeek ? lessonMinutes : streak.weekly_minutes_done + lessonMinutes;
 
       await adminDb
         .from("streaks")
@@ -185,7 +198,8 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
           current_streak: newStreak,
           longest_streak: Math.max(newStreak, streak.longest_streak),
           last_lesson_date: today,
-          weekly_minutes_done: minutesDone,
+          weekly_minutes_done: weeklyMinutes,
+          week_start: isNewWeek ? weekStart : streak.week_start,
         })
         .eq("user_id", user.id);
     } else {
@@ -196,7 +210,8 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
         longest_streak: 1,
         last_lesson_date: today,
         weekly_minutes_goal: 30,
-        weekly_minutes_done: Math.round(duration_seconds / 60),
+        weekly_minutes_done: lessonMinutes,
+        week_start: weekStart,
       });
     }
 
