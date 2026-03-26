@@ -3,6 +3,8 @@
 import { useState, useMemo } from "react";
 import { Search, Filter, Volume2, Play, Loader2 } from "lucide-react";
 import type { VocabularyWord } from "./page";
+import { useActiveLanguage } from "@/lib/language-context";
+import { getLangFlag, getLangName } from "@/lib/languages";
 
 // --- Pronunciation Button (client component) ---
 
@@ -169,6 +171,12 @@ export default function VocabularyClient({
   words: VocabularyWord[];
   language: string;
 }) {
+  const { activeLanguage } = useActiveLanguage();
+  const activeLang = activeLanguage || language;
+
+  // Filter by active language
+  const langWords = useMemo(() => words.filter((w) => w.language === activeLang), [words, activeLang]);
+
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("newest");
   const [group, setGroup] = useState<GroupOption>("chronological");
@@ -176,9 +184,9 @@ export default function VocabularyClient({
 
   // Filter by search query
   const filtered = useMemo(() => {
-    if (!search.trim()) return words;
+    if (!search.trim()) return langWords;
     const q = search.toLowerCase();
-    return words.filter(
+    return langWords.filter(
       (w) =>
         w.word.toLowerCase().includes(q) ||
         w.translation.toLowerCase().includes(q) ||

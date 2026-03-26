@@ -180,23 +180,30 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
       // Calculate streak
       let newStreak = streak.current_streak;
       if (lastDate === today) {
-        // Already counted today — don't change streak
+        // Already had lesson today — ensure streak is at least 1
+        newStreak = Math.max(1, newStreak);
       } else if (lastDate === yesterday) {
-        newStreak += 1;
+        // Consecutive day — increment
+        newStreak = Math.max(1, newStreak) + 1;
+      } else if (!lastDate) {
+        // First ever lesson
+        newStreak = 1;
       } else {
-        // Gap > 1 day — reset streak
+        // Gap > 1 day — reset to 1
         newStreak = 1;
       }
 
       // Weekly minutes: reset if new week, otherwise add
       const isNewWeek = !streak.week_start || streak.week_start < weekStart;
-      const weeklyMinutes = isNewWeek ? lessonMinutes : streak.weekly_minutes_done + lessonMinutes;
+      const weeklyMinutes = isNewWeek ? lessonMinutes : (streak.weekly_minutes_done ?? 0) + lessonMinutes;
+
+      console.log("Streak calc:", { lastDate, today, yesterday, oldStreak: streak.current_streak, newStreak, lessonMinutes, weeklyMinutes, isNewWeek });
 
       const { error: streakError } = await adminDb
         .from("streaks")
         .update({
           current_streak: newStreak,
-          longest_streak: Math.max(newStreak, streak.longest_streak),
+          longest_streak: Math.max(newStreak, streak.longest_streak ?? 0),
           last_lesson_date: today,
           weekly_minutes_done: weeklyMinutes,
           week_start: isNewWeek ? weekStart : streak.week_start,
@@ -204,7 +211,7 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
         .eq("user_id", user.id);
 
       if (streakError) console.error("Streak update error:", streakError);
-      else console.log("Streak updated:", { newStreak, today, weeklyMinutes });
+      else console.log("Streak saved:", { newStreak, weeklyMinutes });
     } else {
       // Create streaks row if missing
       await adminDb.from("streaks").insert({

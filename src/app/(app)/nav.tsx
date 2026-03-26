@@ -124,7 +124,7 @@ export default function AppNav({
             <div className="overflow-hidden">
               <p className="truncate font-bold text-white">{displayName}</p>
               <p className="text-[10px] font-bold uppercase text-slate-500">
-                {currentLang ? getLangFlag(currentLang) + " " : ""}Poziom {level ?? "A1"}
+                {currentLang ? getLangFlag(currentLang) + " " + getLangName(currentLang) : "Poziom " + (level ?? "A1")}
               </p>
             </div>
             <button onClick={handleLogout} className="ml-auto text-slate-500 hover:text-white" title="Wyloguj się">

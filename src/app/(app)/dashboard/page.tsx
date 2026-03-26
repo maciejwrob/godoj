@@ -9,7 +9,7 @@ import { useActiveLanguage } from "@/lib/language-context";
 import { getLangFlag, getLangName } from "@/lib/languages";
 
 type Profile = { target_language: string; current_level: string; language_variant: string | null; selected_agent_id: string | null };
-type Lesson = { id: string; started_at: string; duration_seconds: number | null; topic: string | null; fluency_score: number | null };
+type Lesson = { id: string; started_at: string; duration_seconds: number | null; topic: string | null; fluency_score: number | null; language?: string };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Achievement = any;
 
@@ -204,7 +204,7 @@ export default function DashboardPage() {
                           <span className="material-symbols-outlined">chat_bubble</span>
                         </div>
                         <div>
-                          <h5 className="font-bold text-white">{lesson.topic ?? "Rozmowa"}</h5>
+                          <h5 className="font-bold text-white">{lesson.language ? getLangFlag(lesson.language) + " " : ""}{lesson.topic ?? "Rozmowa"}</h5>
                           <p className="text-xs text-slate-500">
                             {new Date(lesson.started_at).toLocaleDateString("pl-PL")} · {lesson.duration_seconds ? `${Math.round(lesson.duration_seconds / 60)} min` : "--"}
                           </p>
