@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 
 export type OnboardingData = {
+  displayName: string;
   nativeLanguage: string;
   targetLanguage: string;
   languageVariant: string | null;
@@ -53,12 +54,13 @@ export async function saveOnboarding(data: OnboardingData) {
     return { success: false, error: "Nie udało się zapisać profilu." };
   }
 
-  // Update user: mark onboarding complete + save native language
+  // Update user: mark onboarding complete + save native language + display name
   const { error: userError } = await supabase
     .from("users")
     .update({
       onboarding_complete: true,
       native_language: data.nativeLanguage,
+      display_name: data.displayName,
     })
     .eq("id", user.id);
 

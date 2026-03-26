@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { LogoFull } from "@/components/logo";
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 const NATIVE_LANGUAGES = [
   { id: "pl", name: "Polski", flag: "🇵🇱" },
@@ -144,6 +144,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState("");
 
   // Form state
+  const [displayName, setDisplayName] = useState("");
   const [nativeLang, setNativeLang] = useState("pl");
   const [selectedLang, setSelectedLang] = useState("");
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
@@ -186,20 +187,22 @@ export default function OnboardingPage() {
   const canProceed = () => {
     switch (step) {
       case 1:
-        return !!nativeLang;
+        return displayName.trim().length >= 2;
       case 2:
+        return !!nativeLang;
+      case 3:
         if (!selectedLang) return false;
         if (selectedLanguage?.variants && !selectedVariant) return false;
         return true;
-      case 3:
-        return !!level;
       case 4:
-        return goals.length >= 1;
+        return !!level;
       case 5:
-        return interests.length >= 2;
+        return goals.length >= 1;
       case 6:
-        return true;
+        return interests.length >= 2;
       case 7:
+        return true;
+      case 8:
         return !!tutor;
       default:
         return false;
@@ -245,6 +248,7 @@ export default function OnboardingPage() {
     setError("");
     startTransition(async () => {
       const data: OnboardingData = {
+        displayName: displayName.trim(),
         nativeLanguage: nativeLang,
         targetLanguage: selectedLang,
         languageVariant: selectedVariant,
@@ -294,13 +298,16 @@ export default function OnboardingPage() {
           className={`animate-${direction === "forward" ? "slide-in-right" : "slide-in-left"}`}
         >
           {step === 1 && (
+            <StepName value={displayName} onChange={setDisplayName} />
+          )}
+          {step === 2 && (
             <StepNativeLanguage
               languages={NATIVE_LANGUAGES}
               selected={nativeLang}
               onSelect={setNativeLang}
             />
           )}
-          {step === 2 && (
+          {step === 3 && (
             <StepLanguage
               languages={LANGUAGES}
               selected={selectedLang}
@@ -311,24 +318,24 @@ export default function OnboardingPage() {
               onVariant={setSelectedVariant}
             />
           )}
-          {step === 3 && (
+          {step === 4 && (
             <StepLevel levels={LEVELS} selected={level} onSelect={setLevel} />
           )}
-          {step === 4 && (
+          {step === 5 && (
             <StepGoals
               goals={GOALS}
               selected={goals}
               onToggle={(id) => toggleMulti(id, goals, setGoals)}
             />
           )}
-          {step === 5 && (
+          {step === 6 && (
             <StepInterests
               interests={INTERESTS}
               selected={interests}
               onToggle={(id) => toggleMulti(id, interests, setInterests)}
             />
           )}
-          {step === 6 && (
+          {step === 7 && (
             <StepPreferences
               duration={duration}
               frequency={frequency}
@@ -340,7 +347,7 @@ export default function OnboardingPage() {
               onReminders={setReminders}
             />
           )}
-          {step === 7 && (
+          {step === 8 && (
             <StepTutor
               tutors={filteredTutors}
               selected={tutor}
@@ -397,6 +404,25 @@ export default function OnboardingPage() {
 }
 
 // -- Step components --
+
+function StepName({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <h2 className="mb-2 text-2xl font-bold">Jak masz na imię?</h2>
+      <p className="mb-6 text-text-secondary">
+        Tutor będzie się do Ciebie zwracał po imieniu
+      </p>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Twoje imię"
+        autoFocus
+        className="w-full rounded-xl border border-border bg-bg-card px-4 py-3 text-lg text-text-primary placeholder:text-text-secondary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+      />
+    </div>
+  );
+}
 
 function StepNativeLanguage({
   languages,
