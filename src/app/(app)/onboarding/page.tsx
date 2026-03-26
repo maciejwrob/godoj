@@ -39,7 +39,7 @@ const LANGUAGES: Language[] = [
     flag: "\uD83C\uDDEA\uD83C\uDDF8",
     active: true,
     variants: [
-      { id: "es-EU", name: "Europejski", flag: "\uD83C\uDDEA\uD83C\uDDF8" },
+      { id: "european", name: "Europejski", flag: "\uD83C\uDDEA\uD83C\uDDF8" },
       { id: "es-LATAM", name: "Latynoamerykanski", flag: "\uD83C\uDDF2\uD83C\uDDFD" },
     ],
   },
@@ -49,8 +49,8 @@ const LANGUAGES: Language[] = [
     flag: "\uD83C\uDDEC\uD83C\uDDE7",
     active: true,
     variants: [
-      { id: "en-US", name: "Amerykanski", flag: "\uD83C\uDDFA\uD83C\uDDF8" },
-      { id: "en-GB", name: "Brytyjski", flag: "\uD83C\uDDEC\uD83C\uDDE7" },
+      { id: "american", name: "Amerykanski", flag: "\uD83C\uDDFA\uD83C\uDDF8" },
+      { id: "british", name: "Brytyjski", flag: "\uD83C\uDDEC\uD83C\uDDE7" },
     ],
   },
   { id: "it", name: "Wloski", flag: "\uD83C\uDDEE\uD83C\uDDF9", active: true },
