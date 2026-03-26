@@ -146,7 +146,7 @@ export default function DashboardPage() {
             <div className="mx-auto mb-4 h-16 w-16 overflow-hidden rounded-full border-2 border-primary/30">
               <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top" />
             </div>
-            <h2 className="text-lg font-extrabold text-white">Maciej, tworca Godoj.co</h2>
+            <h2 className="text-lg font-extrabold text-white">Maciej, twórca Godoj.co</h2>
             <p className="mt-3 text-sm text-on-surface-variant">
               Właśnie ukończyłeś swoją pierwszą lekcję — jestem ciekaw jak Ci poszło! Możesz mi o tym opowiedzieć w krótkiej rozmowie (max 2 min)?
             </p>
@@ -243,7 +243,7 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined text-secondary">timer</span>
               </div>
               <div>
-                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Tydzien</p>
+                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Tydzień</p>
                 <h4 className="text-2xl lg:text-3xl font-black text-white">{weeklyDone}/{weeklyGoal} <span className="text-sm font-medium text-slate-500">min</span></h4>
                 <div className="w-full h-1.5 bg-surface-variant rounded-full mt-2 overflow-hidden">
                   <div className="bg-secondary h-full transition-all" style={{ width: `${weeklyPct}%` }} />
@@ -264,7 +264,7 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined text-purple-400">menu_book</span>
               </div>
               <div>
-                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Slownictwo</p>
+                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Słownictwo</p>
                 <h4 className="text-2xl lg:text-3xl font-black text-white">{vocabCount}</h4>
               </div>
             </div>

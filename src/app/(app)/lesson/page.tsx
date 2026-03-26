@@ -563,9 +563,9 @@ export default function LessonPage() {
             {/* SOS + Mic + End */}
             <div className="flex items-end gap-6 pointer-events-auto">
               {/* SOS */}
-              <button onClick={handleHintToggle} className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${hintsEnabled ? "bg-tertiary/10 text-tertiary border border-tertiary/20" : "bg-surface-container-high text-slate-500 border border-white/5"}`} title={hintsEnabled ? "Wylacz podpowiedzi" : "Wlacz podpowiedzi"}>
+              <button onClick={handleHintToggle} className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${hintsEnabled ? "bg-tertiary/10 text-tertiary border border-tertiary/20" : "bg-surface-container-high text-slate-500 border border-white/5"}`} title={hintsEnabled ? "Wyłącz podpowiedzi" : "Włącz podpowiedzi"}>
                 <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: hintsEnabled ? "'FILL' 1" : undefined }}>lightbulb</span>
-                <span className="hidden sm:inline">{hintsEnabled ? "Wl." : "Wyl."}</span>
+                <span className="hidden sm:inline">{hintsEnabled ? "Wł." : "Wył."}</span>
               </button>
 
               {/* Mic button */}

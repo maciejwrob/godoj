@@ -12,9 +12,9 @@ import { LanguageDropdown } from "@/components/language-dropdown";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/lesson", label: "Lekcja", icon: "menu_book" },
-  { href: "/vocabulary", label: "Slowniczek", icon: "translate" },
-  { href: "/exercises", label: "Cwiczenia", icon: "fitness_center" },
-  { href: "/progress", label: "Postepy", icon: "leaderboard" },
+  { href: "/vocabulary", label: "S\u0142owniczek", icon: "translate" },
+  { href: "/exercises", label: "\u0106wiczenia", icon: "fitness_center" },
+  { href: "/progress", label: "Post\u0119py", icon: "leaderboard" },
   { href: "/achievements", label: "Odznaki", icon: "military_tech" },
 ];
 

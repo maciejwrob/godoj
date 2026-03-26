@@ -92,7 +92,7 @@ export async function POST(request: Request) {
         max_tokens: 30,
         messages: [{
           role: "user",
-          content: `Zaproponuj temat rozmowy po ${langName} na poziomie ${level}. ${interests.length > 0 ? "Zainteresowania: " + interests.join(", ") + "." : ""} Odpowiedz TYLKO tematem, max 8 slow. Po polsku. Bez pytan.`,
+          content: `Zaproponuj temat rozmowy po ${langName} na poziomie ${level}. ${interests.length > 0 ? "Zainteresowania: " + interests.join(", ") + "." : ""} Odpowiedz TYLKO tematem, max 8 słów. Po polsku. Bez pytań.`,
         }],
       });
       const raw = topicResponse.content[0].type === "text" ? topicResponse.content[0].text.trim() : "";

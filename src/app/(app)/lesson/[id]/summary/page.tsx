@@ -197,7 +197,7 @@ export default async function LessonSummaryPage({
           <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top rounded-full" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-on-surface">Maciej, tworca godoj.co, chcialby uslyszec Twoj feedback!</p>
+          <p className="text-sm font-medium text-on-surface">Maciej, twórca Godoj.co, chcialby uslyszec Twoj feedback!</p>
           <p className="text-xs text-on-surface-variant">Krótka rozmowa (2 min)</p>
         </div>
         <Link href={`/feedback?lesson_id=${id}`} className="shrink-0 rounded-xl bg-godoj-blue px-4 py-2 text-sm font-bold text-white hover:scale-105 transition-all">

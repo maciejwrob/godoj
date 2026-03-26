@@ -159,7 +159,7 @@ function FeedbackContent() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold text-white">Maciej</h1>
-          <p className="text-on-surface-variant">Tworca godoj.co</p>
+          <p className="text-on-surface-variant">Twórca Godoj.co</p>
         </div>
         <p className="text-sm text-on-surface-variant">
           Opowiedz mi jak Ci się podoba godoj.co! Co działa dobrze? Co mógłbym poprawić? Rozmowa potrwa max 2 minuty.
