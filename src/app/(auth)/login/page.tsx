@@ -68,13 +68,13 @@ export default function LoginPage() {
             <span className="text-2xl font-extrabold tracking-tight text-white" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>Godoj.co</span>
           </div>
           <p className="text-text-secondary">
-            Podaj swoj e-mail, aby sie zalogowac
+            Podaj swój e-mail, aby się zalogować
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <p className="text-xs text-on-surface-variant text-center">
-            Wyslemy Ci link do logowania na podany adres email. Kliknij go zeby sie zalogowac — nie potrzebujesz hasla.
+            Wyślemy Ci link do logowania na podany adres email. Kliknij go żeby się zalogować — nie potrzebujesz hasła.
           </p>
           <div>
             <input
