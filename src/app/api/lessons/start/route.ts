@@ -4,6 +4,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import Anthropic from "@anthropic-ai/sdk";
 import { getAgentSystemPrompt, type PromptVars } from "@/config/agent-prompt";
 
+async function serverLogError(userId: string | null, page: string, message: string, context: Record<string, unknown> = {}) {
+  try {
+    const admin = createAdminClient();
+    await admin.from("error_logs").insert({ user_id: userId, page, error_message: message, error_context: context });
+  } catch {}
+}
+
 const anthropic = new Anthropic();
 
 export async function POST(request: Request) {
@@ -171,6 +178,7 @@ ZASADY:
     if (!signedUrlResponse.ok) {
       const errorText = await signedUrlResponse.text();
       console.error("ElevenLabs signed URL error:", errorText);
+      await serverLogError(user.id, "/api/lessons/start", "ElevenLabs signed URL failed", { status: signedUrlResponse.status, error: errorText, elevenlabs_agent_id: elevenlabsAgentId, agent_id: agent_id });
       return NextResponse.json(
         { error: "Nie udało się połączyć z tutorem" },
         { status: 502 }
@@ -239,6 +247,7 @@ ZASADY:
     });
   } catch (error) {
     console.error("Start lesson error:", error);
+    await serverLogError(null, "/api/lessons/start", "Unhandled error", { error: String(error) });
     return NextResponse.json(
       { error: "Wystąpił błąd serwera" },
       { status: 500 }

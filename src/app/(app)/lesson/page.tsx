@@ -6,6 +6,7 @@ import { Loader2, Play, ArrowLeft, RefreshCw, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TutorAvatar } from "@/components/tutor-avatars";
 import { useLanguage } from "@/lib/language-context";
+import { logError } from "@/lib/error-logger";
 
 type Hint = { phrase: string; translation: string };
 type ChatMessage = {
@@ -204,7 +205,7 @@ export default function LessonPage() {
     onStatusChange: (prop: { status: string }) => { dbg(`Status: ${prop.status}`); },
     onError: (message: string) => {
       console.error("Conversation error:", message);
-      if (lessonState !== "ending") { setError("Utracono polaczenie. " + message); setLessonState("error"); }
+      if (lessonState !== "ending") { setError("Utracono polaczenie. " + message); setLessonState("error"); logError("/lesson", "Conversation error: " + message, { step: "onError", agentId: profileRef.current.agentId }); }
     },
   });
 
@@ -278,7 +279,7 @@ export default function LessonPage() {
       profileRef.current = { language: lang, agentId: agId };
       setAgentId(agId);
       await prepareLesson(lang, agId);
-    } catch { setError("Nie udało się załadować danych."); setLessonState("error"); }
+    } catch (err) { const msg = "Nie udało się załadować danych."; setError(msg); setLessonState("error"); logError("/lesson", msg, { step: "loadLessonData", error: String(err) }); }
   };
 
   const prepareLesson = async (language: string, agId?: string) => {
@@ -295,7 +296,7 @@ export default function LessonPage() {
       setPreviousContext(data.previous_context ?? "To pierwsza rozmowa.");
       setAgentSystemPrompt(data.agent_system_prompt ?? "");
       setLessonState("ready");
-    } catch (err) { setError(err instanceof Error ? err.message : "Blad"); setLessonState("error"); }
+    } catch (err) { const msg = err instanceof Error ? err.message : "Blad"; setError(msg); setLessonState("error"); logError("/lesson", msg, { step: "prepareLesson", language, agent_id: agId }); }
   };
 
   const startConversation = async () => {
@@ -313,7 +314,7 @@ export default function LessonPage() {
       });
     } catch (err) {
       const msg = err instanceof DOMException && err.name === "NotAllowedError" ? "Zezwól na dostęp do mikrofonu." : "Nie udało się połączyć.";
-      setError(msg); setLessonState("error");
+      setError(msg); setLessonState("error"); logError("/lesson", msg, { step: "startConversation", error: String(err) });
     }
   };
 

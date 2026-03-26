@@ -10,6 +10,7 @@ import {
   MessageSquare,
   FileText,
   ArrowLeft,
+  AlertTriangle,
 } from "lucide-react";
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/admin/prompt", label: "System Prompt", icon: FileText },
   { href: "/admin/usage", label: "Użycie", icon: BarChart3 },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
+  { href: "/admin/errors", label: "Error Log", icon: AlertTriangle },
 ];
 
 export default async function AdminLayout({
