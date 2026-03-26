@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { sendMagicLink } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
@@ -13,7 +12,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
 
   // Handle #access_token hash from Supabase magic link redirect
   useEffect(() => {
@@ -30,13 +28,12 @@ export default function LoginPage() {
         .setSession({ access_token: accessToken, refresh_token: refreshToken })
         .then(({ error }) => {
           if (!error) {
-            // Clear hash and redirect to dashboard
-            window.location.hash = "";
-            router.replace("/dashboard");
+            // Full page navigation so server picks up fresh auth cookies
+            window.location.href = "/dashboard";
           }
         });
     }
-  }, [router]);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
