@@ -44,6 +44,7 @@ export default function LessonPage() {
   const [agentName, setAgentName] = useState("Mia");
   const [agentId, setAgentId] = useState("ingrid");
   const [firstMessage, setFirstMessage] = useState("");
+  const [previousContext, setPreviousContext] = useState("To pierwsza rozmowa.");
   const [error, setError] = useState("");
 
   const [timeLeft, setTimeLeft] = useState(0);
@@ -184,8 +185,9 @@ export default function LessonPage() {
         if (agentDoneTimerRef.current) clearTimeout(agentDoneTimerRef.current);
         agentDoneTimerRef.current = setTimeout(() => {
           agentSpeakingRef.current = false;
+          dbg("Agent done (3s debounce)");
           scheduleHints("agent finished");
-        }, 2000); // 2s debounce to ensure agent truly finished
+        }, 3000); // 3s debounce — wait for agent to truly finish
       }
 
       if (source === "user") {
@@ -287,6 +289,7 @@ export default function LessonPage() {
       setDisplayName(data.display_name); setLevel(data.level);
       setNativeLanguage(data.native_language ?? "pl"); setLanguageName(data.language_name ?? "Norwegian");
       setAgentName(data.agent_name ?? "Tutor"); setFirstMessage(data.first_message ?? "");
+      setPreviousContext(data.previous_context ?? "To pierwsza rozmowa.");
       setLessonState("ready");
     } catch (err) { setError(err instanceof Error ? err.message : "Blad"); setLessonState("error"); }
   };
@@ -301,6 +304,7 @@ export default function LessonPage() {
           user_name: displayName, user_level: level, native_language: nativeLanguage,
           language_name: languageName, agent_name: agentName, lesson_topic: topic,
           lesson_duration: String(selectedDuration ?? duration), first_message: firstMessage,
+          previous_context: previousContext,
         },
       });
     } catch (err) {

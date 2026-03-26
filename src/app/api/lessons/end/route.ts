@@ -78,7 +78,7 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
   "new_vocabulary": [
     {"word": "słowo", "translation": "tłumaczenie", "context": "zdanie z rozmowy"}
   ],
-  "struggled_phrases": ["fraza1", "fraza2"],
+  "struggled_phrases": ["Konkretna struktura/slowo z POPRAWNA forma + tlumaczenie. NIE kopiuj surowego transkryptu. Np: 'It makes it difficult — struktura make + object + adjective'"],
   "level_assessment": {
     "current": "${lesson.level_at_start}",
     "recommended": "${lesson.level_at_start}" lub wyższy/niższy jeśli uzasadnione,

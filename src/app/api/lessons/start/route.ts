@@ -194,6 +194,9 @@ ZASADY:
       language_name: languageNameEn,
       agent_name: agentName,
       first_message: firstMessage,
+      previous_context: lastLesson?.summary_json
+        ? (lastLesson.summary_json as Record<string, unknown>).next_lesson_context ?? "To pierwsza rozmowa z tym uzytkownikiem."
+        : "To pierwsza rozmowa z tym uzytkownikiem.",
     });
   } catch (error) {
     console.error("Start lesson error:", error);
