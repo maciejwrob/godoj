@@ -148,11 +148,11 @@ export default function DashboardPage() {
             </div>
             <h2 className="text-lg font-extrabold text-white">Maciej, tworca Godoj.co</h2>
             <p className="mt-3 text-sm text-on-surface-variant">
-              Wlasnie ukonczyles swoja pierwsza lekcje — jestem ciekaw jak Ci poszlo! Mozesz mi o tym opowiedziec w krotkiej rozmowie (max 2 min)?
+              Właśnie ukończyłeś swoją pierwszą lekcję — jestem ciekaw jak Ci poszło! Możesz mi o tym opowiedzieć w krótkiej rozmowie (max 2 min)?
             </p>
             <div className="mt-6 flex gap-3">
               <button onClick={() => setFeedbackDismissed(true)} className="flex-1 rounded-xl border border-white/10 py-3 text-sm text-slate-400 hover:text-white">
-                Moze pozniej
+                Może później
               </button>
               <Link href={`/feedback?lesson_id=${feedbackLessonId}`} className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-godoj-blue py-3 text-sm font-bold text-white hover:scale-105 transition-all">
                 <span className="material-symbols-outlined text-lg">mic</span>
@@ -171,7 +171,7 @@ export default function DashboardPage() {
             <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-primary/20">
               <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top" />
             </div>
-            <p className="flex-1 text-sm text-on-surface-variant">Nie dales feedbacku do ostatniej lekcji — Maciej bedzie wdzieczny!</p>
+            <p className="flex-1 text-sm text-on-surface-variant">Nie dałeś feedbacku do ostatniej lekcji — Maciej będzie wdzięczny!</p>
             <Link href={`/feedback?lesson_id=${feedbackLessonId}`} className="shrink-0 rounded-xl bg-godoj-blue px-4 py-2 text-sm font-bold text-white">Daj feedback</Link>
             <button onClick={() => setFeedbackDismissed(true)} className="text-slate-500 hover:text-white"><span className="material-symbols-outlined text-sm">close</span></button>
           </div>

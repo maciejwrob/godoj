@@ -278,7 +278,7 @@ export default function LessonPage() {
       profileRef.current = { language: lang, agentId: agId };
       setAgentId(agId);
       await prepareLesson(lang, agId);
-    } catch { setError("Nie udalo sie zaladowac danych."); setLessonState("error"); }
+    } catch { setError("Nie udało się załadować danych."); setLessonState("error"); }
   };
 
   const prepareLesson = async (language: string, agId?: string) => {
@@ -312,7 +312,7 @@ export default function LessonPage() {
         },
       });
     } catch (err) {
-      const msg = err instanceof DOMException && err.name === "NotAllowedError" ? "Zezwol na dostep do mikrofonu." : "Nie udalo sie polaczyc.";
+      const msg = err instanceof DOMException && err.name === "NotAllowedError" ? "Zezwól na dostęp do mikrofonu." : "Nie udało się połączyć.";
       setError(msg); setLessonState("error");
     }
   };
@@ -500,7 +500,7 @@ export default function LessonPage() {
             {chatMessages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
                 <TutorAvatar agentId={agentId} size={80} speaking={isSpeaking} />
-                <p className="mt-4 text-sm text-slate-500">{isSpeaking ? `${agentName} mówi...` : "Rozmowa zaraz sie zacznie..."}</p>
+                <p className="mt-4 text-sm text-slate-500">{isSpeaking ? `${agentName} mówi...` : "Rozmowa zaraz się zacznie..."}</p>
               </div>
             )}
 

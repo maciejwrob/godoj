@@ -75,7 +75,7 @@ export function AddLanguageModal({ open, onClose, existingLangs }: { open: boole
         {/* Step 1: Choose language */}
         {step === 1 && (
           <div>
-            <p className="mb-4 text-sm text-on-surface-variant">Wybierz jezyk do nauki</p>
+            <p className="mb-4 text-sm text-on-surface-variant">Wybierz język do nauki</p>
             <div className="grid grid-cols-2 gap-2">
               {availableLangs.map((l) => (
                 <button key={l.id} onClick={() => { setLang(l.id); setVariant(null); setStep(l.variants ? 2 : 3); }}
@@ -85,7 +85,7 @@ export function AddLanguageModal({ open, onClose, existingLangs }: { open: boole
                 </button>
               ))}
             </div>
-            {availableLangs.length === 0 && <p className="text-center text-on-surface-variant py-4">Uczysz sie juz wszystkich dostepnych jezykow!</p>}
+            {availableLangs.length === 0 && <p className="text-center text-on-surface-variant py-4">Uczysz się już wszystkich dostępnych języków!</p>}
           </div>
         )}
 

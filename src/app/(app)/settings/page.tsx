@@ -96,7 +96,7 @@ export default function SettingsPage() {
         setWeeklyMinutesGoal(streak?.weekly_minutes_goal ?? 30);
       } catch (err) {
         console.error("Settings fetch error:", err);
-        setError("Nie udalo sie zaladowac ustawien");
+        setError("Nie udało się załadować ustawień");
       } finally {
         setLoading(false);
       }

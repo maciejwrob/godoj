@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://godoj.co"),
   title: "godoj.co — Godoj po swojemu",
   description:
-    "Ucz sie jezykow obcych rozmawiajac z AI. godoj.co to Twoj prywatny tutor konwersacyjny.",
+    "Ucz się języków obcych rozmawiając z AI. Godoj.co to Twój prywatny tutor konwersacyjny.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "32x32" },
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "godoj.co — Godoj po swojemu",
-    description: "Ucz sie jezykow obcych rozmawiajac z AI.",
+    description: "Ucz się języków obcych rozmawiając z AI.",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
 };

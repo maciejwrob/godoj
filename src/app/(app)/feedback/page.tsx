@@ -110,7 +110,7 @@ function FeedbackContent() {
         },
       });
     } catch (err) {
-      setError("Nie udalo sie polaczyc. Sprawdz mikrofon.");
+      setError("Nie udało się połączyć. Sprawdź mikrofon.");
       setState("ready");
     }
   };
@@ -162,7 +162,7 @@ function FeedbackContent() {
           <p className="text-on-surface-variant">Tworca godoj.co</p>
         </div>
         <p className="text-sm text-on-surface-variant">
-          Opowiedz mi jak Ci sie podoba godoj.co! Co dziala dobrze? Co moglbym poprawic? Rozmowa potrwa max 2 minuty.
+          Opowiedz mi jak Ci się podoba godoj.co! Co działa dobrze? Co mógłbym poprawić? Rozmowa potrwa max 2 minuty.
         </p>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <button onClick={startConversation} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-godoj-blue px-6 py-4 font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
@@ -170,7 +170,7 @@ function FeedbackContent() {
           Rozpocznij feedback
         </button>
         <button onClick={() => lessonId ? router.push(`/lesson/${lessonId}/summary`) : router.push("/dashboard")} className="text-sm text-slate-500 hover:text-white">
-          Pomin
+          Pomiń
         </button>
       </div>
     </div>
@@ -178,7 +178,7 @@ function FeedbackContent() {
 
   if (state === "connecting") return (
     <div className="flex min-h-screen items-center justify-center bg-surface">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-3 text-on-surface-variant">u0141u0105czu0119...</p>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-3 text-on-surface-variant">Łączę...</p>
     </div>
   );
 
@@ -229,14 +229,19 @@ function FeedbackContent() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Bottom */}
-      <div className="flex items-center justify-center py-6 border-t border-white/5">
+      {/* Bottom controls */}
+      <div className="flex items-center justify-center gap-6 py-6 border-t border-white/5">
+        {/* Mic indicator */}
         <div className="relative">
           {!isSpeaking && <div className="absolute -inset-2 bg-primary/20 blur-xl rounded-full animate-pulse" />}
           <div className={`relative h-16 w-16 rounded-full flex items-center justify-center ${isSpeaking ? "bg-surface-container-high" : "bg-primary"}`}>
             <span className="material-symbols-outlined text-2xl text-white" style={{ fontVariationSettings: "'FILL' 1" }}>{isSpeaking ? "volume_up" : "mic"}</span>
           </div>
         </div>
+        {/* End button — red phone */}
+        <button onClick={handleEnd} className="h-14 w-14 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/30 border border-red-500/20 transition-all" title="Zakończ">
+          <span className="material-symbols-outlined text-2xl">call_end</span>
+        </button>
       </div>
     </div>
   );
