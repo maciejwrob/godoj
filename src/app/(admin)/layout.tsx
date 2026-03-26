@@ -7,6 +7,7 @@ import {
   Mail,
   Bot,
   BarChart3,
+  MessageSquare,
   ArrowLeft,
 } from "lucide-react";
 
@@ -16,6 +17,7 @@ const navItems = [
   { href: "/admin/invite", label: "Zaproszenia", icon: Mail },
   { href: "/admin/agents", label: "Agenci", icon: Bot },
   { href: "/admin/usage", label: "Użycie", icon: BarChart3 },
+  { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
 ];
 
 export default async function AdminLayout({
