@@ -8,6 +8,7 @@ import {
   Bot,
   BarChart3,
   MessageSquare,
+  FileText,
   ArrowLeft,
 } from "lucide-react";
 
@@ -16,6 +17,7 @@ const navItems = [
   { href: "/admin/users", label: "Użytkownicy", icon: Users },
   { href: "/admin/invite", label: "Zaproszenia", icon: Mail },
   { href: "/admin/agents", label: "Agenci", icon: Bot },
+  { href: "/admin/prompt", label: "System Prompt", icon: FileText },
   { href: "/admin/usage", label: "Użycie", icon: BarChart3 },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
 ];

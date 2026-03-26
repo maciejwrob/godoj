@@ -45,6 +45,7 @@ export default function LessonPage() {
   const [agentId, setAgentId] = useState("ingrid");
   const [firstMessage, setFirstMessage] = useState("");
   const [previousContext, setPreviousContext] = useState("To pierwsza rozmowa.");
+  const [agentSystemPrompt, setAgentSystemPrompt] = useState("");
   const [error, setError] = useState("");
 
   const [timeLeft, setTimeLeft] = useState(0);
@@ -290,6 +291,7 @@ export default function LessonPage() {
       setNativeLanguage(data.native_language ?? "pl"); setLanguageName(data.language_name ?? "Norwegian");
       setAgentName(data.agent_name ?? "Tutor"); setFirstMessage(data.first_message ?? "");
       setPreviousContext(data.previous_context ?? "To pierwsza rozmowa.");
+      setAgentSystemPrompt(data.agent_system_prompt ?? "");
       setLessonState("ready");
     } catch (err) { setError(err instanceof Error ? err.message : "Blad"); setLessonState("error"); }
   };
@@ -300,6 +302,13 @@ export default function LessonPage() {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       await conversation.startSession({
         signedUrl,
+        overrides: {
+          agent: {
+            prompt: { prompt: agentSystemPrompt },
+            firstMessage: firstMessage || undefined,
+          },
+        },
+        // Also pass as dynamicVariables as fallback
         dynamicVariables: {
           user_name: displayName, user_level: level, native_language: nativeLanguage,
           language_name: languageName, agent_name: agentName, lesson_topic: topic,

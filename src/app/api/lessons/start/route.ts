@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import Anthropic from "@anthropic-ai/sdk";
+import { getAgentSystemPrompt, type PromptVars } from "@/config/agent-prompt";
 
 const anthropic = new Anthropic();
 
@@ -182,6 +184,28 @@ ZASADY:
       );
     }
 
+    // Build full system prompt with all variables filled in
+    const previousCtx = lastLesson?.summary_json
+      ? (lastLesson.summary_json as Record<string, unknown>).next_lesson_context as string ?? "To pierwsza rozmowa z tym uzytkownikiem."
+      : "To pierwsza rozmowa z tym uzytkownikiem.";
+
+    const promptVars: PromptVars = {
+      agent_name: agentName,
+      language_name: languageNameEn,
+      user_name: displayName,
+      user_level: level,
+      native_language: nativeLanguage,
+      lesson_topic: topic,
+      lesson_duration: String(duration),
+      previous_context: previousCtx,
+      first_message: firstMessage,
+    };
+
+    // Try to load custom prompt from DB
+    const adminDb = createAdminClient();
+    const { data: configRow } = await adminDb.from("app_config").select("value").eq("key", "agent_system_prompt").single();
+    const builtPrompt = getAgentSystemPrompt(promptVars, configRow?.value ?? null);
+
     return NextResponse.json({
       signed_url,
       lesson_id: lesson.id,
@@ -194,9 +218,8 @@ ZASADY:
       language_name: languageNameEn,
       agent_name: agentName,
       first_message: firstMessage,
-      previous_context: lastLesson?.summary_json
-        ? (lastLesson.summary_json as Record<string, unknown>).next_lesson_context ?? "To pierwsza rozmowa z tym uzytkownikiem."
-        : "To pierwsza rozmowa z tym uzytkownikiem.",
+      previous_context: previousCtx,
+      agent_system_prompt: builtPrompt,
     });
   } catch (error) {
     console.error("Start lesson error:", error);
