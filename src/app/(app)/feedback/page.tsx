@@ -144,7 +144,7 @@ function FeedbackContent() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-surface px-4">
       <div className="max-w-sm space-y-6 text-center">
         <div className="mx-auto h-20 w-20 overflow-hidden rounded-full border-2 border-primary/30 bg-surface-container-high flex items-center justify-center">
-          <span className="material-symbols-outlined text-3xl text-primary">person</span>
+          <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top rounded-full" />
         </div>
         <div>
           <h1 className="text-2xl font-extrabold text-white">Maciej</h1>
@@ -184,7 +184,7 @@ function FeedbackContent() {
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-surface-container-high flex items-center justify-center">
-            <span className="material-symbols-outlined text-primary">person</span>
+            <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top rounded-full" />
           </div>
           <div>
             <span className="text-sm font-bold text-white">Maciej · Feedback</span>

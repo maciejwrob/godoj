@@ -200,7 +200,7 @@ export default async function LessonSummaryPage({
       {/* Feedback CTA */}
       <div className="mb-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 flex items-center gap-4">
         <div className="h-12 w-12 shrink-0 rounded-full bg-surface-container-high flex items-center justify-center border border-primary/20">
-          <span className="material-symbols-outlined text-primary">person</span>
+          <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top rounded-full" />
         </div>
         <div className="flex-1">
           <p className="text-sm font-medium text-on-surface">Maciej, tworca godoj.co, chcialby uslyszec Twoj feedback!</p>
