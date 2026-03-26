@@ -31,10 +31,10 @@ export async function GET(request: Request) {
       .eq("id", user.id)
       .single();
 
-    // Streak
-    const { data: streak } = await supabase
+    // Streak — global row (for weekly goal setting)
+    const { data: streakRow } = await supabase
       .from("streaks")
-      .select("current_streak, longest_streak, weekly_minutes_goal, weekly_minutes_done")
+      .select("weekly_minutes_goal")
       .eq("user_id", user.id)
       .single();
 
@@ -67,6 +67,33 @@ export async function GET(request: Request) {
       (sum: number, l: { duration_seconds: number | null }) => sum + Math.round((l.duration_seconds ?? 0) / 60), 0
     );
 
+    // Calculate streak and weekly minutes FROM lessons for this language
+    const now = new Date();
+    const mondayOffset = now.getDay() === 0 ? 6 : now.getDay() - 1;
+    const monday = new Date(now); monday.setDate(monday.getDate() - mondayOffset);
+    const weekStartStr = monday.toISOString().split("T")[0];
+
+    // Weekly minutes for this language
+    const weeklyMinutesLang = (lessons ?? [])
+      .filter((l: { started_at: string }) => l.started_at.split("T")[0] >= weekStartStr)
+      .reduce((sum: number, l: { duration_seconds: number | null }) => sum + Math.round((l.duration_seconds ?? 0) / 60), 0);
+
+    // Streak for this language: count consecutive days with lessons
+    const lessonDates = [...new Set((lessons ?? []).map((l: { started_at: string }) => l.started_at.split("T")[0]))].sort().reverse();
+    let langStreak = 0;
+    const today = now.toISOString().split("T")[0];
+    let checkDate = today;
+    for (const d of lessonDates) {
+      if (d === checkDate) {
+        langStreak++;
+        const prev = new Date(checkDate);
+        prev.setDate(prev.getDate() - 1);
+        checkDate = prev.toISOString().split("T")[0];
+      } else if (d < checkDate) {
+        break;
+      }
+    }
+
     // Check if first lesson ever (for feedback popup)
     const { count: totalLessonsCount } = await supabase
       .from("lessons")
@@ -91,9 +118,9 @@ export async function GET(request: Request) {
       activeProfile: activeProfile ?? null,
       activeLang,
       currentLevel: activeProfile?.current_level ?? "A1",
-      currentStreak: streak?.current_streak ?? 0,
-      weeklyGoal: streak?.weekly_minutes_goal ?? 30,
-      weeklyDone: streak?.weekly_minutes_done ?? 0,
+      currentStreak: langStreak,
+      weeklyGoal: streakRow?.weekly_minutes_goal ?? 30,
+      weeklyDone: weeklyMinutesLang,
       lessons: lessons ?? [],
       achievements: achievements ?? [],
       vocabCount: vocabCount ?? 0,

@@ -5,44 +5,50 @@ export async function GET() {
   const { supabase, isAdmin } = await requireAdmin();
   if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  // Get all users joined with user_profiles
+  // Get users
   const { data: users, error } = await supabase
     .from("users")
-    .select(`
-      id, email, display_name, role, is_active, onboarding_complete, created_at,
-      user_profiles(target_language, current_level)
-    `)
+    .select("id, display_name, role, is_active, created_at, user_profiles(target_language, current_level)")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json([], { status: 200 });
+
+  // Get auth users for emails
+  const { data: authData } = await supabase.auth.admin.listUsers({ perPage: 100 });
+  const emailMap = new Map<string, string>();
+  for (const u of authData?.users ?? []) {
+    emailMap.set(u.id, u.email ?? "");
   }
 
-  // Get lessons count and last lesson date per user
-  const { data: lessonStats } = await supabase
-    .from("lessons")
-    .select("user_id, started_at");
-
-  const statsMap = new Map<string, { count: number; last_lesson_at: string | null }>();
-  for (const lesson of lessonStats ?? []) {
-    const existing = statsMap.get(lesson.user_id);
-    if (!existing) {
-      statsMap.set(lesson.user_id, { count: 1, last_lesson_at: lesson.started_at });
-    } else {
-      existing.count += 1;
-      if (lesson.started_at > (existing.last_lesson_at ?? "")) {
-        existing.last_lesson_at = lesson.started_at;
-      }
-    }
+  // Get lesson stats
+  const { data: lessons } = await supabase.from("lessons").select("user_id, started_at").not("ended_at", "is", null);
+  const statsMap = new Map<string, { count: number; lastAt: string | null }>();
+  for (const l of lessons ?? []) {
+    const ex = statsMap.get(l.user_id);
+    if (!ex) statsMap.set(l.user_id, { count: 1, lastAt: l.started_at });
+    else { ex.count++; if (l.started_at > (ex.lastAt ?? "")) ex.lastAt = l.started_at; }
   }
 
-  const enriched = (users ?? []).map((user) => ({
-    ...user,
-    lessons_count: statsMap.get(user.id)?.count ?? 0,
-    last_lesson_at: statsMap.get(user.id)?.last_lesson_at ?? null,
-  }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = (users ?? []).map((u: any) => {
+    const profiles = Array.isArray(u.user_profiles) ? u.user_profiles : [];
+    const langs = profiles.map((p: { target_language: string }) => p.target_language).join(", ");
+    const level = profiles[0]?.current_level ?? "-";
+    const stats = statsMap.get(u.id);
+    return {
+      id: u.id,
+      displayName: u.display_name ?? "?",
+      email: emailMap.get(u.id) ?? "?",
+      role: u.role,
+      language: langs || "-",
+      level,
+      lastActivity: stats?.lastAt ?? null,
+      lessonsCount: stats?.count ?? 0,
+      active: u.is_active ?? true,
+    };
+  });
 
-  return NextResponse.json(enriched);
+  return NextResponse.json(result);
 }
 
 export async function PATCH(request: Request) {
@@ -50,28 +56,14 @@ export async function PATCH(request: Request) {
   if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { user_id, updates } = await request.json();
+  if (!user_id || !updates) return NextResponse.json({ error: "Missing data" }, { status: 400 });
 
-  if (!user_id || !updates) {
-    return NextResponse.json({ error: "user_id and updates are required" }, { status: 400 });
-  }
-
-  // Only allow specific fields to be updated
-  const allowedFields = ["role", "is_active", "onboarding_complete"];
+  const allowed = ["role", "is_active", "onboarding_complete"];
   const sanitized: Record<string, unknown> = {};
-  for (const key of allowedFields) {
-    if (key in updates) {
-      sanitized[key] = updates[key];
-    }
-  }
+  for (const k of allowed) { if (k in updates) sanitized[k] = updates[k]; }
 
-  const { error } = await supabase
-    .from("users")
-    .update(sanitized)
-    .eq("id", user_id);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  const { error } = await supabase.from("users").update(sanitized).eq("id", user_id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }
