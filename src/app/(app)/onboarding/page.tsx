@@ -161,28 +161,34 @@ export default function OnboardingPage() {
 
   const selectedLanguage = LANGUAGES.find((l) => l.id === selectedLang);
 
-  // Load available tutors from agents_config when language changes
+  // Load available tutors from agents_config when language/variant changes
   useEffect(() => {
     if (!selectedLang) return;
     setTutor(null);
     const supabase = createClient();
-    supabase
+    let query = supabase
       .from("agents_config")
-      .select("id, voice_name, voice_description, language")
+      .select("id, voice_name, voice_description, language, variant")
       .eq("language", selectedLang)
       .eq("audience", "adult")
-      .eq("is_active", true)
-      .then(({ data }) => {
-        setAvailableTutors(
-          (data ?? []).map((a) => ({
-            id: a.id,
-            name: a.voice_name,
-            desc: a.voice_description ?? "",
-            lang: a.language,
-          }))
-        );
-      });
-  }, [selectedLang]);
+      .eq("is_active", true);
+
+    // Filter by variant if one is selected (e.g. american, british)
+    if (selectedVariant) {
+      query = query.eq("variant", selectedVariant);
+    }
+
+    query.then(({ data }) => {
+      setAvailableTutors(
+        (data ?? []).map((a) => ({
+          id: a.id,
+          name: a.voice_name,
+          desc: a.voice_description ?? "",
+          lang: a.language,
+        }))
+      );
+    });
+  }, [selectedLang, selectedVariant]);
 
   const canProceed = () => {
     switch (step) {

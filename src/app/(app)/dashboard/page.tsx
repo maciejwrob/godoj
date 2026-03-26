@@ -136,7 +136,7 @@ export default function DashboardPage() {
   const weeklyPct = weeklyGoal > 0 ? Math.min(100, Math.round((weeklyDone / weeklyGoal) * 100)) : 0;
   const activeProfile = profiles.find((p) => p.target_language === activeLang);
   const activeVariant = activeProfile?.language_variant ?? null;
-  const agentId = activeProfile?.selected_agent_id ?? "godoj-no-adult-mia";
+  const agentId = activeProfile?.selected_agent_id ?? "";
 
   return (
     <div className="min-h-screen px-4 py-6 lg:px-8 lg:py-8">

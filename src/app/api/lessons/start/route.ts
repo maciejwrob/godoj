@@ -33,8 +33,16 @@ export async function POST(request: Request) {
       .eq("id", agent_id)
       .single();
 
-    const elevenlabsAgentId = agentConfig?.elevenlabs_agent_id ?? agent_id;
-    const agentName = agentConfig?.voice_name ?? agent_id;
+    if (!agentConfig) {
+      await serverLogError(user.id, "/api/lessons/start", "Agent not found in agents_config", { agent_id });
+      return NextResponse.json(
+        { error: "Nie znaleziono tutora. Wybierz tutora w ustawieniach." },
+        { status: 400 }
+      );
+    }
+
+    const elevenlabsAgentId = agentConfig.elevenlabs_agent_id;
+    const agentName = agentConfig.voice_name;
 
     // Get user data
     const [{ data: userData }, { data: profile }, { data: lastLesson }] =
