@@ -8,6 +8,7 @@ import { useState } from "react";
 import { LogoFull, LogoIcon } from "@/components/logo";
 import { getLangFlag, getLangName } from "@/lib/languages";
 import { useActiveLanguage } from "@/lib/language-context";
+import { LanguageDropdown } from "@/components/language-dropdown";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
@@ -38,11 +39,13 @@ export default function AppNav({
   role,
   level,
   activeLang,
+  languages,
 }: {
   displayName: string;
   role: string;
   level?: string;
   activeLang?: string;
+  languages?: { target_language: string; language_variant: string | null; current_level: string }[];
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -61,9 +64,16 @@ export default function AppNav({
       {/* Desktop Sidebar */}
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col border-r border-white/5 bg-surface shadow-2xl shadow-black/50 lg:flex">
         {/* Logo */}
-        <div className="p-8 pb-10">
+        <div className="p-8 pb-4">
           <LogoFull size={40} />
         </div>
+
+        {/* Language selector */}
+        {languages && languages.length > 0 && (
+          <div className="px-4 pb-4">
+            <LanguageDropdown languages={languages} />
+          </div>
+        )}
 
         {/* Nav items */}
         <nav className="flex-1 space-y-1 px-4">

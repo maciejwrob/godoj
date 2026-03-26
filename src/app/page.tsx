@@ -11,7 +11,7 @@ export default function Home() {
             <Image src="/logo-icon.png" alt="Godoj" width={144} height={144} className="h-full w-full object-cover" style={{ width: 72, height: 72 }} priority />
           </div>
           <span className="text-5xl font-extrabold tracking-tight text-white" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>
-            godoj.co
+            Godoj.co
           </span>
         </div>
 

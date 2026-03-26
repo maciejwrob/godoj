@@ -25,7 +25,7 @@ export function LogoFull({ size = 32, href = "/dashboard" }: { size?: number; hr
         className="text-xl font-extrabold tracking-tight text-white"
         style={{ fontFamily: "var(--font-manrope), var(--font-sans), sans-serif" }}
       >
-        godoj.co
+        Godoj.co
       </span>
     </Link>
   );
@@ -39,7 +39,7 @@ export function LogoLarge() {
         className="text-4xl font-extrabold tracking-tight text-white"
         style={{ fontFamily: "var(--font-manrope), var(--font-sans), sans-serif" }}
       >
-        godoj.co
+        Godoj.co
       </span>
     </div>
   );

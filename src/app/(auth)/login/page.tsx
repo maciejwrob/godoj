@@ -65,7 +65,7 @@ export default function LoginPage() {
             <div className="overflow-hidden rounded-xl" style={{ width: 40, height: 40 }}>
               <Image src="/logo-icon.png" alt="Godoj" width={80} height={80} className="h-full w-full object-cover" style={{ width: 40, height: 40 }} priority />
             </div>
-            <span className="text-2xl font-extrabold tracking-tight text-white" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>godoj.co</span>
+            <span className="text-2xl font-extrabold tracking-tight text-white" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>Godoj.co</span>
           </div>
           <p className="text-text-secondary">
             Podaj swoj e-mail, aby sie zalogowac

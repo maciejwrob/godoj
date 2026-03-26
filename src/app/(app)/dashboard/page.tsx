@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { BadgeIcon } from "@/components/badge-icon";
-import { LanguageSwitcher } from "@/components/language-switcher";
+// Language switching is in sidebar dropdown now
 import { useActiveLanguage } from "@/lib/language-context";
 import { getLangFlag, getLangName } from "@/lib/languages";
 import { TutorAvatar } from "@/components/tutor-avatars";
@@ -149,7 +149,7 @@ export default function DashboardPage() {
               {getLangName(activeLang)} · Poziom {currentLevel}
             </p>
           </div>
-          <LanguageSwitcher languages={profiles} />
+          {/* Language switching is in sidebar */}
         </section>
 
         {/* Hero + Stats Bento */}

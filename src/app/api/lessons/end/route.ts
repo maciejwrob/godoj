@@ -139,19 +139,35 @@ Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
         .eq("target_language", lesson.language);
     }
 
-    // Add vocabulary
+    // Add vocabulary (deduplicate — increment times_used if exists)
     if (summary.new_vocabulary?.length > 0) {
-      const vocabItems = summary.new_vocabulary.map(
-        (v: { word: string; translation: string; context?: string }) => ({
-          user_id: user.id,
-          language: lesson.language,
-          word: v.word,
-          translation: v.translation,
-          context_sentence: v.context ?? null,
-          lesson_id,
-        })
-      );
-      await supabase.from("vocabulary").insert(vocabItems);
+      for (const v of summary.new_vocabulary as { word: string; translation: string; context?: string }[]) {
+        const { data: existing } = await supabase
+          .from("vocabulary")
+          .select("id, times_used")
+          .eq("user_id", user.id)
+          .eq("language", lesson.language)
+          .eq("word", v.word)
+          .limit(1)
+          .single();
+
+        if (existing) {
+          await supabase.from("vocabulary").update({
+            times_used: (existing.times_used ?? 1) + 1,
+            last_seen_at: new Date().toISOString(),
+            context_sentence: v.context ?? undefined,
+          }).eq("id", existing.id);
+        } else {
+          await supabase.from("vocabulary").insert({
+            user_id: user.id,
+            language: lesson.language,
+            word: v.word,
+            translation: v.translation,
+            context_sentence: v.context ?? null,
+            lesson_id,
+          });
+        }
+      }
     }
 
     // Update streaks (use admin client to bypass RLS)

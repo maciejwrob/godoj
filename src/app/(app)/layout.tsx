@@ -42,6 +42,7 @@ export default async function AppLayout({
             role={userData?.role ?? "adult"}
             level={firstProfile?.current_level ?? "A1"}
             activeLang={defaultLang}
+            languages={(profiles ?? []) as { target_language: string; language_variant: string | null; current_level: string }[]}
           />
         )}
         <main className={userData?.onboarding_complete ? "pb-20 pt-16 lg:ml-64 lg:pb-0 lg:pt-0" : ""}>
