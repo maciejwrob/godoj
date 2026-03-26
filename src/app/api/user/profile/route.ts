@@ -26,7 +26,10 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(profile);
+    // Also get display_name
+    const { data: userData } = await supabase.from("users").select("display_name").eq("id", user.id).single();
+
+    return NextResponse.json({ ...profile, display_name: userData?.display_name ?? "User" });
   } catch (error) {
     console.error("Profile fetch error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

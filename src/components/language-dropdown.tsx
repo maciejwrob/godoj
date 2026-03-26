@@ -46,7 +46,7 @@ export function LanguageDropdown({ languages }: { languages: LangProfile[] }) {
             <div className="mt-1 border-t border-white/5 pt-1">
               <button onClick={() => { setOpen(false); setModalOpen(true); }}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-primary hover:bg-primary/5">
-                <span className="material-symbols-outlined text-sm">add</span>Dodaj jezyk
+                <span className="material-symbols-outlined text-sm">add</span>Dodaj język
               </button>
             </div>
           </div>

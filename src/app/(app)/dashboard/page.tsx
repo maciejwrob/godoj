@@ -287,7 +287,7 @@ export default function DashboardPage() {
                     <span className="material-symbols-outlined text-primary/40 text-5xl">workspace_premium</span>
                   </div>
                   <p className="text-on-surface font-semibold text-lg">Brak odznak</p>
-                  <p className="text-on-surface-variant max-w-[200px] mt-2 text-sm mx-auto">Ukoncz pierwsza lekcje zeby zdobyc odznake!</p>
+                  <p className="text-on-surface-variant max-w-[200px] mt-2 text-sm mx-auto">Ukończ pierwszą lekcję żeby zdobyć odznakę!</p>
                   <Link href="/lesson" className="mt-8 inline-block text-sm font-bold text-primary px-6 py-2.5 rounded-full border border-primary/20 hover:bg-primary/10 transition-colors">
                     PODEJMIJ WYZWANIE
                   </Link>
@@ -322,7 +322,7 @@ export default function DashboardPage() {
                 <div className="flex flex-col items-center p-12 text-center">
                   <span className="material-symbols-outlined mb-3 text-4xl text-primary/30">chat_bubble</span>
                   <p className="font-semibold text-on-surface">Brak lekcji</p>
-                  <p className="mt-1 text-sm text-on-surface-variant">Rozpocznij pierwsza rozmowe!</p>
+                  <p className="mt-1 text-sm text-on-surface-variant">Rozpocznij pierwszą rozmowę!</p>
                 </div>
               ) : (
                 <>

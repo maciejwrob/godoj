@@ -4,8 +4,10 @@ import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useConversation } from "@11labs/react";
 import { Loader2, X } from "lucide-react";
+import { useLanguage } from "@/lib/language-context";
 
 const FEEDBACK_AGENT_ID = "agent_9401kmmgjzt3ey5bs3ms27ecjw9e";
+const GOODBYE_PATTERNS = /dzięk|do widzenia|miłej nauki|bye|thank|goodbye|powodzenia/i;
 const MAX_DURATION_S = 120; // 2 minutes
 
 function cleanCaption(text: string): string {
@@ -16,6 +18,8 @@ function FeedbackContent() {
   const params = useSearchParams();
   const router = useRouter();
   const lessonId = params.get("lesson_id") ?? "";
+  const { languageName, level } = useLanguage();
+  const autoEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [state, setState] = useState<"loading" | "ready" | "connecting" | "active" | "ending">("loading");
   const [timeLeft, setTimeLeft] = useState(MAX_DURATION_S);
@@ -72,6 +76,12 @@ function FeedbackContent() {
       const entry = { source, text: clean };
       transcriptRef.current = [...transcriptRef.current, entry];
       setMessages([...transcriptRef.current]);
+
+      // Auto-end if agent says goodbye
+      if (source === "ai" && GOODBYE_PATTERNS.test(clean)) {
+        if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
+        autoEndTimerRef.current = setTimeout(() => handleEnd(), 5000);
+      }
     },
     onError: (msg: string) => { setError(msg); },
   });
@@ -86,16 +96,17 @@ function FeedbackContent() {
       if (!res.ok) throw new Error("Could not get signed URL");
       const { signed_url } = await res.json();
 
-      // Get user profile for dynamic vars
+      // Get user name
       const profileRes = await fetch("/api/user/profile");
       const profile = profileRes.ok ? await profileRes.json() : {};
+      const userName = profile.display_name ?? profile.user_name ?? "User";
 
       await conversation.startSession({
         signedUrl: signed_url,
         dynamicVariables: {
-          user_name: profile.user_name ?? "User",
-          language_name: profile.target_language ?? "Norwegian",
-          user_level: profile.current_level ?? "A1",
+          user_name: userName,
+          language_name: languageName,
+          user_level: level,
         },
       });
     } catch (err) {
@@ -167,7 +178,7 @@ function FeedbackContent() {
 
   if (state === "connecting") return (
     <div className="flex min-h-screen items-center justify-center bg-surface">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-3 text-on-surface-variant">Lacze...</p>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-3 text-on-surface-variant">u0141u0105czu0119...</p>
     </div>
   );
 
@@ -203,7 +214,7 @@ function FeedbackContent() {
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full opacity-40">
             <span className="material-symbols-outlined text-4xl text-primary">mic</span>
-            <p className="mt-2 text-sm text-slate-500">{isSpeaking ? "Maciej mowi..." : "Slucham..."}</p>
+            <p className="mt-2 text-sm text-slate-500">{isSpeaking ? "Maciej mówi..." : "Słucham..."}</p>
           </div>
         )}
         {messages.map((msg, i) => (

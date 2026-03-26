@@ -124,7 +124,7 @@ export default function KidsDashboardPage() {
         {data.recentAchievements.length === 0 && (
           <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: KIDS_THEME.cardBg, border: `2px solid ${KIDS_THEME.border}` }}>
             <p className="mt-2 text-lg font-medium" style={{ color: KIDS_THEME.textSecondary }}>
-              Ukoncz pierwsza lekcje, zeby zdobyc odznaki!
+              Ukończ pierwszą lekcję, żeby zdobyć odznaki!
             </p>
           </div>
         )}

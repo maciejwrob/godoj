@@ -368,11 +368,11 @@ export default function LessonPage() {
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
           <span className="material-symbols-outlined text-3xl text-red-400">error</span>
         </div>
-        <h1 className="text-xl font-bold">Cos poszlo nie tak</h1>
+        <h1 className="text-xl font-bold">Coś poszło nie tak</h1>
         <p className="text-on-surface-variant">{error}</p>
         <div className="flex gap-3">
           <button onClick={() => router.push("/dashboard")} className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-slate-400">Dashboard</button>
-          <button onClick={loadLessonData} className="flex-1 rounded-xl bg-godoj-blue py-2.5 text-sm font-bold text-white">Sprobuj ponownie</button>
+          <button onClick={loadLessonData} className="flex-1 rounded-xl bg-godoj-blue py-2.5 text-sm font-bold text-white">Spróbuj ponownie</button>
         </div>
       </div>
     </div>
@@ -380,7 +380,7 @@ export default function LessonPage() {
 
   if (lessonState === "loading") return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Przygotowuje lekcje...</p>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Przygotowuję lekcję...</p>
     </div>
   );
 
@@ -413,10 +413,10 @@ export default function LessonPage() {
         </div>
         <button onClick={startConversation} className="flex w-full items-center justify-center gap-3 rounded-2xl bg-godoj-blue px-6 py-4 text-lg font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
-          Rozpocznij rozmowe
+          Rozpocznij rozmowę
         </button>
         <button onClick={() => router.push("/dashboard")} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
-          <ArrowLeft className="h-4 w-4" />Wroc do Dashboard
+          <ArrowLeft className="h-4 w-4" />Wróć do Dashboard
         </button>
       </div>
     </div>
@@ -424,13 +424,13 @@ export default function LessonPage() {
 
   if (lessonState === "connecting") return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Lacze z {agentName}...</p>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Łączę z {agentName}...</p>
     </div>
   );
 
   if (lessonState === "ending") return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Analizuje lekcje...</p>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Analizuję lekcję...</p>
     </div>
   );
 
@@ -500,7 +500,7 @@ export default function LessonPage() {
             {chatMessages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
                 <TutorAvatar agentId={agentId} size={80} speaking={isSpeaking} />
-                <p className="mt-4 text-sm text-slate-500">{isSpeaking ? `${agentName} mowi...` : "Rozmowa zaraz sie zacznie..."}</p>
+                <p className="mt-4 text-sm text-slate-500">{isSpeaking ? `${agentName} mówi...` : "Rozmowa zaraz sie zacznie..."}</p>
               </div>
             )}
 
@@ -582,13 +582,13 @@ export default function LessonPage() {
                 </div>
                 <div className="mt-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
                   <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    {isSpeaking ? `${agentName} mowi...` : hintsLoading ? "Szukam podpowiedzi..." : "Slucham..."}
+                    {isSpeaking ? `${agentName} mówi...` : hintsLoading ? "Szukam podpowiedzi..." : "Słucham..."}
                   </p>
                 </div>
               </div>
 
               {/* End */}
-              <button onClick={handleEndLesson} className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500/20 border border-white/5 transition-all" title="Zakoncz">
+              <button onClick={handleEndLesson} className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500/20 border border-white/5 transition-all" title="Zakończ">
                 <span className="material-symbols-outlined">call_end</span>
               </button>
             </div>

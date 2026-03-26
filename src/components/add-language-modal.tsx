@@ -68,7 +68,7 @@ export function AddLanguageModal({ open, onClose, existingLangs }: { open: boole
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-3xl border border-white/5 bg-surface-container p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-extrabold text-white">Dodaj jezyk</h2>
+          <h2 className="text-lg font-extrabold text-white">Dodaj język</h2>
           <button onClick={onClose} className="text-slate-500 hover:text-white"><X className="h-5 w-5" /></button>
         </div>
 
@@ -143,7 +143,7 @@ export function AddLanguageModal({ open, onClose, existingLangs }: { open: boole
             <button onClick={handleSave} disabled={saving || !agentId}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-50">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Dodaj jezyk
+              Dodaj język
             </button>
           </div>
         )}

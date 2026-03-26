@@ -15,7 +15,7 @@ export function LanguageSwitcher({ languages }: { languages: LangProfile[] }) {
     return (
       <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 rounded-full border border-white/5 bg-surface-container-high px-4 py-2 text-sm hover:border-primary/50 transition-all">
         <span className="material-symbols-outlined text-sm text-primary">add</span>
-        <span className="text-on-surface-variant">Dodaj jezyk</span>
+        <span className="text-on-surface-variant">Dodaj język</span>
         <AddLanguageModal open={modalOpen} onClose={() => setModalOpen(false)} existingLangs={languages.map((l) => l.target_language)} />
       </button>
     );
