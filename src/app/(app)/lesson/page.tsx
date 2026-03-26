@@ -302,13 +302,6 @@ export default function LessonPage() {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       await conversation.startSession({
         signedUrl,
-        overrides: {
-          agent: {
-            prompt: { prompt: agentSystemPrompt },
-            firstMessage: firstMessage || undefined,
-          },
-        },
-        // Also pass as dynamicVariables as fallback
         dynamicVariables: {
           user_name: displayName, user_level: level, native_language: nativeLanguage,
           language_name: languageName, agent_name: agentName, lesson_topic: topic,

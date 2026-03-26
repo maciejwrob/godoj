@@ -205,8 +205,8 @@ export default function DashboardPage() {
                 <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-lg text-xs font-bold text-white mb-4 lg:mb-6 uppercase tracking-wider">
                   {getLangFlag(activeLang)} {getLangName(activeLang)}
                 </span>
-                <h3 className="text-3xl lg:text-5xl font-black text-white mb-3 leading-tight">Rozpocznij lekcje</h3>
-                <p className="text-white/80 max-w-sm lg:text-lg">Porozmawiaj z AI tutorem i naucz sie nowych slow.</p>
+                <h3 className="text-3xl lg:text-5xl font-black text-white mb-3 leading-tight">{"Rozpocznij lekcj\u0119"}</h3>
+                <p className="text-white/80 max-w-sm lg:text-lg">{"Porozmawiaj z AI tutorem i naucz si\u0119 nowych s\u0142\u00f3w."}</p>
               </div>
               <div className="flex flex-wrap items-center gap-3 mt-6 lg:mt-8">
                 {/* Duration picker */}
@@ -368,8 +368,8 @@ export default function DashboardPage() {
         {/* Footer */}
         <footer className="pt-12 mt-12 border-t border-white/5 flex flex-col md:flex-row items-center justify-between text-slate-500 text-sm gap-4">
           <div className="flex items-center gap-8 font-medium">
-            <span className="flex items-center gap-2"><span className="material-symbols-outlined text-xs">history</span>{totalMinutes} minut lacznie</span>
-            <span className="flex items-center gap-2"><span className="material-symbols-outlined text-xs">menu_book</span>{vocabCount} slow</span>
+            <span className="flex items-center gap-2"><span className="material-symbols-outlined text-xs">history</span>{totalMinutes} {" minut \u0142\u0105cznie"}</span>
+            <span className="flex items-center gap-2"><span className="material-symbols-outlined text-xs">menu_book</span>{vocabCount} {" s\u0142\u00f3w"}</span>
           </div>
         </footer>
       </div>

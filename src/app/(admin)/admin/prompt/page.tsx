@@ -61,8 +61,12 @@ export default function AdminPromptPage() {
         </div>
       </div>
 
+      <div className="rounded-xl border border-tertiary/20 bg-tertiary/5 p-4 mb-4">
+        <p className="text-sm text-tertiary font-medium">Prompt jest przekazywany do agentow ElevenLabs przez dynamic variables. Edytuj system prompt bezposrednio w ElevenLabs Dashboard dla kazdego agenta, uzywajac ponizszych zmiennych.</p>
+      </div>
+
       <div className="rounded-xl border border-border bg-bg-card p-4">
-        <p className="mb-3 text-sm text-text-secondary">Dostepne zmienne (automatycznie wypelniane):</p>
+        <p className="mb-3 text-sm text-text-secondary">Dostepne zmienne (wklej w ElevenLabs system prompt):</p>
         <div className="flex flex-wrap gap-2">
           {AVAILABLE_VARS.map((v) => (
             <code key={v} className="rounded bg-bg-card-hover px-2 py-1 text-xs text-primary">{v}</code>

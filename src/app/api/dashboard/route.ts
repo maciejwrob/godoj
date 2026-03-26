@@ -82,7 +82,14 @@ export async function GET(request: Request) {
     const lessonDates = [...new Set((lessons ?? []).map((l: { started_at: string }) => l.started_at.split("T")[0]))].sort().reverse();
     let langStreak = 0;
     const today = now.toISOString().split("T")[0];
+    const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+    // Start from today; if no lesson today, start from yesterday (streak still valid)
     let checkDate = today;
+    if (lessonDates.length > 0 && lessonDates[0] !== today && lessonDates[0] === yesterdayStr) {
+      checkDate = yesterdayStr;
+    }
     for (const d of lessonDates) {
       if (d === checkDate) {
         langStreak++;
