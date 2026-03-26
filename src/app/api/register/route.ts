@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { Resend } from "resend";
 
 export async function POST(request: Request) {
   const { token, display_name } = await request.json();
@@ -58,6 +59,18 @@ export async function POST(request: Request) {
       display_name,
     })
     .eq("id", newUser.user.id);
+
+  // Notify admin about new registration
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const now = new Date().toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" });
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL ?? "noreply@godoj.co",
+      to: "maciej.wrob@gmail.com",
+      subject: `Nowy użytkownik Godoj.co — ${display_name}`,
+      html: `<p><strong>${display_name}</strong> (${invitation.email}) właśnie utworzył konto na Godoj.co</p><p>Rola: ${invitation.role}</p><p>Data: ${now}</p>`,
+    });
+  } catch {}
 
   return NextResponse.json({ success: true });
 }

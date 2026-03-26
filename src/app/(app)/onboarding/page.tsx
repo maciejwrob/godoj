@@ -246,6 +246,8 @@ export default function OnboardingPage() {
 
   const handleSave = () => {
     setError("");
+    // Pre-set localStorage so dashboard uses the correct language immediately
+    localStorage.setItem("godoj_active_lang", selectedLang);
     startTransition(async () => {
       const data: OnboardingData = {
         displayName: displayName.trim(),
