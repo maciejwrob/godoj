@@ -163,6 +163,11 @@ export default async function LessonSummaryPage({
               </div>
             ))}
           </div>
+          {/* Practice CTA inside vocab card */}
+          <Link href="/exercises" className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-tertiary/10 border border-tertiary/20 px-4 py-2.5 text-sm font-bold text-tertiary hover:bg-tertiary/20 transition-all">
+            <span className="material-symbols-outlined text-base">fitness_center</span>
+            Pocwicz te slowa teraz!
+          </Link>
         </div>
       )}
 
@@ -184,17 +189,6 @@ export default async function LessonSummaryPage({
             ))}
           </div>
         </div>
-      )}
-
-      {/* Exercise CTA */}
-      {summary?.new_vocabulary && summary.new_vocabulary.length > 0 && (
-        <Link
-          href={`/exercises`}
-          className="mb-4 flex items-center justify-center gap-2 rounded-xl bg-tertiary/10 border border-tertiary/20 px-4 py-3 text-sm font-bold text-tertiary hover:bg-tertiary/20 transition-all"
-        >
-          <span className="material-symbols-outlined text-lg">fitness_center</span>
-          Pocwicz te slowa teraz!
-        </Link>
       )}
 
       {/* Feedback CTA */}

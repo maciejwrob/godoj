@@ -26,6 +26,9 @@ type DashboardData = {
   achievements: Achievement[];
   vocabCount: number;
   totalMinutes: number;
+  totalLessonsCount: number;
+  needsFeedback: boolean;
+  feedbackLessonId: string | null;
 };
 
 // Flag pattern CSS for hero background
@@ -110,6 +113,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDuration, setSelectedDuration] = useState(5);
+  const [feedbackDismissed, setFeedbackDismissed] = useState(false);
 
   const fetchData = useCallback(async (lang?: string) => {
     setLoading(true);
@@ -131,14 +135,52 @@ export default function DashboardPage() {
   );
   if (!data) return null;
 
-  const { displayName, profiles, currentLevel, currentStreak, weeklyGoal, weeklyDone, lessons, achievements, vocabCount, totalMinutes, activeLang } = data;
+  const { displayName, profiles, currentLevel, currentStreak, weeklyGoal, weeklyDone, lessons, achievements, vocabCount, totalMinutes, activeLang, totalLessonsCount, needsFeedback, feedbackLessonId } = data;
+  const showFeedbackPopup = totalLessonsCount === 1 && needsFeedback && !feedbackDismissed;
+  const showFeedbackBanner = totalLessonsCount > 1 && needsFeedback && !feedbackDismissed;
   const weeklyPct = weeklyGoal > 0 ? Math.min(100, Math.round((weeklyDone / weeklyGoal) * 100)) : 0;
   const activeProfile = profiles.find((p) => p.target_language === activeLang);
   const agentId = activeProfile?.selected_agent_id ?? "godoj-no-adult-mia";
 
   return (
     <div className="min-h-screen px-4 py-6 lg:px-8 lg:py-8">
+      {/* Feedback popup — after first lesson */}
+      {showFeedbackPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-white/5 bg-surface-container p-8 shadow-2xl text-center">
+            <div className="mx-auto mb-4 h-16 w-16 overflow-hidden rounded-full border-2 border-primary/30">
+              <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top" />
+            </div>
+            <h2 className="text-lg font-extrabold text-white">Maciej, tworca Godoj.co</h2>
+            <p className="mt-3 text-sm text-on-surface-variant">
+              Wlasnie ukonczyles swoja pierwsza lekcje — jestem ciekaw jak Ci poszlo! Mozesz mi o tym opowiedziec w krotkiej rozmowie (max 2 min)?
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button onClick={() => setFeedbackDismissed(true)} className="flex-1 rounded-xl border border-white/10 py-3 text-sm text-slate-400 hover:text-white">
+                Moze pozniej
+              </button>
+              <Link href={`/feedback?lesson_id=${feedbackLessonId}`} className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-godoj-blue py-3 text-sm font-bold text-white hover:scale-105 transition-all">
+                <span className="material-symbols-outlined text-lg">mic</span>
+                Daj feedback
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto max-w-6xl space-y-8">
+
+        {/* Feedback banner — after subsequent lessons */}
+        {showFeedbackBanner && (
+          <div className="flex items-center gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-primary/20">
+              <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top" />
+            </div>
+            <p className="flex-1 text-sm text-on-surface-variant">Nie dales feedbacku do ostatniej lekcji — Maciej bedzie wdzieczny!</p>
+            <Link href={`/feedback?lesson_id=${feedbackLessonId}`} className="shrink-0 rounded-xl bg-godoj-blue px-4 py-2 text-sm font-bold text-white">Daj feedback</Link>
+            <button onClick={() => setFeedbackDismissed(true)} className="text-slate-500 hover:text-white"><span className="material-symbols-outlined text-sm">close</span></button>
+          </div>
+        )}
 
         {/* Header */}
         <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

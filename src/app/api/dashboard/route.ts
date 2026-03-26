@@ -67,6 +67,23 @@ export async function GET(request: Request) {
       (sum: number, l: { duration_seconds: number | null }) => sum + Math.round((l.duration_seconds ?? 0) / 60), 0
     );
 
+    // Check if first lesson ever (for feedback popup)
+    const { count: totalLessonsCount } = await supabase
+      .from("lessons")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .not("ended_at", "is", null);
+
+    // Check if last lesson has feedback
+    const lastLesson = (lessons ?? [])[0];
+    let needsFeedback = false;
+    let feedbackLessonId: string | null = null;
+    if (lastLesson) {
+      const { data: fb } = await supabase.from("feedback").select("id").eq("lesson_id", lastLesson.id).limit(1).single();
+      needsFeedback = !fb;
+      feedbackLessonId = lastLesson.id;
+    }
+
     return NextResponse.json({
       displayName: userData?.display_name ?? "Uzytkownik",
       role: userData?.role ?? "adult",
@@ -81,6 +98,9 @@ export async function GET(request: Request) {
       achievements: achievements ?? [],
       vocabCount: vocabCount ?? 0,
       totalMinutes,
+      totalLessonsCount: totalLessonsCount ?? 0,
+      needsFeedback,
+      feedbackLessonId,
     });
   } catch (error) {
     console.error("Dashboard API error:", error);
