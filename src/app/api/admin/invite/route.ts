@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   const { error: emailError } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL ?? "noreply@godoj.co",
     to: email,
-    subject: "Zaproszenie do Godoj",
+    subject: "Zaproszenie do Godoj.co 🎙",
     html: invitationEmail(inviteUrl, adminName),
   });
 
