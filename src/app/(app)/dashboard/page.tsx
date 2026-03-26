@@ -135,6 +135,7 @@ export default function DashboardPage() {
   const showFeedbackBanner = totalLessonsCount > 1 && needsFeedback && !feedbackDismissed;
   const weeklyPct = weeklyGoal > 0 ? Math.min(100, Math.round((weeklyDone / weeklyGoal) * 100)) : 0;
   const activeProfile = profiles.find((p) => p.target_language === activeLang);
+  const activeVariant = activeProfile?.language_variant ?? null;
   const agentId = activeProfile?.selected_agent_id ?? "godoj-no-adult-mia";
 
   return (
@@ -182,7 +183,7 @@ export default function DashboardPage() {
           <div>
             <h2 className="text-3xl font-extrabold tracking-tight text-white lg:text-4xl">{"Cze\u015b\u0107, "}{displayName}!</h2>
             <p className="mt-1 flex items-center gap-2 text-on-surface-variant">
-              <span>{getLangFlag(activeLang)}</span>
+              <span>{getLangFlag(activeLang, activeVariant)}</span>
               {getLangName(activeLang)} · Poziom {currentLevel}
             </p>
           </div>
@@ -198,7 +199,7 @@ export default function DashboardPage() {
             <div className="relative z-10 w-full lg:w-3/5 p-8 lg:p-10 flex flex-col justify-between">
               <div>
                 <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-lg text-xs font-bold text-white mb-4 lg:mb-6 uppercase tracking-wider">
-                  {getLangFlag(activeLang)} {getLangName(activeLang)}
+                  {getLangFlag(activeLang, activeVariant)} {getLangName(activeLang)}
                 </span>
                 <h3 className="text-3xl lg:text-5xl font-black text-white mb-3 leading-tight">{"Rozpocznij lekcj\u0119"}</h3>
                 <p className="text-white/80 max-w-sm lg:text-lg">{"Porozmawiaj z AI tutorem i naucz si\u0119 nowych s\u0142\u00f3w."}</p>

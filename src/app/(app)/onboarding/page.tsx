@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { saveOnboarding, type OnboardingData } from "./actions";
+import { createClient } from "@/lib/supabase/client";
 import {
   ArrowLeft,
   ArrowRight,
@@ -136,57 +137,6 @@ const TIMES = [
 
 type TutorDef = { id: string; name: string; desc: string; lang: string };
 
-const TUTORS: TutorDef[] = [
-  {
-    id: "carlos",
-    name: "Carlos",
-    desc: "Cierpliwy i wesoły. Uwielbia rozmawiać o podróżach i sporcie.",
-    lang: "es",
-  },
-  {
-    id: "sofia",
-    name: "Sofía",
-    desc: "Energiczna i zabawna. Pasjonuje się kinem i muzyką.",
-    lang: "es",
-  },
-  {
-    id: "james",
-    name: "James",
-    desc: "Spokojny i rzeczowy. Lubi technologię i biznes.",
-    lang: "en",
-  },
-  {
-    id: "emma",
-    name: "Emma",
-    desc: "Ciepła i wyrozumiała. Interesuje się sztuką i podróżami.",
-    lang: "en",
-  },
-  {
-    id: "erik",
-    name: "Erik",
-    desc: "Opanowany i precyzyjny. Fan natury i sportów zimowych.",
-    lang: "no",
-  },
-  {
-    id: "ingrid",
-    name: "Ingrid",
-    desc: "Przyjazna i cierpliwa. Kocha gotowanie i skandynawski design.",
-    lang: "no",
-  },
-  {
-    id: "pierre",
-    name: "Pierre",
-    desc: "Elegancki i dowcipny. Pasjonat kuchni i kultury.",
-    lang: "fr",
-  },
-  {
-    id: "camille",
-    name: "Camille",
-    desc: "Wesoła i spontaniczna. Uwielbia film i modę.",
-    lang: "fr",
-  },
-];
-
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
@@ -206,8 +156,32 @@ export default function OnboardingPage() {
   const [time, setTime] = useState("any");
   const [reminders, setReminders] = useState(false);
   const [tutor, setTutor] = useState<string | null>(null);
+  const [availableTutors, setAvailableTutors] = useState<TutorDef[]>([]);
 
   const selectedLanguage = LANGUAGES.find((l) => l.id === selectedLang);
+
+  // Load available tutors from agents_config when language changes
+  useEffect(() => {
+    if (!selectedLang) return;
+    setTutor(null);
+    const supabase = createClient();
+    supabase
+      .from("agents_config")
+      .select("id, voice_name, voice_description, language")
+      .eq("language", selectedLang)
+      .eq("audience", "adult")
+      .eq("is_active", true)
+      .then(({ data }) => {
+        setAvailableTutors(
+          (data ?? []).map((a) => ({
+            id: a.id,
+            name: a.voice_name,
+            desc: a.voice_description ?? "",
+            lang: a.language,
+          }))
+        );
+      });
+  }, [selectedLang]);
 
   const canProceed = () => {
     switch (step) {
@@ -291,7 +265,7 @@ export default function OnboardingPage() {
     });
   };
 
-  const filteredTutors = TUTORS.filter((t) => t.lang === selectedLang);
+  const filteredTutors = availableTutors;
 
   return (
     <main className="flex min-h-screen flex-col items-center px-4 py-8">
@@ -751,13 +725,13 @@ function StepPreferences({
         </span>
         <button
           onClick={() => onReminders(!reminders)}
-          className={`relative h-6 w-11 rounded-full transition-colors ${
+          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
             reminders ? "bg-primary" : "bg-bg-card-hover"
           }`}
         >
           <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-              reminders ? "translate-x-5.5" : "translate-x-0.5"
+            className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+              reminders ? "translate-x-6" : "translate-x-1"
             }`}
           />
         </button>
