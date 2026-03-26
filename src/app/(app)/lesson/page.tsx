@@ -5,6 +5,7 @@ import { useConversation } from "@11labs/react";
 import { Loader2, Play, ArrowLeft, RefreshCw, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TutorAvatar } from "@/components/tutor-avatars";
+import { useLanguage } from "@/lib/language-context";
 
 type Hint = { phrase: string; translation: string };
 type ChatMessage = {
@@ -30,6 +31,7 @@ let msgIdCounter = 0;
 
 export default function LessonPage() {
   const router = useRouter();
+  const langCtx = useLanguage();
   const [lessonState, setLessonState] = useState<LessonState>("loading");
   const [lessonId, setLessonId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
@@ -270,12 +272,12 @@ export default function LessonPage() {
 
   const loadLessonData = async () => {
     try {
-      const profileRes = await fetch("/api/user/profile");
-      if (!profileRes.ok) throw new Error("Failed to load profile");
-      const profileData = await profileRes.json();
-      profileRef.current = { language: profileData.target_language, agentId: profileData.selected_agent_id ?? "default" };
-      setAgentId(profileData.selected_agent_id ?? "ingrid");
-      await prepareLesson(profileData.target_language, profileData.selected_agent_id);
+      // Use language context — single source of truth
+      const lang = langCtx.language;
+      const agId = langCtx.agentId || "default";
+      profileRef.current = { language: lang, agentId: agId };
+      setAgentId(agId);
+      await prepareLesson(lang, agId);
     } catch { setError("Nie udalo sie zaladowac danych."); setLessonState("error"); }
   };
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { BadgeIcon } from "@/components/badge-icon";
 // Language switching is in sidebar dropdown now
-import { useActiveLanguage } from "@/lib/language-context";
+import { useLanguage } from "@/lib/language-context";
 import { getLangFlag, getLangName } from "@/lib/languages";
 import { TutorAvatar } from "@/components/tutor-avatars";
 
@@ -109,33 +109,28 @@ function FlagPattern({ lang }: { lang: string }) {
 }
 
 export default function DashboardPage() {
-  const { activeLanguage, setActiveLanguage } = useActiveLanguage();
+  const { language: activeLang, ready } = useLanguage();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDuration, setSelectedDuration] = useState(5);
   const [feedbackDismissed, setFeedbackDismissed] = useState(false);
 
-  const fetchData = useCallback(async (lang?: string) => {
+  const fetchData = useCallback(async (lang: string) => {
     setLoading(true);
     try {
-      const url = lang ? `/api/dashboard?lang=${lang}` : "/api/dashboard";
-      const res = await fetch(url);
-      if (res.ok) {
-        const d = await res.json();
-        setData(d);
-        if (!lang && d.activeLang) setActiveLanguage(d.activeLang);
-      }
+      const res = await fetch(`/api/dashboard?lang=${lang}`);
+      if (res.ok) setData(await res.json());
     } catch {} finally { setLoading(false); }
-  }, [setActiveLanguage]);
+  }, []);
 
-  useEffect(() => { fetchData(activeLanguage || undefined); }, [activeLanguage, fetchData]);
+  useEffect(() => { if (ready) fetchData(activeLang); }, [activeLang, ready, fetchData]);
 
   if (loading && !data) return (
     <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
   );
   if (!data) return null;
 
-  const { displayName, profiles, currentLevel, currentStreak, weeklyGoal, weeklyDone, lessons, achievements, vocabCount, totalMinutes, activeLang, totalLessonsCount, needsFeedback, feedbackLessonId } = data;
+  const { displayName, profiles, currentLevel, currentStreak, weeklyGoal, weeklyDone, lessons, achievements, vocabCount, totalMinutes, totalLessonsCount, needsFeedback, feedbackLessonId } = data;
   const showFeedbackPopup = totalLessonsCount === 1 && needsFeedback && !feedbackDismissed;
   const showFeedbackBanner = totalLessonsCount > 1 && needsFeedback && !feedbackDismissed;
   const weeklyPct = weeklyGoal > 0 ? Math.min(100, Math.round((weeklyDone / weeklyGoal) * 100)) : 0;

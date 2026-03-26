@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Search, Filter, Volume2, Play, Loader2 } from "lucide-react";
 import type { VocabularyWord } from "./page";
-import { useActiveLanguage } from "@/lib/language-context";
+import { useLanguage } from "@/lib/language-context";
 import { getLangFlag, getLangName } from "@/lib/languages";
 
 // --- Pronunciation Button (client component) ---
@@ -171,8 +171,8 @@ export default function VocabularyClient({
   words: VocabularyWord[];
   language: string;
 }) {
-  const { activeLanguage } = useActiveLanguage();
-  const activeLang = activeLanguage || language;
+  const { language: ctxLang } = useLanguage();
+  const activeLang = ctxLang || language;
 
   // Filter by active language
   const langWords = useMemo(() => words.filter((w) => w.language === activeLang), [words, activeLang]);
