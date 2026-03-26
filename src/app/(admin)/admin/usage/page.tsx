@@ -42,7 +42,21 @@ export default function AdminUsagePage() {
   useEffect(() => {
     fetch("/api/admin/usage")
       .then((res) => res.json())
-      .then(setData)
+      .then((raw) => {
+        // Map API response to frontend format
+        const daily = (raw.daily_usage ?? []).map((d: { date: string; total_seconds: number }) => ({
+          date: d.date,
+          minutes: Math.round((d.total_seconds ?? 0) / 60),
+        }));
+        const users = (raw.per_user ?? []).map((u: { display_name: string | null; total_seconds: number; lessons_count: number }) => ({
+          name: u.display_name ?? "Nieznany",
+          minutes: Math.round((u.total_seconds ?? 0) / 60),
+          avgLesson: u.lessons_count > 0 ? Math.round((u.total_seconds ?? 0) / 60 / u.lessons_count) : 0,
+          lessonCount: u.lessons_count,
+        }));
+        const totalMinutes = users.reduce((sum: number, u: UserUsage) => sum + u.minutes, 0);
+        setData({ daily, users, totalMinutes });
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);

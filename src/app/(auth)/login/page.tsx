@@ -28,6 +28,8 @@ export default function LoginPage() {
         .setSession({ access_token: accessToken, refresh_token: refreshToken })
         .then(({ error }) => {
           if (!error) {
+            // Notify admin about login (fire-and-forget)
+            fetch("/api/auth/notify-login", { method: "POST" }).catch(() => {});
             // Full page navigation so server picks up fresh auth cookies
             window.location.href = "/dashboard";
           }
