@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     const {
       display_name,
       native_language,
+      ui_language,
       preferred_duration_min,
       preferred_frequency,
       preferred_time,
@@ -23,13 +24,12 @@ export async function POST(request: NextRequest) {
       weekly_minutes_goal,
     } = body;
 
-    // Update users table (display_name, native_language)
+    // Update users table (display_name, native_language, ui_language)
+    const userUpdate: Record<string, unknown> = { display_name, native_language };
+    if (ui_language) userUpdate.ui_language = ui_language;
     const { error: usersError } = await supabase
       .from("users")
-      .update({
-        display_name,
-        native_language,
-      })
+      .update(userUpdate)
       .eq("id", user.id);
 
     if (usersError) {

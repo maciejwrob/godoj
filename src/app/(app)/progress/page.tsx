@@ -10,7 +10,7 @@ import {
   BookOpen,
   Calendar,
 } from "lucide-react";
-import { getTranslations, resolveLocale } from "@/lib/i18n";
+import { getTranslations, resolveLocale } from "@/lib/i18n-data";
 
 type Summary = {
   fluency_score: number;
@@ -107,12 +107,12 @@ export default async function ProgressPage() {
       .eq("mastered", true),
     supabase
       .from("users")
-      .select("native_language")
+      .select("ui_language, native_language")
       .eq("id", user.id)
       .single(),
   ]);
 
-  const t = getTranslations(resolveLocale(userData?.native_language));
+  const t = getTranslations(resolveLocale(userData?.ui_language ?? userData?.native_language));
   const currentStreak = streak?.current_streak ?? 0;
   const longestStreak = streak?.longest_streak ?? 0;
   const weeklyGoal = streak?.weekly_minutes_goal ?? 30;

@@ -60,6 +60,7 @@ export async function saveOnboarding(data: OnboardingData) {
       onboarding_complete: true,
       native_language: data.nativeLanguage,
       display_name: data.displayName,
+      ui_language: data.nativeLanguage === "pl" ? "pl" : "en",
     })
     .eq("id", user.id);
 

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { BookOpen, Search, Volume2, Filter } from "lucide-react";
 import VocabularyClient from "./vocabulary-client";
-import { getTranslations, resolveLocale } from "@/lib/i18n";
+import { getTranslations, resolveLocale } from "@/lib/i18n-data";
 
 // Types shared between server and client
 export type VocabularyWord = {
@@ -45,14 +45,14 @@ export default async function VocabularyPage() {
       .single(),
     supabase
       .from("users")
-      .select("native_language")
+      .select("ui_language, native_language")
       .eq("id", user.id)
       .single(),
   ]);
 
   const vocabulary: VocabularyWord[] = words ?? [];
   const language = profile?.target_language ?? "en";
-  const t = getTranslations(resolveLocale(userData?.native_language));
+  const t = getTranslations(resolveLocale(userData?.ui_language ?? userData?.native_language));
 
   // Compute stats
   const now = new Date();

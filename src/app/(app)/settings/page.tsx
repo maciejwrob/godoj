@@ -45,6 +45,7 @@ export default function SettingsPage() {
   // Profile
   const [displayName, setDisplayName] = useState("");
   const [nativeLanguage, setNativeLanguage] = useState("pl");
+  const [uiLanguage, setUiLanguage] = useState("en");
 
   // Learning
   const [currentLevel, setCurrentLevel] = useState("A1");
@@ -77,7 +78,7 @@ export default function SettingsPage() {
         // Fetch user display_name and native_language from users table
         const { data: userData } = await supabase
           .from("users")
-          .select("display_name, native_language")
+          .select("display_name, native_language, ui_language")
           .eq("id", user.id)
           .single();
 
@@ -90,6 +91,7 @@ export default function SettingsPage() {
 
         setDisplayName(userData?.display_name ?? "");
         setNativeLanguage(userData?.native_language ?? "pl");
+        setUiLanguage(userData?.ui_language ?? "en");
         setCurrentLevel(profile?.current_level ?? "A1");
         setPreferredDuration(profile?.preferred_duration_min ?? 15);
         setPreferredFrequency(profile?.preferred_frequency ?? "3-4x");
@@ -120,6 +122,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           display_name: displayName,
           native_language: nativeLanguage,
+          ui_language: uiLanguage,
           preferred_duration_min: preferredDuration,
           preferred_frequency: preferredFrequency,
           preferred_time: preferredTime,
@@ -208,6 +211,21 @@ export default function SettingsPage() {
                   {lang.name}
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* UI Language */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-text-secondary">
+              {t("uiLanguage")}
+            </label>
+            <select
+              value={uiLanguage}
+              onChange={(e) => setUiLanguage(e.target.value)}
+              className="w-full rounded-lg border border-border bg-bg-dark px-3 py-2 text-text-primary outline-none transition-colors focus:border-primary"
+            >
+              <option value="pl">🇵🇱 Polski</option>
+              <option value="en">🇬🇧 English</option>
             </select>
           </div>
         </div>
