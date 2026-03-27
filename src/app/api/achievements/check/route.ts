@@ -120,9 +120,14 @@ export async function POST(request: Request) {
     }
 
     // Fetch full info for newly earned
-    let earnedDetails: { id: string; name_pl: string; name_en: string | null; icon: string; tier: string }[] = [];
+    let earnedDetails: { id: string; name_pl: string; name_en?: string | null; icon: string; tier: string }[] = [];
     if (newlyEarned.length > 0) {
-      const { data } = await supabase.from("achievements").select("id, name_pl, name_en, icon, tier").in("id", newlyEarned);
+      // Try with name_en, fall back to without if column doesn't exist yet
+      let { data, error: selErr } = await supabase.from("achievements").select("id, name_pl, name_en, icon, tier").in("id", newlyEarned);
+      if (selErr) {
+        const fallback = await supabase.from("achievements").select("id, name_pl, icon, tier").in("id", newlyEarned);
+        data = fallback.data;
+      }
       earnedDetails = data ?? [];
     }
 

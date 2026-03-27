@@ -53,6 +53,7 @@ export default function ExercisesPage() {
   const [lastAnswer, setLastAnswer] = useState("");
   const [isChallenge, setIsChallenge] = useState(false);
   const [wordCount, setWordCount] = useState(0);
+  const [error, setError] = useState("");
 
   const current = exercises[currentIndex] ?? null;
   const total = exercises.length;
@@ -65,6 +66,7 @@ export default function ExercisesPage() {
     setIsChallenge(challenge);
     setResults([]);
     setCurrentIndex(0);
+    setError("");
 
     try {
       const res = await fetch("/api/exercises/generate", {
@@ -86,7 +88,9 @@ export default function ExercisesPage() {
       setMatchingGroup(data.matching_group ?? []);
       setSessionId(data.session_id);
       setState("exercise");
-    } catch {
+    } catch (err) {
+      console.error("Exercise load error:", err);
+      setError(err instanceof Error ? err.message : "Failed to load exercises");
       setState("ready");
     }
   };
@@ -155,6 +159,12 @@ export default function ExercisesPage() {
           <h1 className="mt-4 text-2xl font-bold">{t("exercisesTitle")}</h1>
           <p className="mt-2 text-text-secondary">{t("exercisesSubtitle")}</p>
         </div>
+
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            {error}
+          </div>
+        )}
 
         <div className="space-y-4">
           <button

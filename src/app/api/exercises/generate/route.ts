@@ -97,8 +97,11 @@ Reply ONLY as JSON array (no markdown):
     let exerciseData;
     try {
       exerciseData = JSON.parse(cleaned);
-    } catch {
-      return NextResponse.json({ error: "Failed to generate exercises" }, { status: 500 });
+    } catch (parseErr) {
+      console.error("Exercise JSON parse error:", parseErr);
+      console.error("Raw response:", text.substring(0, 500));
+      console.error("Cleaned:", cleaned.substring(0, 500));
+      return NextResponse.json({ error: "Failed to generate exercises — invalid AI response" }, { status: 500 });
     }
 
     // Build exercises with mixed types
