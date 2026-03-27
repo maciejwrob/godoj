@@ -14,9 +14,9 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://godoj.co"),
-  title: "godoj.co — Godoj po swojemu",
+  title: "Godoj.co — Speak. Learn. Fluently.",
   description:
-    "Ucz się języków obcych rozmawiając z AI. Godoj.co to Twój prywatny tutor konwersacyjny.",
+    "Learn languages by talking to AI. Godoj.co is your private conversational tutor.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "32x32" },
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "godoj.co — Godoj po swojemu",
-    description: "Ucz się języków obcych rozmawiając z AI.",
+    title: "Godoj.co — Speak. Learn. Fluently.",
+    description: "Learn languages by talking to AI.",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
 };

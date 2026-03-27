@@ -22,14 +22,13 @@ export async function POST(request: Request) {
 
     const { is_challenge } = await request.json();
 
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("target_language, current_level")
-      .eq("user_id", user.id)
-      .limit(1)
-      .single();
+    const [{ data: profile }, { data: userData }] = await Promise.all([
+      supabase.from("user_profiles").select("target_language, current_level").eq("user_id", user.id).limit(1).single(),
+      supabase.from("users").select("native_language").eq("id", user.id).single(),
+    ]);
 
     if (!profile) return NextResponse.json({ error: "No profile" }, { status: 400 });
+    const nativeLang = userData?.native_language ?? "en";
 
     // Get vocabulary, prioritizing low mastery
     const { data: vocab } = await supabase
@@ -44,7 +43,7 @@ export async function POST(request: Request) {
     if (!vocab || vocab.length < 5) {
       return NextResponse.json({
         error: "not_enough_words",
-        message: "Porozmawiaj z tutorem żeby zebrać słówka do ćwiczeń!",
+        message: nativeLang === "pl" ? "Porozmawiaj z tutorem żeby zebrać słówka do ćwiczeń!" : "Talk to your tutor to collect words for exercises!",
         word_count: vocab?.length ?? 0,
       }, { status: 200 });
     }
@@ -53,12 +52,17 @@ export async function POST(request: Request) {
     const selectedWords = vocab.slice(0, Math.min(15, vocab.length));
     const wordList = selectedWords.map((w) => `"${w.word}" (${w.translation})`).join(", ");
 
-    const langNames: Record<string, string> = {
-      es: "hiszpański", en: "angielski", no: "norweski", fr: "francuski",
-      it: "włoski", sv: "szwedzki", de: "niemiecki", fi: "fiński",
+    const langNamesEn: Record<string, string> = {
+      es: "Spanish", en: "English", no: "Norwegian", fr: "French",
+      it: "Italian", sv: "Swedish", de: "German", fi: "Finnish",
+      pt: "Portuguese", hu: "Hungarian",
     };
-    const lang = langNames[profile.target_language] ?? profile.target_language;
-    const level = is_challenge ? "jeden poziom wyżej niż " + profile.current_level : profile.current_level;
+    const nativeLangNames: Record<string, string> = {
+      pl: "Polish", en: "English", uk: "Ukrainian",
+    };
+    const lang = langNamesEn[profile.target_language] ?? profile.target_language;
+    const nativeName = nativeLangNames[nativeLang] ?? "English";
+    const level = is_challenge ? "one level above " + profile.current_level : profile.current_level;
 
     // Generate exercise data via Claude
     const response = await anthropic.messages.create({
@@ -66,23 +70,24 @@ export async function POST(request: Request) {
       max_tokens: 2000,
       messages: [{
         role: "user",
-        content: `Generuję ćwiczenia językowe (${lang}, poziom ${level}).
+        content: `Generate language exercises (${lang}, level ${level}).
+The user's native language is ${nativeName}. All translations must be in ${nativeName}.
 
-Słowa: ${wordList}
+Words: ${wordList}
 
-Dla KAŻDEGO słowa wygeneruj:
-1. distractors_translations: 3 fałszywe tłumaczenia po polsku (semantycznie zbliżone)
-2. distractors_words: 3 fałszywe słowa w ${lang} (podobne do oryginału)
-3. fill_sentence: zdanie z luką {"sentence_with_gap": "... ____ ...", "answer": "słowo", "translation_pl": "tłumaczenie zdania"}
-4. word_order: {"translation_pl": "tłumaczenie", "words": ["rozsypane","słowa"], "correct_order": ["poprawna","kolejność"]}
+For EACH word generate:
+1. distractors_translations: 3 false translations in ${nativeName} (semantically close)
+2. distractors_words: 3 false words in ${lang} (similar to original)
+3. fill_sentence: sentence with gap {"sentence_with_gap": "... ____ ...", "answer": "word", "translation_pl": "sentence translation in ${nativeName}"}
+4. word_order: {"translation_pl": "translation in ${nativeName}", "words": ["scrambled","words"], "correct_order": ["correct","order"]}
 
-WAŻNE:
-- Zdania muszą być naturalne i na poziomie ${level}
-- Distraktory muszą być wiarygodne ale jednoznacznie błędne
-- Treści odpowiednie do nauki języka (codzienne tematy)
-- Zdania 4-7 słów
+IMPORTANT:
+- Sentences must be natural and at ${level} level
+- Distractors must be plausible but clearly wrong
+- Content appropriate for language learning (everyday topics)
+- Sentences 4-7 words
 
-Odpowiedz TYLKO jako JSON array (bez markdown):
+Reply ONLY as JSON array (no markdown):
 [{"word": "...", "translation": "...", "distractors_translations": [...], "distractors_words": [...], "fill_sentence": {...}, "word_order": {...}}]`,
       }],
     });

@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useConversation } from "@11labs/react";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
+import { useTranslation } from "@/lib/i18n";
 
 const FEEDBACK_AGENT_ID = "agent_9401kmmgjzt3ey5bs3ms27ecjw9e";
 const GOODBYE_PATTERNS = /dzięk|do widzenia|miłej nauki|bye|thank|goodbye|powodzenia/i;
@@ -22,6 +23,7 @@ function FeedbackContent() {
   const router = useRouter();
   const lessonId = params.get("lesson_id") ?? "";
   const { languageName, level } = useLanguage();
+  const { t } = useTranslation();
   const autoEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [state, setState] = useState<"loading" | "ready" | "connecting" | "active" | "ending">("loading");
@@ -148,18 +150,18 @@ function FeedbackContent() {
         </div>
         <div className="mt-2">
           <h1 className="text-3xl font-extrabold text-white">Maciej</h1>
-          <p className="mt-1 text-on-surface-variant">Twórca Godoj.co</p>
+          <p className="mt-1 text-on-surface-variant">{t("feedbackCreator")}</p>
         </div>
         <p className="text-sm text-on-surface-variant">
-          Opowiedz mi jak Ci się podoba Godoj.co! Co działa dobrze? Co mógłbym poprawić? Rozmowa potrwa max 2 minuty.
+          {t("feedbackInvite")}
         </p>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <button onClick={startConversation} className="flex w-full items-center justify-center gap-3 rounded-2xl bg-godoj-blue px-6 py-4 text-lg font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>mic</span>
-          Rozpocznij feedback
+          {t("startFeedback")}
         </button>
         <button onClick={goBack} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
-          <ArrowLeft className="h-4 w-4" />Pomiń
+          <ArrowLeft className="h-4 w-4" />{t("skip")}
         </button>
       </div>
     </div>
@@ -168,14 +170,14 @@ function FeedbackContent() {
   // ---- CONNECTING ----
   if (state === "connecting") return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Łączę z Maciejem...</p>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">{`${t("connectingTo")} Maciej...`}</p>
     </div>
   );
 
   // ---- ENDING ----
   if (state === "ending") return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Zapisuję feedback...</p>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">{t("savingFeedback")}</p>
     </div>
   );
 
@@ -190,7 +192,7 @@ function FeedbackContent() {
           </button>
           <div className="hidden sm:block">
             <h2 className="text-sm font-extrabold text-white leading-tight">Feedback</h2>
-            <p className="text-[10px] text-on-surface-variant">Maciej · Twórca Godoj.co</p>
+            <p className="text-[10px] text-on-surface-variant">Maciej · {t("feedbackCreator")}</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -228,7 +230,7 @@ function FeedbackContent() {
                 <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-white/10">
                   <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top" />
                 </div>
-                <p className="mt-4 text-sm text-slate-500">{isSpeaking ? "Maciej mówi..." : "Rozmowa zaraz się zacznie..."}</p>
+                <p className="mt-4 text-sm text-slate-500">{isSpeaking ? `Maciej ${t("speaking")}` : t("conversationStarting")}</p>
               </div>
             )}
 
@@ -250,7 +252,7 @@ function FeedbackContent() {
                 <div key={msg.id} className="flex flex-col items-end gap-1.5">
                   <div className="flex items-center gap-2 pr-2">
                     <div className="w-1 h-1 rounded-full bg-godoj-blue" />
-                    <span className="text-[10px] font-bold text-godoj-blue tracking-widest uppercase">Ty</span>
+                    <span className="text-[10px] font-bold text-godoj-blue tracking-widest uppercase">{t("you")}</span>
                   </div>
                   <div className="max-w-lg rounded-[1.5rem] rounded-tr-none bg-godoj-blue px-5 py-4 shadow-[0_10px_30px_rgba(26,115,232,0.2)]">
                     <p className="text-base lg:text-lg font-semibold leading-relaxed text-white">{msg.text}</p>
@@ -281,7 +283,7 @@ function FeedbackContent() {
                 </div>
                 <div className="mt-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
                   <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    {isSpeaking ? "Maciej mówi..." : "Słucham..."}
+                    {isSpeaking ? `Maciej ${t("speaking")}` : t("listening")}
                   </p>
                 </div>
               </div>

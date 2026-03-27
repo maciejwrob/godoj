@@ -15,6 +15,7 @@ import {
   Zap,
   Star,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 // ---- Types ----
 
@@ -41,6 +42,7 @@ type PageState = "loading" | "ready" | "exercise" | "feedback" | "summary" | "no
 
 export default function ExercisesPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [state, setState] = useState<PageState>("ready");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [matchingGroup, setMatchingGroup] = useState<MatchPair[]>([]);
@@ -150,8 +152,8 @@ export default function ExercisesPage() {
       <main className="mx-auto max-w-lg px-4 py-8">
         <div className="mb-8 text-center">
           <Dumbbell className="mx-auto h-12 w-12 text-primary" />
-          <h1 className="mt-4 text-2xl font-bold">Ćwiczenia</h1>
-          <p className="mt-2 text-text-secondary">Utrwal słówka z rozmów</p>
+          <h1 className="mt-4 text-2xl font-bold">{t("exercisesTitle")}</h1>
+          <p className="mt-2 text-text-secondary">{t("exercisesSubtitle")}</p>
         </div>
 
         <div className="space-y-4">

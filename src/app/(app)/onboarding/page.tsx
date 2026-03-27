@@ -10,6 +10,7 @@ import {
   Check,
 } from "lucide-react";
 import { LogoFull } from "@/components/logo";
+import { useTranslation } from "@/lib/i18n";
 
 const TOTAL_STEPS = 8;
 
@@ -138,6 +139,7 @@ const TIMES = [
 type TutorDef = { id: string; name: string; desc: string; lang: string };
 
 export default function OnboardingPage() {
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [isPending, startTransition] = useTransition();
@@ -293,7 +295,7 @@ export default function OnboardingPage() {
         {/* Progress bar */}
         <div className="mb-8">
           <div className="mb-2 text-center text-sm text-text-secondary">
-            Krok {step} z {TOTAL_STEPS}
+            {t("step")} {step} {t("of")} {TOTAL_STEPS}
           </div>
           <div className="h-2 w-full rounded-full bg-bg-card">
             <div
@@ -382,7 +384,7 @@ export default function OnboardingPage() {
             className="flex items-center gap-1 rounded-lg px-4 py-2.5 text-sm text-text-secondary transition-colors hover:text-text-primary disabled:invisible"
           >
             <ArrowLeft className="h-4 w-4" />
-            Wstecz
+            {t("back")}
           </button>
 
           {step < TOTAL_STEPS ? (
@@ -391,7 +393,7 @@ export default function OnboardingPage() {
               disabled={!canProceed()}
               className="flex items-center gap-1 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-dark disabled:opacity-40"
             >
-              Dalej
+              {t("next")}
               <ArrowRight className="h-4 w-4" />
             </button>
           ) : (
@@ -405,7 +407,7 @@ export default function OnboardingPage() {
               ) : (
                 <Check className="h-4 w-4" />
               )}
-              Rozpocznij naukę
+              {t("startLearning")}
             </button>
           )}
         </div>
@@ -417,17 +419,18 @@ export default function OnboardingPage() {
 // -- Step components --
 
 function StepName({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { t } = useTranslation();
   return (
     <div>
-      <h2 className="mb-2 text-2xl font-bold">Jak masz na imię?</h2>
+      <h2 className="mb-2 text-2xl font-bold">{t("whatsYourName")}</h2>
       <p className="mb-6 text-text-secondary">
-        Tutor będzie się do Ciebie zwracał po imieniu
+        {t("nameHint")}
       </p>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Twoje imię"
+        placeholder={t("yourNamePlaceholder")}
         autoFocus
         className="w-full rounded-xl border border-border bg-bg-card px-4 py-3 text-lg text-text-primary placeholder:text-text-secondary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       />
@@ -444,11 +447,12 @@ function StepNativeLanguage({
   selected: string;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div>
-      <h2 className="mb-2 text-2xl font-bold">Jaki jest Twój język ojczysty?</h2>
+      <h2 className="mb-2 text-2xl font-bold">{t("nativeLangQuestion")}</h2>
       <p className="mb-6 text-text-secondary">
-        Dzięki temu tutor będzie mógł tłumaczyć w Twoim języku
+        {t("nativeLangHint")}
       </p>
 
       <div className="space-y-3">
@@ -491,10 +495,11 @@ function StepLanguage({
   onSelect: (l: Language) => void;
   onVariant: (v: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div>
-      <h2 className="mb-2 text-2xl font-bold">Jakiego języka chcesz się uczyć?</h2>
-      <p className="mb-6 text-text-secondary">Wybierz język, w którym chcesz rozmawiać</p>
+      <h2 className="mb-2 text-2xl font-bold">{t("targetLangQuestion")}</h2>
+      <p className="mb-6 text-text-secondary">{t("targetLangHint")}</p>
 
       <div className="grid grid-cols-2 gap-3">
         {languages.map((lang) => (
@@ -514,7 +519,7 @@ function StepLanguage({
             <span className="font-medium">{lang.name}</span>
             {!lang.active && (
               <span className="absolute right-2 top-2 rounded-full bg-bg-card-hover px-2 py-0.5 text-[10px] text-text-secondary">
-                Wkrótce
+                {t("comingSoon")}
               </span>
             )}
           </button>
@@ -523,7 +528,7 @@ function StepLanguage({
 
       {showVariants && selectedLanguage?.variants && (
         <div className="mt-6">
-          <p className="mb-3 text-sm text-text-secondary">Wybierz wariant:</p>
+          <p className="mb-3 text-sm text-text-secondary">{t("chooseVariant")}</p>
           <div className="flex gap-3">
             {selectedLanguage.variants.map((v) => (
               <button
@@ -555,10 +560,11 @@ function StepLevel({
   selected: string;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div>
-      <h2 className="mb-2 text-2xl font-bold">Jaki jest Twój poziom?</h2>
-      <p className="mb-6 text-text-secondary">Pomoże nam to dostosować rozmowy do Ciebie</p>
+      <h2 className="mb-2 text-2xl font-bold">{t("levelQuestion")}</h2>
+      <p className="mb-6 text-text-secondary">{t("levelHint")}</p>
 
       <div className="space-y-3">
         {levels.map((l) => (
@@ -598,10 +604,11 @@ function StepGoals({
   selected: string[];
   onToggle: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div>
-      <h2 className="mb-2 text-2xl font-bold">Dlaczego się uczysz?</h2>
-      <p className="mb-6 text-text-secondary">Wybierz co najmniej jeden cel</p>
+      <h2 className="mb-2 text-2xl font-bold">{t("goalsQuestion")}</h2>
+      <p className="mb-6 text-text-secondary">{t("goalsHint")}</p>
 
       <div className="grid grid-cols-1 gap-3">
         {goals.map((g) => (
@@ -635,11 +642,12 @@ function StepInterests({
   selected: string[];
   onToggle: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div>
-      <h2 className="mb-2 text-2xl font-bold">Twoje zainteresowania</h2>
+      <h2 className="mb-2 text-2xl font-bold">{t("interestsQuestion")}</h2>
       <p className="mb-6 text-text-secondary">
-        Wybierz co najmniej 2 — pomogą nam prowadzić ciekawsze rozmowy
+        {t("interestsHint")}
       </p>
 
       <div className="flex flex-wrap gap-2">
@@ -681,17 +689,18 @@ function StepPreferences({
   onTime: (v: string) => void;
   onReminders: (v: boolean) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="mb-2 text-2xl font-bold">Preferencje nauki</h2>
-        <p className="text-text-secondary">Dostosuj plan do swojego stylu życia</p>
+        <h2 className="mb-2 text-2xl font-bold">{t("preferencesTitle")}</h2>
+        <p className="text-text-secondary">{t("preferencesHint")}</p>
       </div>
 
       {/* Duration */}
       <div>
         <h3 className="mb-3 text-sm font-medium text-text-secondary">
-          Czas trwania lekcji
+          {t("lessonDurationLabel")}
         </h3>
         <div className="flex gap-2">
           {DURATIONS.map((d) => (
@@ -713,7 +722,7 @@ function StepPreferences({
       {/* Frequency */}
       <div>
         <h3 className="mb-3 text-sm font-medium text-text-secondary">
-          Częstotliwość
+          {t("frequencyLabel")}
         </h3>
         <div className="grid grid-cols-2 gap-2">
           {FREQUENCIES.map((f) => (
@@ -735,7 +744,7 @@ function StepPreferences({
       {/* Time of day */}
       <div>
         <h3 className="mb-3 text-sm font-medium text-text-secondary">
-          Pora dnia
+          {t("timeOfDayLabel")}
         </h3>
         <div className="grid grid-cols-2 gap-2">
           {TIMES.map((t) => (
@@ -758,7 +767,7 @@ function StepPreferences({
       {/* Reminders */}
       <div className="flex items-center justify-between rounded-xl border border-border bg-bg-card p-4">
         <span className="text-sm font-medium">
-          Wysyłaj mi przypomnienia o lekcjach
+          {t("remindersLabel")}
         </span>
         <button
           onClick={() => onReminders(!reminders)}
@@ -786,11 +795,12 @@ function StepTutor({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div>
-      <h2 className="mb-2 text-2xl font-bold">Wybierz tutora</h2>
+      <h2 className="mb-2 text-2xl font-bold">{t("chooseTutor")}</h2>
       <p className="mb-6 text-text-secondary">
-        Z kim chcesz rozmawiać? Każdy ma unikalny styl
+        {t("chooseTutorHint")}
       </p>
 
       <div className="space-y-3">
@@ -820,12 +830,12 @@ function StepTutor({
 
       {tutors.length === 0 && (
         <div className="rounded-xl border border-border bg-bg-card p-6 text-center text-text-secondary">
-          Tutorzy dla tego języka będą dostępni wkrótce
+          {t("tutorsComingSoon")}
         </div>
       )}
 
       <p className="mt-4 text-center text-xs text-text-secondary">
-        Możesz zmienić tutora w każdej chwili w ustawieniach
+        {t("changeTutorLater")}
       </p>
     </div>
   );

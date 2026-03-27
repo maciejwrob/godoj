@@ -6,8 +6,11 @@ import { createClient } from "@/lib/supabase/client";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { detectBrowserLocale, getTranslations } from "@/lib/i18n";
 
 export default function LoginPage() {
+  const locale = detectBrowserLocale();
+  const t = (key: string) => getTranslations(locale)[key] ?? key;
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -59,14 +62,13 @@ export default function LoginPage() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Mail className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold">Sprawdź skrzynkę</h1>
+          <h1 className="text-2xl font-bold">{t("checkInbox")}</h1>
           <p className="text-text-secondary">
-            Wysłaliśmy link do logowania na{" "}
+            {t("linkSent")}{" "}
             <span className="font-medium text-text-primary">{email}</span>
           </p>
           <p className="text-sm text-text-secondary">
-            Kliknij link w wiadomości, aby się zalogować. Link jest ważny przez
-            24 godziny.
+            {t("linkValidFor")}
           </p>
           <button
             onClick={() => {
@@ -75,7 +77,7 @@ export default function LoginPage() {
             }}
             className="text-sm text-primary hover:underline"
           >
-            Użyj innego adresu e-mail
+            {t("useOtherEmail")}
           </button>
         </div>
       </main>
@@ -93,20 +95,20 @@ export default function LoginPage() {
             <span className="text-2xl font-extrabold tracking-tight text-white" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>Godoj.co</span>
           </div>
           <p className="text-text-secondary">
-            Podaj swój e-mail, aby się zalogować
+            {t("loginTitle")}
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <p className="text-xs text-on-surface-variant text-center">
-            Wyślemy Ci link do logowania na podany adres email. Kliknij go żeby się zalogować — nie potrzebujesz hasła.
+            {t("loginSubtitle")}
           </p>
           <div>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="twoj@email.pl"
+              placeholder={t("emailPlaceholder")}
               required
               className="w-full rounded-lg border border-border bg-bg-card px-4 py-3 text-text-primary placeholder:text-text-secondary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
@@ -126,7 +128,7 @@ export default function LoginPage() {
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              "Wyślij link do logowania"
+              t("sendLoginLink")
             )}
           </button>
         </form>
@@ -137,7 +139,7 @@ export default function LoginPage() {
             className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary"
           >
             <ArrowLeft className="h-4 w-4" />
-            Wróć na stronę główną
+            {t("backToHome")}
           </Link>
         </div>
       </div>

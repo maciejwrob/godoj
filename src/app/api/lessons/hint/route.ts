@@ -37,29 +37,25 @@ export async function POST(request: Request) {
 
     const cefrLevel = lesson?.level_at_start ?? "A1";
 
-    const langNames: Record<string, string> = {
-      es: "hiszpańskim",
-      en: "angielskim",
-      no: "norweskim",
-      fr: "francuskim",
-      pl: "polskim",
-      uk: "ukraińskim",
+    const langNamesEn: Record<string, string> = {
+      es: "Spanish", en: "English", no: "Norwegian", fr: "French",
+      it: "Italian", sv: "Swedish", de: "German", fi: "Finnish",
+      pt: "Portuguese", hu: "Hungarian", pl: "Polish", uk: "Ukrainian",
     };
 
-    const targetLangName = langNames[target_language] ?? target_language;
-    const nativeLangName = langNames[native_language] ?? "polskim";
+    const targetLangName = langNamesEn[target_language] ?? target_language;
+    const nativeLangName = langNamesEn[native_language] ?? "English";
 
-    // Build context-aware situation description
     let situationDesc: string;
     switch (stuck_type) {
       case "filler_words":
-        situationDesc = `Użytkownik próbuje odpowiedzieć ale mówi tylko "eee", "hmm" — nie może znaleźć słów.${user_attempt ? ` Powiedział: "${user_attempt}"` : ""}`;
+        situationDesc = `The user is trying to respond but only says "uhh", "hmm" — can't find words.${user_attempt ? ` They said: "${user_attempt}"` : ""}`;
         break;
       case "incomplete_sentence":
-        situationDesc = `Użytkownik zaczął zdanie ale się zatrzymał w połowie: "${user_attempt}"`;
+        situationDesc = `The user started a sentence but stopped midway: "${user_attempt}"`;
         break;
       default:
-        situationDesc = "Użytkownik milczy — nie wie jak odpowiedzieć.";
+        situationDesc = "The user is silent — doesn't know how to respond.";
     }
 
     const safetyRules = `IMPORTANT RULES FOR HINTS:
@@ -72,35 +68,31 @@ export async function POST(request: Request) {
 
     const prompt =
       level === 1
-        ? `Jesteś asystentem nauki ${targetLangName} na poziomie ${cefrLevel}.
+        ? `You are a ${targetLangName} language learning assistant for a ${cefrLevel} level student.
 
 ${safetyRules}
 
-Ostatnia wypowiedź tutora: "${last_agent_message || "brak"}"
-Sytuacja: ${situationDesc}
-Kontekst rozmowy: ${conversation_context}
+Last tutor message: "${last_agent_message || "none"}"
+Situation: ${situationDesc}
+Conversation context: ${conversation_context}
 
-Podaj 2-3 POJEDYNCZE słowa kluczowe${stuck_type === "incomplete_sentence" ? " które pomogą DOKOŃCZYĆ zaczętą myśl" : " które pomogą zacząć odpowiedź"}.
+Suggest 2-3 SINGLE keywords${stuck_type === "incomplete_sentence" ? " to help COMPLETE the started thought" : " to help start a response"}.
 
-Odpowiedz TYLKO w formacie JSON (bez markdown):
-[{"phrase": "słowo", "translation": "tłumaczenie"}]
-
-Słowa w języku ${targetLangName}, tłumaczenia po ${nativeLangName}.`
-        : `Jesteś asystentem nauki ${targetLangName} na poziomie ${cefrLevel}.
+Reply ONLY in JSON format (no markdown):
+[{"phrase": "word in ${targetLangName}", "translation": "translation in ${nativeLangName}"}]`
+        : `You are a ${targetLangName} language learning assistant for a ${cefrLevel} level student.
 
 ${safetyRules}
 
-Ostatnia wypowiedź tutora: "${last_agent_message || "brak"}"
-Sytuacja: ${situationDesc}
-Kontekst rozmowy: ${conversation_context}
+Last tutor message: "${last_agent_message || "none"}"
+Situation: ${situationDesc}
+Conversation context: ${conversation_context}
 
-Podaj 2-3 PEŁNE frazy/zdania${stuck_type === "incomplete_sentence" ? " które KONTYNUUJĄ zaczętą myśl użytkownika" : " które użytkownik może powiedzieć jako odpowiedź"}.
-Frazy powinny być naturalne i na poziomie ${cefrLevel}.
+Suggest 2-3 FULL phrases/sentences${stuck_type === "incomplete_sentence" ? " that CONTINUE the user's started thought" : " the user could say as a response"}.
+Phrases should be natural and at ${cefrLevel} level.
 
-Odpowiedz TYLKO w formacie JSON (bez markdown):
-[{"phrase": "pełna fraza", "translation": "tłumaczenie"}]
-
-Frazy w języku ${targetLangName}, tłumaczenia po ${nativeLangName}.`;
+Reply ONLY in JSON format (no markdown):
+[{"phrase": "full phrase in ${targetLangName}", "translation": "translation in ${nativeLangName}"}]`;
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",

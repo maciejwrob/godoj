@@ -33,11 +33,13 @@ export async function POST(request: Request) {
         .single(),
       supabase
         .from("users")
-        .select("display_name")
+        .select("display_name, native_language")
         .eq("id", user.id)
         .single(),
     ]);
-    const userName = userData?.display_name ?? "Użytkownik";
+    const userName = userData?.display_name ?? "User";
+    const nativeLang = userData?.native_language ?? "en";
+    const isPolish = nativeLang === "pl";
 
     if (!lesson) {
       return NextResponse.json(
@@ -61,31 +63,31 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "user",
-          content: `Jesteś ekspertem od nauki języków. Przeanalizuj poniższy transkrypt rozmowy.
-Zwracaj się bezpośrednio do użytkownika po imieniu (${userName}). Mów "Ty", nie "uczeń" czy "uczestnik".
-Np. "${userName}, świetna robota! Nauczyłeś się 5 nowych słów." Bądź ciepły i motywujący.
+          content: `You are a language learning expert. Analyze the following conversation transcript.
+Address the user directly by name (${userName}). Be warm and motivating.
+${isPolish ? 'Write ALL text outputs (summary, reasoning, translations) in Polish.' : 'Write ALL text outputs (summary, reasoning, translations) in English.'}
 
-Język: ${langName}
-Poziom ucznia: ${lesson.level_at_start}
-Czas trwania: ${Math.round(duration_seconds / 60)} minut
-Transkrypt:
-${transcript || "Brak transkryptu"}
+Language studied: ${langName}
+Student level: ${lesson.level_at_start}
+Duration: ${Math.round(duration_seconds / 60)} minutes
+Transcript:
+${transcript || "No transcript"}
 
-Przygotuj analizę w formacie JSON (bez markdown, tylko czysty JSON):
+Prepare the analysis in JSON format (no markdown, raw JSON only):
 {
-  "fluency_score": (1.0-5.0, bazując na płynności i złożoności wypowiedzi),
-  "topics_covered": ["temat1", "temat2"],
+  "fluency_score": (1.0-5.0, based on fluency and complexity of utterances),
+  "topics_covered": ["topic1", "topic2"],
   "new_vocabulary": [
-    {"word": "słowo", "translation": "tłumaczenie", "context": "zdanie z rozmowy"}
+    {"word": "word in target language", "translation": "translation in ${isPolish ? 'Polish' : 'English'}", "context": "sentence from conversation"}
   ],
-  "struggled_phrases": ["Konkretna struktura/slowo z POPRAWNA forma + tlumaczenie. NIE kopiuj surowego transkryptu. Np: 'It makes it difficult — struktura make + object + adjective'"],
+  "struggled_phrases": ["Specific structure/word with CORRECT form + translation in ${isPolish ? 'Polish' : 'English'}. Do NOT copy raw transcript. E.g.: 'It makes it difficult — make + object + adjective structure'"],
   "level_assessment": {
     "current": "${lesson.level_at_start}",
-    "recommended": "${lesson.level_at_start}" lub wyższy/niższy jeśli uzasadnione,
-    "reasoning": "krótkie wyjaśnienie"
+    "recommended": "${lesson.level_at_start}" or higher/lower if justified,
+    "reasoning": "brief explanation in ${isPolish ? 'Polish' : 'English'}"
   },
-  "summary_pl": "2-3 zdania po polsku: co user robił dobrze i nad czym pracować",
-  "next_lesson_context": "1-2 zdania kontekstu do następnej lekcji"
+  "summary_pl": "2-3 sentences in ${isPolish ? 'Polish' : 'English'}: what the user did well and what to work on",
+  "next_lesson_context": "1-2 sentences of context for the next lesson"
 }`,
         },
       ],

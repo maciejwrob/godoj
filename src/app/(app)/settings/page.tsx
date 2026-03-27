@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { User, BookOpen, Target, LogOut, Save, Loader2 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 const NATIVE_LANGUAGES = [
   { id: "pl", name: "Polski" },
@@ -31,6 +32,7 @@ const TIMES = [
 export default function SettingsPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useTranslation();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -155,20 +157,20 @@ export default function SettingsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-8 text-2xl font-bold text-text-primary">Ustawienia</h1>
+      <h1 className="mb-8 text-2xl font-bold text-text-primary">{t("settingsTitle")}</h1>
 
       {/* Profil */}
       <section className="mb-6 rounded-2xl border border-border bg-bg-card p-6">
         <div className="mb-4 flex items-center gap-2">
           <User className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-text-primary">Profil</h2>
+          <h2 className="text-lg font-semibold text-text-primary">{t("profile")}</h2>
         </div>
 
         <div className="space-y-4">
           {/* Imie */}
           <div>
             <label className="mb-1 block text-sm font-medium text-text-secondary">
-              Imie
+              {t("name")}
             </label>
             <input
               type="text"
@@ -181,7 +183,7 @@ export default function SettingsPage() {
           {/* Email */}
           <div>
             <label className="mb-1 block text-sm font-medium text-text-secondary">
-              Email
+              {t("email")}
             </label>
             <input
               type="email"
@@ -194,7 +196,7 @@ export default function SettingsPage() {
           {/* Jezyk ojczysty */}
           <div>
             <label className="mb-1 block text-sm font-medium text-text-secondary">
-              Jezyk ojczysty
+              {t("nativeLanguage")}
             </label>
             <select
               value={nativeLanguage}
@@ -215,14 +217,14 @@ export default function SettingsPage() {
       <section className="mb-6 rounded-2xl border border-border bg-bg-card p-6">
         <div className="mb-4 flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-text-primary">Nauka</h2>
+          <h2 className="text-lg font-semibold text-text-primary">{t("learning")}</h2>
         </div>
 
         <div className="space-y-4">
           {/* Aktualny poziom */}
           <div>
             <label className="mb-1 block text-sm font-medium text-text-secondary">
-              Aktualny poziom
+              {t("currentLevel")}
             </label>
             <div className="rounded-lg border border-border bg-bg-dark px-3 py-2 text-text-secondary opacity-60">
               {currentLevel} — zmienia sie automatycznie
@@ -232,7 +234,7 @@ export default function SettingsPage() {
           {/* Czas lekcji */}
           <div>
             <label className="mb-1 block text-sm font-medium text-text-secondary">
-              Czas lekcji
+              {t("lessonTime")}
             </label>
             <select
               value={preferredDuration}
@@ -250,7 +252,7 @@ export default function SettingsPage() {
           {/* Czestotliwosc */}
           <div>
             <label className="mb-1 block text-sm font-medium text-text-secondary">
-              Czestotliwosc
+              {t("frequency")}
             </label>
             <select
               value={preferredFrequency}
@@ -268,16 +270,16 @@ export default function SettingsPage() {
           {/* Pora dnia */}
           <div>
             <label className="mb-1 block text-sm font-medium text-text-secondary">
-              Pora dnia
+              {t("timeOfDay")}
             </label>
             <select
               value={preferredTime}
               onChange={(e) => setPreferredTime(e.target.value)}
               className="w-full rounded-lg border border-border bg-bg-dark px-3 py-2 text-text-primary outline-none transition-colors focus:border-primary"
             >
-              {TIMES.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
+              {TIMES.map((timeOpt) => (
+                <option key={timeOpt.id} value={timeOpt.id}>
+                  {timeOpt.label}
                 </option>
               ))}
             </select>
@@ -286,7 +288,7 @@ export default function SettingsPage() {
           {/* Przypomnienia */}
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-text-secondary">
-              Przypomnienia
+              {t("reminders")}
             </label>
             <button
               onClick={() => setReminders(!reminders)}
@@ -309,7 +311,7 @@ export default function SettingsPage() {
         <div className="mb-4 flex items-center gap-2">
           <Target className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold text-text-primary">
-            Cel tygodniowy
+            {t("weeklyGoalSetting")}
           </h2>
         </div>
 
@@ -337,14 +339,14 @@ export default function SettingsPage() {
       <section className="mb-8 rounded-2xl border border-border bg-bg-card p-6">
         <div className="mb-4 flex items-center gap-2">
           <LogOut className="h-5 w-5 text-red-400" />
-          <h2 className="text-lg font-semibold text-text-primary">Konto</h2>
+          <h2 className="text-lg font-semibold text-text-primary">{t("account")}</h2>
         </div>
 
         <button
           onClick={handleSignOut}
           className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
         >
-          Wyloguj sie
+          {t("logout")}
         </button>
       </section>
 
@@ -371,7 +373,7 @@ export default function SettingsPage() {
         ) : (
           <Save className="h-4 w-4" />
         )}
-        Zapisz zmiany
+        {saving ? t("saving") : t("save")}
       </button>
     </main>
   );

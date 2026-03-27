@@ -6,6 +6,7 @@ import { Loader2, Play, ArrowLeft, RefreshCw, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TutorAvatar } from "@/components/tutor-avatars";
 import { useLanguage } from "@/lib/language-context";
+import { useTranslation } from "@/lib/i18n";
 import { logError } from "@/lib/error-logger";
 
 type Hint = { phrase: string; translation: string };
@@ -33,6 +34,7 @@ let msgIdCounter = 0;
 export default function LessonPage() {
   const router = useRouter();
   const langCtx = useLanguage();
+  const { t } = useTranslation();
   const [lessonState, setLessonState] = useState<LessonState>("loading");
   const [lessonId, setLessonId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
@@ -234,7 +236,7 @@ export default function LessonPage() {
         const data = await res.json();
         if (data.hints?.length > 0) {
           // Add hint as chat message (persists in chat)
-          addChatMessage("hint", hintLvl === 1 ? "Podpowiedzi" : "Podpowiedzi (frazy)", data.hints);
+          addChatMessage("hint", hintLvl === 1 ? t("hints") : `${t("hints")} (frazy)`, data.hints);
           setHintLevelSynced(hintLvl);
         }
       }
@@ -369,11 +371,11 @@ export default function LessonPage() {
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
           <span className="material-symbols-outlined text-3xl text-red-400">error</span>
         </div>
-        <h1 className="text-xl font-bold">Coś poszło nie tak</h1>
+        <h1 className="text-xl font-bold">{t("somethingWentWrong")}</h1>
         <p className="text-on-surface-variant">{error}</p>
         <div className="flex gap-3">
-          <button onClick={() => router.push("/dashboard")} className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-slate-400">Dashboard</button>
-          <button onClick={loadLessonData} className="flex-1 rounded-xl bg-godoj-blue py-2.5 text-sm font-bold text-white">Spróbuj ponownie</button>
+          <button onClick={() => router.push("/dashboard")} className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-slate-400">{t("dashboard")}</button>
+          <button onClick={loadLessonData} className="flex-1 rounded-xl bg-godoj-blue py-2.5 text-sm font-bold text-white">{t("tryAgain")}</button>
         </div>
       </div>
     </div>
@@ -381,7 +383,7 @@ export default function LessonPage() {
 
   if (lessonState === "loading") return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Przygotowuję lekcję...</p>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">{t("preparingLesson")}</p>
     </div>
   );
 
@@ -395,14 +397,14 @@ export default function LessonPage() {
           <p className="mt-1 text-sm sm:text-base text-on-surface-variant">{languageName} · Poziom {level}</p>
         </div>
         <div className="rounded-2xl border border-white/5 bg-surface-container-high p-4 sm:p-6 text-left">
-          <div className="text-sm text-on-surface-variant">Temat dnia</div>
+          <div className="text-sm text-on-surface-variant">{t("topicOfDay")}</div>
           <div className="mt-1 flex items-center justify-between">
             <span className="text-base sm:text-lg font-bold">{topic}</span>
             <button onClick={refreshTopic} className="text-slate-400 hover:text-primary"><RefreshCw className="h-4 w-4" /></button>
           </div>
         </div>
         <div>
-          <div className="mb-2 text-sm text-on-surface-variant text-center">Czas lekcji</div>
+          <div className="mb-2 text-sm text-on-surface-variant text-center">{t("lessonDuration")}</div>
           <div className="flex justify-center gap-2">
             {[5, 10, 15].map((d) => (
               <button key={d} onClick={() => setSelectedDuration(d)}
@@ -414,10 +416,10 @@ export default function LessonPage() {
         </div>
         <button onClick={startConversation} className="flex w-full items-center justify-center gap-3 rounded-2xl bg-godoj-blue px-6 py-4 text-lg font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
-          Rozpocznij rozmowę
+          {t("startConversation")}
         </button>
         <button onClick={() => router.push("/dashboard")} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
-          <ArrowLeft className="h-4 w-4" />Wróć do Dashboard
+          <ArrowLeft className="h-4 w-4" />{t("backToDashboard")}
         </button>
       </div>
     </div>
@@ -425,13 +427,13 @@ export default function LessonPage() {
 
   if (lessonState === "connecting") return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Łączę z {agentName}...</p>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">{t("connectingTo")} {agentName}...</p>
     </div>
   );
 
   if (lessonState === "ending") return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">Analizuję lekcję...</p>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-on-surface-variant">{t("analyzingLesson")}</p>
     </div>
   );
 
@@ -501,7 +503,7 @@ export default function LessonPage() {
             {chatMessages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
                 <TutorAvatar agentId={agentId} size={80} speaking={isSpeaking} />
-                <p className="mt-4 text-sm text-slate-500">{isSpeaking ? `${agentName} mówi...` : "Rozmowa zaraz się zacznie..."}</p>
+                <p className="mt-4 text-sm text-slate-500">{isSpeaking ? `${agentName} ${t("speaking")}` : t("conversationStarting")}</p>
               </div>
             )}
 
@@ -523,7 +525,7 @@ export default function LessonPage() {
                 <div key={msg.id} className="flex flex-col items-end gap-1.5">
                   <div className="flex items-center gap-2 pr-2">
                     <div className="w-1 h-1 rounded-full bg-godoj-blue" />
-                    <span className="text-[10px] font-bold text-godoj-blue tracking-widest uppercase">Ty</span>
+                    <span className="text-[10px] font-bold text-godoj-blue tracking-widest uppercase">{t("you")}</span>
                   </div>
                   <div className="max-w-lg rounded-[1.5rem] rounded-tr-none bg-godoj-blue px-5 py-4 shadow-[0_10px_30px_rgba(26,115,232,0.2)]">
                     <p className="text-base lg:text-lg font-semibold leading-relaxed text-white">{msg.message}</p>
@@ -537,7 +539,7 @@ export default function LessonPage() {
                   <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 p-5 rounded-3xl shadow-2xl">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="material-symbols-outlined text-sm text-tertiary" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
-                      <span className="text-xs font-bold text-tertiary tracking-wider uppercase">Podpowiedzi</span>
+                      <span className="text-xs font-bold text-tertiary tracking-wider uppercase">{t("hints")}</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {msg.hints.map((h, i) => (
@@ -566,7 +568,7 @@ export default function LessonPage() {
               {/* SOS */}
               <button onClick={handleHintToggle} className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${hintsEnabled ? "bg-tertiary/10 text-tertiary border border-tertiary/20" : "bg-surface-container-high text-slate-500 border border-white/5"}`} title={hintsEnabled ? "Wyłącz podpowiedzi" : "Włącz podpowiedzi"}>
                 <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: hintsEnabled ? "'FILL' 1" : undefined }}>lightbulb</span>
-                <span className="hidden sm:inline">{hintsEnabled ? "Wł." : "Wył."}</span>
+                <span className="hidden sm:inline">{hintsEnabled ? t("hintsOn") : t("hintsOff")}</span>
               </button>
 
               {/* Mic button */}
@@ -583,7 +585,7 @@ export default function LessonPage() {
                 </div>
                 <div className="mt-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
                   <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    {isSpeaking ? `${agentName} mówi...` : hintsLoading ? "Szukam podpowiedzi..." : "Słucham..."}
+                    {isSpeaking ? `${agentName} ${t("speaking")}` : hintsLoading ? t("searchingHints") : t("listening")}
                   </p>
                 </div>
               </div>

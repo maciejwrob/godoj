@@ -8,19 +8,7 @@ import { useState } from "react";
 import { LogoFull } from "@/components/logo";
 import { useLanguage } from "@/lib/language-context";
 import { LanguageDropdown } from "@/components/language-dropdown";
-
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
-  { href: "/lesson", label: "Lekcja", icon: "menu_book" },
-  { href: "/vocabulary", label: "S\u0142owniczek", icon: "translate" },
-  { href: "/exercises", label: "\u0106wiczenia", icon: "fitness_center" },
-  { href: "/progress", label: "Post\u0119py", icon: "leaderboard" },
-  { href: "/achievements", label: "Odznaki", icon: "military_tech" },
-];
-
-const BOTTOM_ITEMS = [
-  { href: "/settings", label: "Ustawienia", icon: "settings" },
-];
+import { useTranslation } from "@/lib/i18n";
 
 function MaterialIcon({ name, filled, className }: { name: string; filled?: boolean; className?: string }) {
   return (
@@ -35,6 +23,20 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { flag, languageName, level, profiles } = useLanguage();
+  const { t } = useTranslation();
+
+  const NAV_ITEMS = [
+    { href: "/dashboard", label: t("dashboard"), icon: "dashboard" },
+    { href: "/lesson", label: t("lesson"), icon: "menu_book" },
+    { href: "/vocabulary", label: t("vocabulary"), icon: "translate" },
+    { href: "/exercises", label: t("exercises"), icon: "fitness_center" },
+    { href: "/progress", label: t("progress"), icon: "leaderboard" },
+    { href: "/achievements", label: t("achievements"), icon: "military_tech" },
+  ];
+
+  const BOTTOM_ITEMS = [
+    { href: "/settings", label: t("settings"), icon: "settings" },
+  ];
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -50,7 +52,6 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
           <LogoFull size={40} />
         </div>
 
-        {/* Language selector */}
         {profiles.length > 0 && (
           <div className="px-4 pb-4">
             <LanguageDropdown languages={profiles} />
@@ -81,7 +82,7 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
             })}
             {role === "admin" && (
               <Link href="/admin" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-slate-100">
-                <MaterialIcon name="admin_panel_settings" />Admin
+                <MaterialIcon name="admin_panel_settings" />{t("admin")}
               </Link>
             )}
           </div>
@@ -96,7 +97,7 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
               <p className="truncate font-bold text-white">{displayName}</p>
               <p className="text-[10px] font-bold uppercase text-slate-500">{flag} {languageName} · {level}</p>
             </div>
-            <button onClick={handleLogout} className="ml-auto text-slate-500 hover:text-white" title="Wyloguj">
+            <button onClick={handleLogout} className="ml-auto text-slate-500 hover:text-white" title={t("logout")}>
               <MaterialIcon name="logout" className="text-lg" />
             </button>
           </div>
@@ -125,7 +126,7 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
               );
             })}
             <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-4 py-4 text-base font-medium text-red-400">
-              <MaterialIcon name="logout" />Wyloguj
+              <MaterialIcon name="logout" />{t("logout")}
             </button>
           </nav>
         </div>
