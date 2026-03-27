@@ -45,14 +45,14 @@ export default async function VocabularyPage() {
       .single(),
     supabase
       .from("users")
-      .select("ui_language, native_language")
+      .select("native_language")
       .eq("id", user.id)
       .single(),
   ]);
 
   const vocabulary: VocabularyWord[] = words ?? [];
   const language = profile?.target_language ?? "en";
-  const t = getTranslations(resolveLocale(userData?.ui_language ?? userData?.native_language));
+  const t = getTranslations(resolveLocale(userData?.native_language));
 
   // Compute stats
   const now = new Date();

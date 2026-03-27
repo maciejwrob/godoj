@@ -45,10 +45,10 @@ export default async function AchievementsPage() {
     supabase.from("achievements").select("*").order("category").order("requirement_value"),
     supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id),
     supabase.from("user_profiles").select("is_kids_mode").eq("user_id", user.id).limit(1).single(),
-    supabase.from("users").select("ui_language, native_language").eq("id", user.id).single(),
+    supabase.from("users").select("native_language").eq("id", user.id).single(),
   ]);
 
-  const t = getTranslations(resolveLocale(userData?.ui_language ?? userData?.native_language));
+  const t = getTranslations(resolveLocale(userData?.native_language));
   const isKids = profileData?.is_kids_mode ?? false;
   // Filter: show only kids badges for kids, only adult badges for adults
   const achievements = ((allAchievements ?? []) as Achievement[]).filter(

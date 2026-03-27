@@ -107,12 +107,12 @@ export default async function ProgressPage() {
       .eq("mastered", true),
     supabase
       .from("users")
-      .select("ui_language, native_language")
+      .select("native_language")
       .eq("id", user.id)
       .single(),
   ]);
 
-  const t = getTranslations(resolveLocale(userData?.ui_language ?? userData?.native_language));
+  const t = getTranslations(resolveLocale(userData?.native_language));
   const currentStreak = streak?.current_streak ?? 0;
   const longestStreak = streak?.longest_streak ?? 0;
   const weeklyGoal = streak?.weekly_minutes_goal ?? 30;
