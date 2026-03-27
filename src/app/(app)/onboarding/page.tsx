@@ -10,15 +10,17 @@ import {
   Check,
 } from "lucide-react";
 import { LogoFull } from "@/components/logo";
+import { UILanguageToggle } from "@/components/ui-language-toggle";
+import { getLocalizedLevels, getLocalizedGoals, getLocalizedInterests, getLocalizedFrequencies, getLocalizedTimes } from "@/config/onboarding-data";
+import { WORLD_LANGUAGES } from "@/config/world-languages";
 import { useTranslation } from "@/lib/i18n";
 
 const TOTAL_STEPS = 8;
 
 const NATIVE_LANGUAGES = [
   { id: "pl", name: "Polski", flag: "🇵🇱" },
-  { id: "en", name: "Angielski", flag: "🇬🇧" },
-  { id: "uk", name: "Ukraiński", flag: "🇺🇦" },
-  { id: "other", name: "Inne", flag: "🌍" },
+  { id: "en", name: "English", flag: "🇬🇧" },
+  { id: "uk", name: "Українська", flag: "🇺🇦" },
 ];
 
 // -- Data definitions --
@@ -63,84 +65,19 @@ const LANGUAGES: Language[] = [
   { id: "hu", name: "Węgierski", flag: "\uD83C\uDDED\uD83C\uDDFA", active: false },
 ];
 
-const LEVELS = [
-  {
-    id: "A1",
-    name: "Początkujący",
-    label: "A1",
-    desc: "Znam tylko podstawowe słowa",
-  },
-  {
-    id: "A2",
-    name: "Elementarny",
-    label: "A2",
-    desc: "Radzę sobie z prostymi rozmowami",
-  },
-  {
-    id: "B1",
-    name: "Średnio zaawansowany",
-    label: "B1",
-    desc: "Mogę rozmawiać o znanych tematach",
-  },
-  {
-    id: "B2",
-    name: "Zaawansowany",
-    label: "B2",
-    desc: "Czuję się dość swobodnie",
-  },
-  {
-    id: "C1",
-    name: "Biegły",
-    label: "C1",
-    desc: "Chcę szlifować umiejętności",
-  },
-];
-
-const GOALS = [
-  { id: "travel", icon: "✈️", label: "Podróże i turystyka" },
-  { id: "work", icon: "💼", label: "Praca i biznes" },
-  { id: "relocation", icon: "🏠", label: "Przeprowadzka za granicę" },
-  { id: "family", icon: "👥", label: "Rozmowy z rodziną / znajomymi" },
-  { id: "school", icon: "🎓", label: "Szkoła / Studia" },
-  { id: "fun", icon: "🌟", label: "Dla przyjemności" },
-];
-
-const INTERESTS = [
-  { id: "sport", icon: "⚽", label: "Sport" },
-  { id: "cooking", icon: "🍕", label: "Gotowanie" },
-  { id: "tech", icon: "💻", label: "Technologia" },
-  { id: "film", icon: "🎬", label: "Film i TV" },
-  { id: "music", icon: "🎵", label: "Muzyka" },
-  { id: "travel", icon: "✈️", label: "Podróże" },
-  { id: "nature", icon: "🌿", label: "Natura" },
-  { id: "politics", icon: "📰", label: "Polityka" },
-  { id: "business", icon: "📊", label: "Biznes" },
-  { id: "art", icon: "🎨", label: "Sztuka" },
-  { id: "science", icon: "🔬", label: "Nauka" },
-  { id: "gaming", icon: "🎮", label: "Gaming" },
-  { id: "fashion", icon: "👗", label: "Moda" },
-  { id: "cars", icon: "🚗", label: "Motoryzacja" },
-  { id: "fitness", icon: "💪", label: "Fitness" },
-];
-
 const DURATIONS = [5, 10, 15, 20, 30];
-const FREQUENCIES = [
-  { id: "daily", label: "Codziennie" },
-  { id: "3-4x", label: "3-4x w tygodniu" },
-  { id: "2-3x", label: "2-3x w tygodniu" },
-  { id: "1x", label: "Raz w tygodniu" },
-];
-const TIMES = [
-  { id: "morning", icon: "🌅", label: "Rano" },
-  { id: "day", icon: "☀️", label: "W ciągu dnia" },
-  { id: "evening", icon: "🌙", label: "Wieczorem" },
-  { id: "any", icon: "🤷", label: "Bez preferencji" },
-];
 
 type TutorDef = { id: string; name: string; desc: string; lang: string };
 
 export default function OnboardingPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+
+  const LEVELS = getLocalizedLevels(locale);
+  const GOALS = getLocalizedGoals(locale);
+  const INTERESTS = getLocalizedInterests(locale);
+  const FREQUENCIES = getLocalizedFrequencies(locale);
+  const TIMES = getLocalizedTimes(locale);
+
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [isPending, startTransition] = useTransition();
@@ -271,6 +208,7 @@ export default function OnboardingPage() {
         preferredTime: time,
         remindersEnabled: reminders,
         selectedAgentId: tutor,
+        uiLanguage: locale,
       };
 
       const result = await saveOnboarding(data);
@@ -289,8 +227,9 @@ export default function OnboardingPage() {
     <main className="flex min-h-screen flex-col items-center px-4 py-8">
       <div className="w-full max-w-lg">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-center">
+        <div className="mb-8 flex items-center justify-between">
           <LogoFull size={32} href="/onboarding" />
+          <UILanguageToggle />
         </div>
 
         {/* Progress bar */}
@@ -351,6 +290,8 @@ export default function OnboardingPage() {
           )}
           {step === 7 && (
             <StepPreferences
+              frequencies={FREQUENCIES}
+              times={TIMES}
               duration={duration}
               frequency={frequency}
               time={time}
@@ -557,7 +498,7 @@ function StepLevel({
   selected,
   onSelect,
 }: {
-  levels: typeof LEVELS;
+  levels: { id: string; name: string; label: string; desc: string }[];
   selected: string;
   onSelect: (id: string) => void;
 }) {
@@ -601,7 +542,7 @@ function StepGoals({
   selected,
   onToggle,
 }: {
-  goals: typeof GOALS;
+  goals: { id: string; icon: string; label: string }[];
   selected: string[];
   onToggle: (id: string) => void;
 }) {
@@ -639,7 +580,7 @@ function StepInterests({
   selected,
   onToggle,
 }: {
-  interests: typeof INTERESTS;
+  interests: { id: string; icon: string; label: string }[];
   selected: string[];
   onToggle: (id: string) => void;
 }) {
@@ -672,6 +613,8 @@ function StepInterests({
 }
 
 function StepPreferences({
+  frequencies,
+  times,
   duration,
   frequency,
   time,
@@ -681,6 +624,8 @@ function StepPreferences({
   onTime,
   onReminders,
 }: {
+  frequencies: { id: string; label: string }[];
+  times: { id: string; icon: string; label: string }[];
   duration: number;
   frequency: string;
   time: string;
@@ -726,7 +671,7 @@ function StepPreferences({
           {t("frequencyLabel")}
         </h3>
         <div className="grid grid-cols-2 gap-2">
-          {FREQUENCIES.map((f) => (
+          {frequencies.map((f) => (
             <button
               key={f.id}
               onClick={() => onFrequency(f.id)}
@@ -748,7 +693,7 @@ function StepPreferences({
           {t("timeOfDayLabel")}
         </h3>
         <div className="grid grid-cols-2 gap-2">
-          {TIMES.map((t) => (
+          {times.map((t) => (
             <button
               key={t.id}
               onClick={() => onTime(t.id)}

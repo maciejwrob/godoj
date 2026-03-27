@@ -8,6 +8,7 @@ import { useState } from "react";
 import { LogoFull } from "@/components/logo";
 import { useLanguage } from "@/lib/language-context";
 import { LanguageDropdown } from "@/components/language-dropdown";
+import { UILanguageToggle } from "@/components/ui-language-toggle";
 import { useTranslation } from "@/lib/i18n";
 
 function MaterialIcon({ name, filled, className }: { name: string; filled?: boolean; className?: string }) {
@@ -88,7 +89,10 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
           </div>
         </nav>
 
-        <div className="p-6">
+        <div className="px-6 pb-2">
+          <UILanguageToggle className="w-full justify-center" />
+        </div>
+        <div className="p-6 pt-2">
           <div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-surface-container-high p-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-white/10">
               <MaterialIcon name="person" className="text-primary" />

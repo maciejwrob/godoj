@@ -1,9 +1,20 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { getTranslations } from "@/lib/i18n-data";
+import { UILanguageToggle, getStoredUILocale } from "@/components/ui-language-toggle";
 
 export default function Home() {
+  const [locale, setLocale] = useState<"pl" | "en">("en");
+  useEffect(() => { setLocale(getStoredUILocale()); }, []);
+  const t = (key: string) => getTranslations(locale)[key] ?? key;
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4">
+    <main className="relative flex min-h-screen flex-col items-center justify-center px-4">
+      <UILanguageToggle className="absolute top-6 right-6" />
+
       <div className="flex flex-col items-center gap-8 text-center">
         {/* Logo large */}
         <div className="flex items-center gap-5">
@@ -16,18 +27,14 @@ export default function Home() {
         </div>
 
         <p className="text-xl text-on-surface-variant">
-          Godoj. Ucz sie. Plynnie.
+          {locale === "pl" ? "Godoj. Ucz si\u0119. P\u0142ynnie." : "Speak. Learn. Fluently."}
         </p>
-
-        <div className="mt-4 rounded-2xl border border-white/5 bg-surface-container-high px-6 py-4 text-sm text-on-surface-variant">
-          Godoj jest dostepny tylko na zaproszenie.
-        </div>
 
         <Link
           href="/login"
           className="mt-2 rounded-xl bg-godoj-blue px-8 py-3 font-bold text-white transition-all hover:scale-105 active:scale-95"
         >
-          Zaloguj sie
+          {t("sendLoginLink")}
         </Link>
       </div>
     </main>

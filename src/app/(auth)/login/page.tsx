@@ -6,10 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { detectBrowserLocale, getTranslations } from "@/lib/i18n";
+import { getTranslations } from "@/lib/i18n";
+import { UILanguageToggle, getStoredUILocale } from "@/components/ui-language-toggle";
 
 export default function LoginPage() {
-  const locale = detectBrowserLocale();
+  const [locale, setLocale] = useState<"pl" | "en">("en");
+  useEffect(() => { setLocale(getStoredUILocale()); }, []);
   const t = (key: string) => getTranslations(locale)[key] ?? key;
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,7 +47,7 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const result = await sendMagicLink(email);
+    const result = await sendMagicLink(email, locale);
 
     if (result.success) {
       setSent(true);
@@ -57,7 +59,8 @@ export default function LoginPage() {
 
   if (sent) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-4">
+      <main className="relative flex min-h-screen flex-col items-center justify-center px-4">
+        <UILanguageToggle className="absolute top-4 right-4" />
         <div className="w-full max-w-sm space-y-6 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Mail className="h-8 w-8 text-primary" />
@@ -85,7 +88,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4">
+    <main className="relative flex min-h-screen flex-col items-center justify-center px-4">
+      <UILanguageToggle className="absolute top-4 right-4" />
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-3">

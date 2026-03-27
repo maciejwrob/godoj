@@ -246,8 +246,13 @@ export function resolveLocale(nativeLang?: string | null): Locale {
 }
 
 export function detectBrowserLocale(): Locale {
-  if (typeof navigator === "undefined") return "en";
-  const lang = navigator.language?.toLowerCase() ?? "";
-  if (lang.startsWith("pl")) return "pl";
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("godoj_ui_locale");
+      if (stored === "pl" || stored === "en") return stored;
+    } catch {}
+    const lang = navigator.language?.toLowerCase() ?? "";
+    if (lang.startsWith("pl")) return "pl";
+  }
   return "en";
 }

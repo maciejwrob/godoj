@@ -107,10 +107,10 @@ function FlagPattern({ lang }: { lang: string }) {
     ),
     ko: (
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
-        <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg] flex items-center justify-center">
-          <div className="w-40 h-40 rounded-full border-[12px] border-[#CD2E3A] relative">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-20 bg-[#CD2E3A] rounded-t-full" />
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-20 bg-[#0047A0] rounded-b-full" />
+        <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg]">
+          <div className="w-full h-full bg-white relative">
+            <div className="absolute top-[35%] left-[30%] w-[25%] h-[25%] rounded-full bg-[#CD2E3A]" />
+            <div className="absolute top-[40%] left-[35%] w-[25%] h-[25%] rounded-full bg-[#0047A0]" />
           </div>
         </div>
       </div>
