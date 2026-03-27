@@ -386,21 +386,21 @@ export default function LessonPage() {
   );
 
   if (lessonState === "ready") return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-6 text-center">
-        <TutorAvatar agentId={agentId} size={160} />
-        <div className="mt-2">
-          <h1 className="text-3xl font-extrabold">{agentName}</h1>
-          <p className="mt-1 text-on-surface-variant">{languageName} · Poziom {level}</p>
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-6">
+      <div className="w-full max-w-md space-y-4 sm:space-y-6 text-center">
+        <div className="sm:hidden"><TutorAvatar agentId={agentId} size={100} /></div>
+        <div className="hidden sm:block"><TutorAvatar agentId={agentId} size={160} /></div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold">{agentName}</h1>
+          <p className="mt-1 text-sm sm:text-base text-on-surface-variant">{languageName} · Poziom {level}</p>
         </div>
-        <div className="rounded-2xl border border-white/5 bg-surface-container-high p-6 text-left">
+        <div className="rounded-2xl border border-white/5 bg-surface-container-high p-4 sm:p-6 text-left">
           <div className="text-sm text-on-surface-variant">Temat dnia</div>
           <div className="mt-1 flex items-center justify-between">
-            <span className="text-lg font-bold">{topic}</span>
+            <span className="text-base sm:text-lg font-bold">{topic}</span>
             <button onClick={refreshTopic} className="text-slate-400 hover:text-primary"><RefreshCw className="h-4 w-4" /></button>
           </div>
         </div>
-        {/* Duration picker */}
         <div>
           <div className="mb-2 text-sm text-on-surface-variant text-center">Czas lekcji</div>
           <div className="flex justify-center gap-2">
