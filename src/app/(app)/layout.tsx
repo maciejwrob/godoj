@@ -18,7 +18,7 @@ export default async function AppLayout({
   ]);
 
   const typedProfiles = (profiles ?? []) as { id: string; target_language: string; language_variant: string | null; current_level: string; selected_agent_id: string | null }[];
-  const defaultLang = typedProfiles[0]?.target_language ?? "en";
+  const defaultLang = typedProfiles[0]?.target_language ?? "";
 
   return (
     <LanguageProvider serverProfiles={typedProfiles} defaultLanguage={defaultLang}>

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       ? (profiles ?? []).find((p: { target_language: string }) => p.target_language === lang)
       : (profiles ?? [])[0];
 
-    const activeLang = activeProfile?.target_language ?? "en";
+    const activeLang = activeProfile?.target_language ?? (profiles ?? [])[0]?.target_language ?? "";
 
     // User data
     const { data: userData } = await supabase

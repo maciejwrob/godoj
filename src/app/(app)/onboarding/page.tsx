@@ -273,7 +273,10 @@ export default function OnboardingPage() {
       const result = await saveOnboarding(data);
       if (result && !result.success) {
         setError(result.error);
+        return;
       }
+      // Full page reload to force fresh server render with new profile data
+      window.location.href = "/dashboard";
     });
   };
 

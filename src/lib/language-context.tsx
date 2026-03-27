@@ -28,8 +28,8 @@ const LanguageContext = createContext<LanguageCtx>({
   ready: false,
   profiles: [],
   active: null,
-  language: "en",
-  languageName: "Angielski",
+  language: "",
+  languageName: "",
   flag: "",
   level: "A1",
   agentId: "",
@@ -69,13 +69,14 @@ export function LanguageProvider({
     window.location.reload();
   }, []);
 
+  const fallbackLang = serverProfiles[0]?.target_language ?? "";
   const value: LanguageCtx = {
     ready,
     profiles: serverProfiles,
     active: activeProfile,
-    language: activeProfile?.target_language ?? "en",
-    languageName: getLangName(activeProfile?.target_language ?? "en"),
-    flag: getLangFlag(activeProfile?.target_language ?? "en", activeProfile?.language_variant),
+    language: activeProfile?.target_language ?? fallbackLang,
+    languageName: getLangName(activeProfile?.target_language ?? fallbackLang),
+    flag: getLangFlag(activeProfile?.target_language ?? fallbackLang, activeProfile?.language_variant),
     level: activeProfile?.current_level ?? "A1",
     agentId: activeProfile?.selected_agent_id ?? "",
     variant: activeProfile?.language_variant ?? null,

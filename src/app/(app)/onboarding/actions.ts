@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { redirect } from "next/navigation";
 
 export type OnboardingData = {
   displayName: string;
@@ -81,5 +80,5 @@ export async function saveOnboarding(data: OnboardingData) {
     { onConflict: "user_id" }
   );
 
-  redirect("/dashboard");
+  return { success: true as const };
 }
