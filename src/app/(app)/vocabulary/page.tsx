@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { BookOpen, Search, Volume2, Filter } from "lucide-react";
 import VocabularyClient from "./vocabulary-client";
+import { getTranslations, resolveLocale } from "@/lib/i18n";
 
 // Types shared between server and client
 export type VocabularyWord = {
@@ -28,7 +29,7 @@ export default async function VocabularyPage() {
     redirect("/login");
   }
 
-  const [{ data: words }, { data: profile }] = await Promise.all([
+  const [{ data: words }, { data: profile }, { data: userData }] = await Promise.all([
     supabase
       .from("vocabulary")
       .select(
@@ -42,10 +43,16 @@ export default async function VocabularyPage() {
       .eq("user_id", user.id)
       .limit(1)
       .single(),
+    supabase
+      .from("users")
+      .select("native_language")
+      .eq("id", user.id)
+      .single(),
   ]);
 
   const vocabulary: VocabularyWord[] = words ?? [];
   const language = profile?.target_language ?? "en";
+  const t = getTranslations(resolveLocale(userData?.native_language));
 
   // Compute stats
   const now = new Date();
@@ -64,33 +71,33 @@ export default async function VocabularyPage() {
       <div className="mb-8">
         <div className="flex items-center gap-3">
           <BookOpen className="h-7 w-7 text-primary" />
-          <h1 className="text-2xl font-bold">Moje słownictwo</h1>
+          <h1 className="text-2xl font-bold">{t.myVocabulary}</h1>
         </div>
         <p className="mt-1 text-text-secondary">
-          Wszystkie słowa, których się uczysz
+          {t.allWords}
         </p>
       </div>
 
       {/* Stats */}
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-border bg-bg-card p-4">
-          <div className="text-sm text-text-secondary">Wszystkie</div>
+          <div className="text-sm text-text-secondary">{t.all}</div>
           <div className="mt-1 text-2xl font-bold">{totalWords}</div>
         </div>
         <div className="rounded-xl border border-border bg-bg-card p-4">
-          <div className="text-sm text-text-secondary">Nowe w tym tyg.</div>
+          <div className="text-sm text-text-secondary">{t.newThisWeek}</div>
           <div className="mt-1 text-2xl font-bold text-primary">
             {newThisWeek}
           </div>
         </div>
         <div className="rounded-xl border border-border bg-bg-card p-4">
-          <div className="text-sm text-text-secondary">Do powtórki</div>
+          <div className="text-sm text-text-secondary">{t.toReview}</div>
           <div className="mt-1 text-2xl font-bold text-orange-400">
             {needsReview}
           </div>
         </div>
         <div className="rounded-xl border border-border bg-bg-card p-4">
-          <div className="text-sm text-text-secondary">Opanowane</div>
+          <div className="text-sm text-text-secondary">{t.mastered}</div>
           <div className="mt-1 text-2xl font-bold text-green-400">
             {mastered}
           </div>

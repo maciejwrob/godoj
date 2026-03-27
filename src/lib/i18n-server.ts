@@ -8,7 +8,7 @@ export function resolveLocaleServer(nativeLang?: string | null): Locale {
   return "en";
 }
 
-export async function getServerLocale(supabase: ReturnType<Awaited<typeof import("@/lib/supabase/server")["createClient"]>>, userId: string): Promise<Locale> {
+export async function getServerLocale(supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server")["createClient"]>>, userId: string): Promise<Locale> {
   const { data } = await supabase.from("users").select("native_language").eq("id", userId).single();
   return resolveLocaleServer(data?.native_language);
 }

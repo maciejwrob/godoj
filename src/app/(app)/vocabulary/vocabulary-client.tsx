@@ -5,6 +5,7 @@ import { Search, Filter, Volume2, Play, Loader2 } from "lucide-react";
 import type { VocabularyWord } from "./page";
 import { useLanguage } from "@/lib/language-context";
 import { getLangFlag, getLangName } from "@/lib/languages";
+import { useTranslation } from "@/lib/i18n";
 
 // --- Pronunciation Button (client component) ---
 
@@ -16,6 +17,7 @@ function PronunciationButton({
   language: string;
 }) {
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const play = async () => {
     setLoading(true);
@@ -44,7 +46,7 @@ function PronunciationButton({
       onClick={play}
       disabled={loading}
       className="rounded-lg p-2 text-text-secondary transition-colors hover:text-primary"
-      title="Odtwórz wymowę"
+      title={t("playPronunciation")}
     >
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -58,7 +60,8 @@ function PronunciationButton({
 // --- Mastery Bar ---
 
 function MasteryBar({ level }: { level: number }) {
-  const labels = ["Nowe", "Początek", "Rozpoznaję", "Ćwiczę", "Umiem", "Opanowane"];
+  const { t } = useTranslation();
+  const labels = [t("masteryNew"), t("masteryBeginner"), t("masteryRecognize"), t("masteryPracticing"), t("masteryKnow"), t("masteryMastered")];
   return (
     <div className="flex items-center gap-2">
       <div className="flex gap-0.5">
@@ -93,6 +96,7 @@ function WordCard({
   word: VocabularyWord;
   language: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-xl border border-border bg-bg-card p-4 transition-colors hover:bg-bg-card-hover">
       <div className="flex items-start justify-between gap-3">
@@ -127,7 +131,7 @@ function WordCard({
         <MasteryBar level={word.mastery_level} />
         {word.last_seen_at && (
           <span className="text-xs text-text-secondary">
-            Ostatnio:{" "}
+            {t("lastSeen")}:{" "}
             {new Date(word.last_seen_at).toLocaleDateString("pl-PL")}
           </span>
         )}
@@ -139,13 +143,14 @@ function WordCard({
 // --- Mastery Group Header ---
 
 function MasteryGroupHeader({ level, count }: { level: number; count: number }) {
+  const { t } = useTranslation();
   const labels: Record<number, string> = {
-    0: "Nowe słowa",
-    1: "Początkujące",
-    2: "Rozpoznawane",
-    3: "Ćwiczone",
-    4: "Umiem dobrze",
-    5: "Opanowane",
+    0: t("masteryNewWords"),
+    1: t("masteryBeginnerWords"),
+    2: t("masteryRecognizedWords"),
+    3: t("masteryPracticedWords"),
+    4: t("masteryKnownWords"),
+    5: t("masteryMasteredWords"),
   };
   return (
     <h3 className="mb-3 mt-6 flex items-center gap-2 text-sm font-semibold text-text-secondary first:mt-0">
@@ -173,6 +178,7 @@ export default function VocabularyClient({
 }) {
   const { language: ctxLang } = useLanguage();
   const activeLang = ctxLang || language;
+  const { t } = useTranslation();
 
   // Filter by active language
   const langWords = useMemo(() => words.filter((w) => w.language === activeLang), [words, activeLang]);
@@ -231,10 +237,10 @@ export default function VocabularyClient({
   }, [sorted, group]);
 
   const sortLabels: Record<SortOption, string> = {
-    newest: "Najnowsze",
-    oldest: "Najstarsze",
-    most_used: "Najczęściej używane",
-    needs_review: "Do powtórki",
+    newest: t("newest"),
+    oldest: t("oldest"),
+    most_used: t("mostUsed"),
+    needs_review: t("needsReview"),
   };
 
   return (
@@ -247,7 +253,7 @@ export default function VocabularyClient({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Szukaj słowa lub tłumaczenia..."
+            placeholder={t("searchWords")}
             className="w-full rounded-xl border border-border bg-bg-card py-2.5 pl-10 pr-4 text-text-primary placeholder:text-text-secondary focus:border-primary focus:outline-none"
           />
         </div>
@@ -260,7 +266,7 @@ export default function VocabularyClient({
           }`}
         >
           <Filter className="h-4 w-4" />
-          <span className="hidden sm:inline">Filtry</span>
+          <span className="hidden sm:inline">{t("filters")}</span>
         </button>
       </div>
 
@@ -270,7 +276,7 @@ export default function VocabularyClient({
           {/* Sort */}
           <div>
             <label className="mb-1 block text-xs text-text-secondary">
-              Sortuj
+              {t("sort")}
             </label>
             <select
               value={sort}
@@ -290,15 +296,15 @@ export default function VocabularyClient({
           {/* Group */}
           <div>
             <label className="mb-1 block text-xs text-text-secondary">
-              Grupuj
+              {t("group")}
             </label>
             <select
               value={group}
               onChange={(e) => setGroup(e.target.value as GroupOption)}
               className="rounded-lg border border-border bg-bg-dark px-3 py-1.5 text-sm text-text-primary focus:border-primary focus:outline-none"
             >
-              <option value="chronological">Chronologicznie</option>
-              <option value="mastery">Wg poziomu</option>
+              <option value="chronological">{t("chronological")}</option>
+              <option value="mastery">{t("byLevel")}</option>
             </select>
           </div>
 
@@ -307,10 +313,10 @@ export default function VocabularyClient({
             <span className="text-sm text-text-secondary">
               {sorted.length}{" "}
               {sorted.length === 1
-                ? "słowo"
+                ? t("wordSingular")
                 : sorted.length < 5
-                  ? "słowa"
-                  : "słów"}
+                  ? t("wordFew")
+                  : t("wordMany")}
             </span>
           </div>
         </div>
@@ -323,15 +329,15 @@ export default function VocabularyClient({
           {words.length === 0 ? (
             <>
               <p className="text-text-secondary">
-                Nie masz jeszcze żadnych słów
+                {t("noWordsYet")}
               </p>
               <p className="mt-1 text-sm text-text-secondary">
-                Słownictwo pojawi się tutaj po lekcjach
+                {t("wordsAfterLessons")}
               </p>
             </>
           ) : (
             <p className="text-text-secondary">
-              Brak wyników dla &ldquo;{search}&rdquo;
+              {t("noResults")} &ldquo;{search}&rdquo;
             </p>
           )}
         </div>

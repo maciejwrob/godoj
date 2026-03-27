@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Trophy } from "lucide-react";
 import { BadgeIcon } from "@/components/badge-icon";
+import { getTranslations, resolveLocale } from "@/lib/i18n";
 
 type Achievement = {
   id: string;
@@ -19,13 +20,7 @@ type UserAchievement = {
   earned_at: string;
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  milestones: "Kamienie milowe",
-  streaks: "Serie",
-  vocabulary: "Słownictwo",
-  fluency: "Płynność",
-  explorer: "Odkrywca",
-};
+// Category labels are resolved dynamically with translations below
 
 const TIER_COLORS: Record<string, string> = {
   bronze: "from-amber-700 to-amber-600",
@@ -46,12 +41,14 @@ export default async function AchievementsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: allAchievements }, { data: userAchievements }, { data: profileData }] = await Promise.all([
+  const [{ data: allAchievements }, { data: userAchievements }, { data: profileData }, { data: userData }] = await Promise.all([
     supabase.from("achievements").select("*").order("category").order("requirement_value"),
     supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id),
     supabase.from("user_profiles").select("is_kids_mode").eq("user_id", user.id).limit(1).single(),
+    supabase.from("users").select("native_language").eq("id", user.id).single(),
   ]);
 
+  const t = getTranslations(resolveLocale(userData?.native_language));
   const isKids = profileData?.is_kids_mode ?? false;
   // Filter: show only kids badges for kids, only adult badges for adults
   const achievements = ((allAchievements ?? []) as Achievement[]).filter(
@@ -61,6 +58,13 @@ export default async function AchievementsPage() {
   const earnedCount = achievements.filter((a) => earned.has(a.id)).length;
   const totalCount = achievements.length;
 
+  const CATEGORY_LABELS: Record<string, string> = {
+    milestones: t.milestones,
+    streaks: t.streaksCategory,
+    vocabulary: t.vocabularyCategory,
+    fluency: t.fluencyCategory,
+    explorer: t.explorerCategory,
+  };
   const categories = [...new Set(achievements.map((a) => a.category))];
 
   return (
@@ -69,10 +73,10 @@ export default async function AchievementsPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <Trophy className="h-6 w-6 text-yellow-400" />
-            Odznaki
+            {t.achievementsTitle}
           </h1>
           <p className="mt-1 text-text-secondary">
-            {earnedCount}/{totalCount} zdobytych
+            {earnedCount}/{totalCount} {t.achieved}
           </p>
         </div>
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-yellow-500/10">
@@ -113,7 +117,7 @@ export default async function AchievementsPage() {
                         <div className="text-sm text-text-secondary">{a.description_pl}</div>
                         {isEarned && earnedAt && (
                           <div className="mt-1 text-xs text-primary">
-                            Zdobyto {new Date(earnedAt).toLocaleDateString("pl-PL")}
+                            {t.earnedAt} {new Date(earnedAt).toLocaleDateString("pl-PL")}
                           </div>
                         )}
                       </div>

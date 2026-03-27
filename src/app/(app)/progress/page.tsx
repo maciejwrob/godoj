@@ -10,6 +10,7 @@ import {
   BookOpen,
   Calendar,
 } from "lucide-react";
+import { getTranslations, resolveLocale } from "@/lib/i18n";
 
 type Summary = {
   fluency_score: number;
@@ -35,8 +36,8 @@ function getDayColor(seconds: number): string {
   return "bg-primary";
 }
 
-function getDayLabel(seconds: number): string {
-  if (seconds === 0) return "Brak lekcji";
+function getDayLabel(seconds: number, noLessonLabel: string): string {
+  if (seconds === 0) return noLessonLabel;
   const min = Math.round(seconds / 60);
   return `${min} min`;
 }
@@ -62,6 +63,7 @@ export default async function ProgressPage() {
     { data: recentLessons },
     { count: vocabTotal },
     { count: vocabMastered },
+    { data: userData },
   ] = await Promise.all([
     supabase
       .from("streaks")
@@ -103,8 +105,14 @@ export default async function ProgressPage() {
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("mastered", true),
+    supabase
+      .from("users")
+      .select("native_language")
+      .eq("id", user.id)
+      .single(),
   ]);
 
+  const t = getTranslations(resolveLocale(userData?.native_language));
   const currentStreak = streak?.current_streak ?? 0;
   const longestStreak = streak?.longest_streak ?? 0;
   const weeklyGoal = streak?.weekly_minutes_goal ?? 30;
@@ -134,7 +142,7 @@ export default async function ProgressPage() {
     weeks.push(days.slice(i, i + 7));
   }
 
-  const dayLabels = ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"];
+  const dayLabels = [t.mon, t.tue, t.wed, t.thu, t.fri, t.sat, t.sun];
 
   // ── Weekly goal history (last 4 weeks) ──
   // Simple heuristic: check if weekly minutes met goal for past weeks
@@ -181,9 +189,9 @@ export default async function ProgressPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Twoje postępy</h1>
+        <h1 className="text-2xl font-bold">{t.yourProgress}</h1>
         <p className="text-text-secondary">
-          Statystyki i historia nauki
+          {t.statsAndHistory}
         </p>
       </div>
 
@@ -191,7 +199,7 @@ export default async function ProgressPage() {
       <div className="mb-8 rounded-xl border border-border bg-bg-card p-6">
         <h2 className="mb-4 flex items-center gap-2 font-bold">
           <Flame className="h-5 w-5 text-orange-400" />
-          Seria
+          {t.streakTitle}
         </h2>
 
         <div className="mb-6 flex items-center gap-8">
@@ -201,7 +209,7 @@ export default async function ProgressPage() {
               <span className="ml-1 text-2xl">🔥</span>
             </div>
             <div className="mt-1 text-sm text-text-secondary">
-              Aktualna seria
+              {t.currentStreak}
             </div>
           </div>
           <div className="text-center">
@@ -209,7 +217,7 @@ export default async function ProgressPage() {
               {longestStreak}
             </div>
             <div className="mt-1 text-sm text-text-secondary">
-              Najdłuższa seria
+              {t.longestStreak}
             </div>
           </div>
         </div>
@@ -218,7 +226,7 @@ export default async function ProgressPage() {
         <div className="mb-4">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-text-secondary">
             <Calendar className="h-4 w-4" />
-            Ostatnie 12 tygodni
+            {t.last12Weeks}
           </h3>
           <div className="flex gap-1">
             {/* Day labels */}
@@ -239,7 +247,7 @@ export default async function ProgressPage() {
                   <div
                     key={day.dateStr}
                     className={`h-4 w-4 rounded-sm ${getDayColor(day.seconds)}`}
-                    title={`${day.date.toLocaleDateString("pl-PL")} — ${getDayLabel(day.seconds)}`}
+                    title={`${day.date.toLocaleDateString("pl-PL")} — ${getDayLabel(day.seconds, t.noLessonsDay)}`}
                   />
                 ))}
               </div>
@@ -248,7 +256,7 @@ export default async function ProgressPage() {
 
           {/* Legend */}
           <div className="mt-3 flex items-center gap-3 text-[10px] text-text-secondary">
-            <span>Mniej</span>
+            <span>{t.less}</span>
             <div className="flex gap-1">
               <div className="h-3 w-3 rounded-sm bg-bg-card-hover" title="Brak lekcji" />
               <div className="h-3 w-3 rounded-sm bg-primary/20" title="<5 min" />
@@ -256,7 +264,7 @@ export default async function ProgressPage() {
               <div className="h-3 w-3 rounded-sm bg-primary/70" title="15-30 min" />
               <div className="h-3 w-3 rounded-sm bg-primary" title="30+ min" />
             </div>
-            <span>Więcej</span>
+            <span>{t.more}</span>
           </div>
         </div>
       </div>
@@ -265,7 +273,7 @@ export default async function ProgressPage() {
       <div className="mb-8 rounded-xl border border-border bg-bg-card p-6">
         <h2 className="mb-4 flex items-center gap-2 font-bold">
           <Clock className="h-5 w-5 text-primary" />
-          Cel tygodniowy
+          {t.weeklyGoal}
         </h2>
 
         <div className="mb-2 flex items-end justify-between">
@@ -291,7 +299,7 @@ export default async function ProgressPage() {
 
         {/* Week history */}
         <h3 className="mb-3 text-sm font-medium text-text-secondary">
-          Ostatnie 4 tygodnie
+          {t.last4Weeks}
         </h3>
         <div className="flex gap-3">
           {weekHistory.map((wh, i) => (
@@ -312,7 +320,7 @@ export default async function ProgressPage() {
       <div className="mb-8 rounded-xl border border-border bg-bg-card p-6">
         <h2 className="mb-4 flex items-center gap-2 font-bold">
           <GraduationCap className="h-5 w-5 text-green-400" />
-          Poziom
+          {t.levelTitle}
         </h2>
 
         <div className="mb-6 flex items-center gap-4">
@@ -348,7 +356,7 @@ export default async function ProgressPage() {
         {levelChanges.length > 0 && (
           <div>
             <h3 className="mb-3 text-sm font-medium text-text-secondary">
-              Historia zmian poziomu
+              {t.levelChangeHistory}
             </h3>
             <div className="space-y-2">
               {levelChanges.map((change, i) => (
@@ -378,7 +386,7 @@ export default async function ProgressPage() {
 
         {levelChanges.length === 0 && (
           <p className="text-sm text-text-secondary">
-            Poziom zostanie dostosowany automatycznie na podstawie Twoich lekcji.
+            {t.levelAutoAdjust}
           </p>
         )}
       </div>
@@ -387,12 +395,12 @@ export default async function ProgressPage() {
       <div className="mb-8 rounded-xl border border-border bg-bg-card p-6">
         <h2 className="mb-4 flex items-center gap-2 font-bold">
           <BookOpen className="h-5 w-5 text-primary" />
-          Historia lekcji
+          {t.lessonHistoryTitle}
         </h2>
 
         {!recentLessons || recentLessons.length === 0 ? (
           <p className="py-6 text-center text-text-secondary">
-            Nie masz jeszcze żadnych lekcji.
+            {t.noLessonsYet}
           </p>
         ) : (
           <div className="space-y-3">
@@ -412,7 +420,7 @@ export default async function ProgressPage() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">
-                      {lesson.topic ?? "Rozmowa"}
+                      {lesson.topic ?? t.conversation}
                     </div>
                     <div className="mt-1 flex items-center gap-3 text-sm text-text-secondary">
                       <span>
@@ -428,7 +436,7 @@ export default async function ProgressPage() {
                       {newWordsCount > 0 && (
                         <span className="flex items-center gap-1">
                           <BookOpen className="h-3 w-3" />
-                          +{newWordsCount} słów
+                          +{newWordsCount} {t.words}
                         </span>
                       )}
                     </div>
@@ -459,14 +467,14 @@ export default async function ProgressPage() {
       <div className="rounded-xl border border-border bg-bg-card p-6">
         <h2 className="mb-4 flex items-center gap-2 font-bold">
           <BookOpen className="h-5 w-5 text-primary" />
-          Słownictwo
+          {t.vocabularyTitle}
         </h2>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-lg bg-bg-card-hover p-4 text-center">
             <div className="text-3xl font-bold">{vocabTotal ?? 0}</div>
             <div className="mt-1 text-sm text-text-secondary">
-              Wszystkie słowa
+              {t.allWordsCount}
             </div>
           </div>
           <div className="rounded-lg bg-bg-card-hover p-4 text-center">
@@ -474,7 +482,7 @@ export default async function ProgressPage() {
               {vocabMastered ?? 0}
             </div>
             <div className="mt-1 text-sm text-text-secondary">
-              Opanowane
+              {t.masteredWords}
             </div>
           </div>
         </div>

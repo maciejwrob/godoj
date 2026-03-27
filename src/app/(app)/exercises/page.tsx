@@ -301,7 +301,7 @@ export default function ExercisesPage() {
           )}
           {lastCorrect === false && (
             <p className="mt-2 text-on-surface-variant">
-              Poprawna odpowiedz: <span className="font-medium text-on-surface">{current.word}</span> → {current.translation}
+              {t("correctAnswer")} <span className="font-medium text-on-surface">{current.word}</span> → {current.translation}
             </p>
           )}
         </div>
@@ -310,7 +310,7 @@ export default function ExercisesPage() {
           onClick={nextExercise}
           className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-medium text-white hover:bg-primary-dark"
         >
-          {currentIndex + 1 >= total ? "Podsumowanie" : "Dalej"}
+          {currentIndex + 1 >= total ? t("summaryBtn") : t("continueBtn")}
           <ArrowRight className="h-4 w-4" />
         </button>
         </div>
@@ -333,7 +333,7 @@ export default function ExercisesPage() {
           {current.type === "translate_to_native" && (
             <MultipleChoiceExercise
               question={current.word}
-              questionLabel="Jak to przetłumaczysz?"
+              questionLabel={t("howToTranslate")}
               correct={current.translation}
               options={dedupeOptions(current.translation, current.distractors_translations)}
               onResult={submitAnswer}
@@ -344,7 +344,7 @@ export default function ExercisesPage() {
           {current.type === "translate_to_target" && (
             <MultipleChoiceExercise
               question={current.translation}
-              questionLabel="Wybierz słowo"
+              questionLabel={t("chooseWord")}
               correct={current.word}
               options={dedupeOptions(current.word, current.distractors_words)}
               onResult={submitAnswer}
@@ -384,7 +384,7 @@ export default function ExercisesPage() {
           {!["flashcard", "translate_to_native", "translate_to_target", "fill_gap", "word_order", "matching", "listening"].includes(current.type) && (
             <MultipleChoiceExercise
               question={current.word}
-              questionLabel="Jak to przetłumaczysz?"
+              questionLabel={t("howToTranslate")}
               correct={current.translation}
               options={dedupeOptions(current.translation, current.distractors_translations)}
               onResult={submitAnswer}
@@ -438,10 +438,11 @@ function FlashcardExercise({ ex, onResult, onTTS }: {
   onTTS: (text: string, lang: string) => void;
 }) {
   const [flipped, setFlipped] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="text-center">
-      <p className="mb-4 text-sm text-text-secondary">Znasz to słowo?</p>
+      <p className="mb-4 text-sm text-text-secondary">{t("doYouKnow")}</p>
 
       <div
         onClick={() => setFlipped(!flipped)}
@@ -451,7 +452,7 @@ function FlashcardExercise({ ex, onResult, onTTS }: {
         {!flipped ? (
           <div className="text-center">
             <div className="text-2xl font-bold">{ex.word}</div>
-            <div className="mt-2 text-xs text-text-secondary">Dotknij żeby odkryć</div>
+            <div className="mt-2 text-xs text-text-secondary">{t("tapToReveal")}</div>
           </div>
         ) : (
           <div className="text-center">
@@ -463,7 +464,7 @@ function FlashcardExercise({ ex, onResult, onTTS }: {
               onClick={(e) => { e.stopPropagation(); onTTS(ex.word, ex.language); }}
               className="mt-3 inline-flex items-center gap-1 rounded-full bg-bg-card-hover px-3 py-1 text-xs text-text-secondary hover:text-primary"
             >
-              <Volume2 className="h-3 w-3" />Wymowa
+              <Volume2 className="h-3 w-3" />{t("pronunciation")}
             </button>
           </div>
         )}
@@ -472,13 +473,13 @@ function FlashcardExercise({ ex, onResult, onTTS }: {
       {flipped && (
         <div className="mt-6 flex gap-3">
           <button onClick={() => onResult(false, "", true)} className="flex-1 rounded-xl border border-slate-500/30 py-3 text-sm font-medium text-slate-400 hover:bg-slate-500/10">
-            Nie znalem
+            {t("didntKnow")}
           </button>
           <button onClick={() => onResult(true, "", true)} className="flex-1 rounded-xl border border-tertiary/30 py-3 text-sm font-medium text-tertiary hover:bg-tertiary/10">
-            Trudne
+            {t("hard")}
           </button>
           <button onClick={() => onResult(true)} className="flex-1 rounded-xl border border-green-500/30 py-3 text-sm font-medium text-green-400 hover:bg-green-500/10">
-            Latwe
+            {t("easy")}
           </button>
         </div>
       )}
@@ -547,6 +548,7 @@ function FillGapExercise({ sentence, answer, translation, distractors, onResult 
 }) {
   const options = shuffle([answer, ...distractors]);
   const [selected, setSelected] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const handleSelect = (opt: string) => {
     if (selected) return;
@@ -556,7 +558,7 @@ function FillGapExercise({ sentence, answer, translation, distractors, onResult 
 
   return (
     <div className="text-center">
-      <p className="mb-2 text-sm text-text-secondary">Uzupełnij zdanie</p>
+      <p className="mb-2 text-sm text-text-secondary">{t("fillSentence")}</p>
       <div className="mb-2 text-xl font-bold">
         {sentence.replace("____", selected ? `[${selected}]` : "____")}
       </div>
@@ -590,6 +592,7 @@ function WordOrderExercise({ translationPl, words, correctOrder, onResult }: {
   onResult: (correct: boolean) => void;
 }) {
   const [placed, setPlaced] = useState<string[]>([]);
+  const { t } = useTranslation();
   const shuffled = shuffle(words);
   const remaining = shuffled.filter((w) => !placed.includes(w));
 
@@ -608,12 +611,12 @@ function WordOrderExercise({ translationPl, words, correctOrder, onResult }: {
 
   return (
     <div className="text-center">
-      <p className="mb-2 text-sm text-text-secondary">Ułóż zdanie</p>
+      <p className="mb-2 text-sm text-text-secondary">{t("arrangeSentence")}</p>
       <div className="mb-6 text-lg font-medium text-text-secondary">{translationPl}</div>
 
       {/* Placed words */}
       <div className="mb-6 flex min-h-[48px] flex-wrap items-center justify-center gap-2 rounded-xl border border-border bg-bg-card p-3">
-        {placed.length === 0 && <span className="text-sm text-text-secondary">Kliknij słowa poniżej...</span>}
+        {placed.length === 0 && <span className="text-sm text-text-secondary">{t("clickWordsBelow")}</span>}
         {placed.map((w, i) => (
           <button key={i} onClick={() => removeWord(i)} className="rounded-lg bg-primary/20 px-3 py-1.5 text-sm font-medium text-primary">
             {w}
@@ -640,6 +643,7 @@ function MatchingExercise({ pairs, onResult }: {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [matched, setMatched] = useState<string[]>([]);
   const [shuffledTranslations] = useState(() => shuffle(pairs.map((p) => p.translation)));
+  const { t } = useTranslation();
 
   const handleWordClick = (word: string) => {
     if (matched.includes(word)) return;
@@ -663,7 +667,7 @@ function MatchingExercise({ pairs, onResult }: {
 
   return (
     <div className="text-center">
-      <p className="mb-6 text-sm text-text-secondary">Dopasuj pary</p>
+      <p className="mb-6 text-sm text-text-secondary">{t("matchPairs")}</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           {pairs.map((p) => (
@@ -717,6 +721,7 @@ function ListeningExercise({ word, language, correct, options, onResult, onTTS }
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [played, setPlayed] = useState(false);
+  const { t } = useTranslation();
 
   const play = () => {
     onTTS(word, language);
@@ -731,7 +736,7 @@ function ListeningExercise({ word, language, correct, options, onResult, onTTS }
 
   return (
     <div className="text-center">
-      <p className="mb-4 text-sm text-text-secondary">Co słyszysz?</p>
+      <p className="mb-4 text-sm text-text-secondary">{t("whatDoYouHear")}</p>
 
       <button
         onClick={play}
@@ -740,7 +745,7 @@ function ListeningExercise({ word, language, correct, options, onResult, onTTS }
         <Volume2 className="h-8 w-8" />
       </button>
 
-      {!played && <p className="mb-4 text-sm text-text-secondary">Kliknij żeby odsłuchać</p>}
+      {!played && <p className="mb-4 text-sm text-text-secondary">{t("clickToListen")}</p>}
 
       <div className="space-y-3">
         {options.map((opt) => (
