@@ -162,8 +162,8 @@ export default function ExercisesPage() {
             className="flex w-full items-center justify-between rounded-xl border border-border bg-bg-card p-5 text-left hover:border-primary/50"
           >
             <div>
-              <div className="font-bold">Dzisiejszy trening</div>
-              <div className="text-sm text-text-secondary">10-15 ćwiczeń z Twoich słówek</div>
+              <div className="font-bold">{t("dailyTraining")}</div>
+              <div className="text-sm text-text-secondary">{t("dailyTrainingDesc")}</div>
             </div>
             <ArrowRight className="h-5 w-5 text-primary" />
           </button>
@@ -174,9 +174,9 @@ export default function ExercisesPage() {
           >
             <div>
               <div className="flex items-center gap-2 font-bold">
-                <Zap className="h-4 w-4 text-yellow-400" />Wyzwanie
+                <Zap className="h-4 w-4 text-yellow-400" />{t("challenge")}
               </div>
-              <div className="text-sm text-text-secondary">Trudniejsze ćwiczenia</div>
+              <div className="text-sm text-text-secondary">{t("challengeDesc")}</div>
             </div>
             <ArrowRight className="h-5 w-5 text-yellow-400" />
           </button>
@@ -186,7 +186,7 @@ export default function ExercisesPage() {
           onClick={() => router.push("/dashboard")}
           className="mt-8 flex w-full items-center justify-center gap-1 text-sm text-text-secondary hover:text-text-primary"
         >
-          <ArrowLeft className="h-4 w-4" />Wróć do Dashboard
+          <ArrowLeft className="h-4 w-4" />{t("backToDashboardShort")}
         </button>
       </main>
     );
@@ -198,7 +198,7 @@ export default function ExercisesPage() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-text-secondary">Przygotowuję trening...</p>
+        <p className="mt-4 text-text-secondary">{t("preparingTraining")}</p>
       </main>
     );
   }
@@ -210,16 +210,15 @@ export default function ExercisesPage() {
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <div className="max-w-sm space-y-6 text-center">
           <Dumbbell className="mx-auto h-12 w-12 text-text-secondary" />
-          <h2 className="text-xl font-bold">Za mało słówek</h2>
+          <h2 className="text-xl font-bold">{t("notEnoughWords")}</h2>
           <p className="text-text-secondary">
-            Masz {wordCount} słów w słowniczku. Porozmawiaj z tutorem żeby zebrać
-            przynajmniej 5 słówek do ćwiczeń!
+            {wordCount} {t("notEnoughWordsDesc")}
           </p>
           <button
             onClick={() => router.push("/lesson")}
             className="rounded-xl bg-primary px-6 py-3 font-medium text-white hover:bg-primary-dark"
           >
-            Rozpocznij lekcję
+            {t("startLessonExercise")}
           </button>
         </div>
       </main>
@@ -237,21 +236,21 @@ export default function ExercisesPage() {
             <Star className="h-10 w-10 text-primary" />
           </div>
           <h1 className="text-2xl font-bold">
-            {pct >= 80 ? "Świetnie!" : pct >= 50 ? "Dobra robota!" : "Nie poddawaj się!"}
+            {pct >= 80 ? t("great") : pct >= 50 ? t("goodJob") : t("dontGiveUp")}
           </h1>
           <p className="mt-2 text-text-secondary">
-            {isChallenge ? "Wyzwanie ukończone" : "Trening ukończony"}
+            {isChallenge ? t("challengeCompleted") : t("trainingCompleted")}
           </p>
         </div>
 
         <div className="mb-6 grid grid-cols-2 gap-4">
           <div className="rounded-xl border border-border bg-bg-card p-4 text-center">
             <div className="text-2xl font-bold text-primary">{correctCount}/{total}</div>
-            <div className="text-xs text-text-secondary">Poprawnych</div>
+            <div className="text-xs text-text-secondary">{t("correct")}</div>
           </div>
           <div className="rounded-xl border border-border bg-bg-card p-4 text-center">
             <div className="text-2xl font-bold text-yellow-400">{pct}%</div>
-            <div className="text-xs text-text-secondary">Skuteczność</div>
+            <div className="text-xs text-text-secondary">{t("accuracy")}</div>
           </div>
         </div>
 
@@ -266,7 +265,7 @@ export default function ExercisesPage() {
             onClick={() => startSession(false)}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-white hover:bg-primary-dark"
           >
-            <RotateCcw className="h-4 w-4" />Jeszcze raz
+            <RotateCcw className="h-4 w-4" />{t("oneMoreTime")}
           </button>
         </div>
       </main>
@@ -293,7 +292,7 @@ export default function ExercisesPage() {
                 : <X className="h-8 w-8 text-red-400" />}
           </div>
           <h2 className="text-xl font-bold">
-            {isNeutral ? "Do powtorki!" : lastCorrect ? "Dobrze!" : "Nie tym razem"}
+            {isNeutral ? t("forReview") : lastCorrect ? t("wellDone") : t("notThisTime")}
           </h2>
           {isNeutral && (
             <p className="mt-2 text-on-surface-variant">
