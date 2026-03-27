@@ -130,12 +130,14 @@ export async function POST(request: Request) {
       ? (lastLesson.summary_json as Record<string, unknown>).next_lesson_context ?? ""
       : "";
 
-    const firstMsgResponse = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 80,
-      messages: [{
-        role: "user",
-        content: `Jesteś ${agentName}, tutor ${languageNameEn}. Użytkownik to ${displayName}.
+    let firstMessage = "";
+    try {
+      const firstMsgResponse = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 80,
+        messages: [{
+          role: "user",
+          content: `Jesteś ${agentName}, tutor ${languageNameEn}. Użytkownik to ${displayName}.
 ${lastLessonSummary ? `Kontekst z poprzedniej lekcji: ${lastLessonSummary}` : "To pierwsza lekcja tego użytkownika."}
 Dzisiejszy temat: ${topic}.
 
@@ -143,15 +145,17 @@ Wygeneruj naturalne powitanie w ${languageNameEn} (max 2 krótkie zdania) na poz
 - Jeśli to pierwsza lekcja: przywitaj się i przedstaw krótko
 - Jeśli była poprzednia lekcja: nawiąż do niej naturalnie
 - Bądź naturalny, ciepły, jak przyjaciel
-- NIE mów zawsze "Hvordan går det?" — bądź kreatywny
 
 Odpowiedz TYLKO tekstem powitania w ${languageNameEn}, nic więcej.`,
-      }],
-    });
-
-    const firstMessage = firstMsgResponse.content[0].type === "text"
-      ? firstMsgResponse.content[0].text.trim()
-      : "";
+        }],
+      });
+      firstMessage = firstMsgResponse.content[0].type === "text"
+        ? firstMsgResponse.content[0].text.trim()
+        : "";
+    } catch {
+      // Fallback — let the voice agent generate its own greeting
+      firstMessage = "";
+    }
 
     // Build system prompt override
     const lastLessonContext = lastLesson?.summary_json
