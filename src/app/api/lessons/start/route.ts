@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import Anthropic from "@anthropic-ai/sdk";
 import { getAgentSystemPrompt, type PromptVars } from "@/config/agent-prompt";
+import { CONVERSATION_TOPICS } from "@/config/conversation-topics";
 
 async function serverLogError(userId: string | null, page: string, message: string, context: Record<string, unknown> = {}) {
   try {
@@ -91,14 +92,25 @@ export async function POST(request: Request) {
     };
     const languageNameEn = langNamesEn[language] ?? language;
 
-    // Default topics per level
-    const defaultTopics: Record<string, string[]> = {
-      A1: ["Przedstawianie si\u0119", "Rodzina i przyjaciele", "Jedzenie i napoje", "Kolory i liczby", "Zwierz\u0119ta", "Pogoda"],
-      A2: ["Codzienne czynno\u015Bci", "Zakupy i pieni\u0105dze", "Pogoda i pory roku", "Hobby i czas wolny", "Dom i mieszkanie"],
-      B1: ["Podr\u00F3\u017Ce i wakacje", "Praca i kariera", "Kultura i tradycje", "Zdrowie i sport", "Technologia"],
-      B2: ["Aktualne wydarzenia", "Marzenia i plany", "Ksi\u0105\u017Cki i filmy", "\u015Arodowisko", "Edukacja"],
-      C1: ["Filozofia \u017Cycia", "Sztuka i muzyka", "Polityka", "Nauka i innowacje", "Globalizacja"],
-    };
+    // Fetch recent topics to avoid repetition
+    const { data: recentLessons } = await supabase
+      .from("lessons")
+      .select("topic")
+      .eq("user_id", user.id)
+      .eq("language", language)
+      .order("started_at", { ascending: false })
+      .limit(10);
+    const recentTopics = (recentLessons ?? []).map(l => l.topic).filter(Boolean);
+
+    // Get topic pool for this level
+    const levelKey = level.startsWith("A1") ? "A1" : level.startsWith("A2") ? "A2" : level.startsWith("B1") ? "B1" : level.startsWith("B2") ? "B2" : "C1";
+    const topicPool = CONVERSATION_TOPICS[levelKey] ?? CONVERSATION_TOPICS["A1"];
+    const availableTopics = topicPool.filter(t => !recentTopics.includes(t));
+    const poolForPrompt = availableTopics.length > 0 ? availableTopics : topicPool;
+
+    // Pick random samples for Claude inspiration
+    const shuffled = [...poolForPrompt].sort(() => Math.random() - 0.5);
+    const sampleTopics = shuffled.slice(0, 8).join(", ");
 
     let topic = "";
     try {
@@ -107,21 +119,22 @@ export async function POST(request: Request) {
         max_tokens: 30,
         messages: [{
           role: "user",
-          content: `Zaproponuj temat rozmowy po ${langName} na poziomie ${level}. ${interests.length > 0 ? "Zainteresowania: " + interests.join(", ") + "." : ""} Odpowiedz TYLKO tematem, max 8 słów. Po polsku. Bez pytań.`,
+          content: `Suggest a conversation topic for ${languageNameEn} at level ${level}.
+${interests.length > 0 ? "User interests: " + interests.join(", ") + "." : ""}
+${recentTopics.length > 0 ? "AVOID these recent topics: " + recentTopics.slice(0, 5).join(", ") : ""}
+Get inspired by these but feel free to suggest something different: ${sampleTopics}
+Reply with ONLY the topic, max 8 words. In Polish. No questions. No period.`,
         }],
       });
       const raw = topicResponse.content[0].type === "text" ? topicResponse.content[0].text.trim() : "";
-      // Validate: must be short (under 60 chars) and not a question/explanation
       if (raw.length > 0 && raw.length < 60 && !raw.includes("?") && !raw.includes("Potrzebuj")) {
         topic = raw;
       }
     } catch {}
 
-    // Fallback to default topics
+    // Fallback: pick random from available pool
     if (!topic) {
-      const levelKey = level.startsWith("A1") ? "A1" : level.startsWith("A2") ? "A2" : level.startsWith("B1") ? "B1" : level.startsWith("B2") ? "B2" : "C1";
-      const pool = defaultTopics[levelKey] ?? defaultTopics.A1;
-      topic = pool[Math.floor(Math.random() * pool.length)];
+      topic = poolForPrompt[Math.floor(Math.random() * poolForPrompt.length)];
     }
 
     // Generate dynamic first message

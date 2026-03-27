@@ -8,6 +8,8 @@ type Achievement = {
   id: string;
   name_pl: string;
   description_pl: string;
+  name_en: string | null;
+  description_en: string | null;
   icon: string;
   category: string;
   tier: string;
@@ -48,7 +50,9 @@ export default async function AchievementsPage() {
     supabase.from("users").select("native_language").eq("id", user.id).single(),
   ]);
 
-  const t = getTranslations(resolveLocale(userData?.native_language));
+  const locale = resolveLocale(userData?.native_language);
+  const t = getTranslations(locale);
+  const useEn = locale === "en";
   const isKids = profileData?.is_kids_mode ?? false;
   // Filter: show only kids badges for kids, only adult badges for adults
   const achievements = ((allAchievements ?? []) as Achievement[]).filter(
@@ -113,8 +117,8 @@ export default async function AchievementsPage() {
                     <div className="flex items-start gap-3">
                       <BadgeIcon achievementId={a.id} emoji={a.icon} size={64} earned={isEarned} />
                       <div className="flex-1">
-                        <div className="font-medium">{a.name_pl}</div>
-                        <div className="text-sm text-text-secondary">{a.description_pl}</div>
+                        <div className="font-medium">{useEn && a.name_en ? a.name_en : a.name_pl}</div>
+                        <div className="text-sm text-text-secondary">{useEn && a.description_en ? a.description_en : a.description_pl}</div>
                         {isEarned && earnedAt && (
                           <div className="mt-1 text-xs text-primary">
                             {t.earnedAt} {new Date(earnedAt).toLocaleDateString("pl-PL")}
