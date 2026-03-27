@@ -14,14 +14,14 @@ export const LANG_FLAGS: Record<string, string> = {
 export const LANG_NAMES: Record<string, string> = {
   no: "Norweski",
   fr: "Francuski",
-  es: "Hiszpanski",
+  es: "Hiszpański",
   en: "Angielski",
-  it: "Wloski",
+  it: "Włoski",
   sv: "Szwedzki",
   de: "Niemiecki",
-  fi: "Finski",
+  fi: "Fiński",
   pt: "Portugalski",
-  hu: "Wegierski",
+  hu: "Węgierski",
 };
 
 export const VARIANT_FLAGS: Record<string, string> = {

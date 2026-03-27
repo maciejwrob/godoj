@@ -35,12 +35,12 @@ const LANGUAGES: Language[] = [
   { id: "fr", name: "Francuski", flag: "\uD83C\uDDEB\uD83C\uDDF7", active: true },
   {
     id: "es",
-    name: "Hiszpanski",
+    name: "Hiszpański",
     flag: "\uD83C\uDDEA\uD83C\uDDF8",
     active: true,
     variants: [
       { id: "european", name: "Europejski", flag: "\uD83C\uDDEA\uD83C\uDDF8" },
-      { id: "es-LATAM", name: "Latynoamerykanski", flag: "\uD83C\uDDF2\uD83C\uDDFD" },
+      { id: "es-LATAM", name: "Latynoamerykański", flag: "\uD83C\uDDF2\uD83C\uDDFD" },
     ],
   },
   {
@@ -49,16 +49,16 @@ const LANGUAGES: Language[] = [
     flag: "\uD83C\uDDEC\uD83C\uDDE7",
     active: true,
     variants: [
-      { id: "american", name: "Amerykanski", flag: "\uD83C\uDDFA\uD83C\uDDF8" },
+      { id: "american", name: "Amerykański", flag: "\uD83C\uDDFA\uD83C\uDDF8" },
       { id: "british", name: "Brytyjski", flag: "\uD83C\uDDEC\uD83C\uDDE7" },
     ],
   },
-  { id: "it", name: "Wloski", flag: "\uD83C\uDDEE\uD83C\uDDF9", active: true },
+  { id: "it", name: "Włoski", flag: "\uD83C\uDDEE\uD83C\uDDF9", active: true },
   { id: "sv", name: "Szwedzki", flag: "\uD83C\uDDF8\uD83C\uDDEA", active: true },
   { id: "de", name: "Niemiecki", flag: "\uD83C\uDDE9\uD83C\uDDEA", active: true },
-  { id: "fi", name: "Finski", flag: "\uD83C\uDDEB\uD83C\uDDEE", active: true },
+  { id: "fi", name: "Fiński", flag: "\uD83C\uDDEB\uD83C\uDDEE", active: true },
   { id: "pt", name: "Portugalski", flag: "\uD83C\uDDF5\uD83C\uDDF9", active: false },
-  { id: "hu", name: "Wegierski", flag: "\uD83C\uDDED\uD83C\uDDFA", active: false },
+  { id: "hu", name: "Węgierski", flag: "\uD83C\uDDED\uD83C\uDDFA", active: false },
 ];
 
 const LEVELS = [

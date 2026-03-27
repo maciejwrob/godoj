@@ -7,8 +7,8 @@ import { getLangFlag, getLangName } from "@/lib/languages";
 const LANGUAGES = [
   { id: "no", active: true, variants: null },
   { id: "fr", active: true, variants: null },
-  { id: "es", active: true, variants: [{ id: "european", name: "Europejski" }, { id: "es-LATAM", name: "Latynoamerykanski" }] },
-  { id: "en", active: true, variants: [{ id: "american", name: "Amerykanski" }, { id: "british", name: "Brytyjski" }] },
+  { id: "es", active: true, variants: [{ id: "european", name: "Europejski" }, { id: "es-LATAM", name: "Latynoamerykański" }] },
+  { id: "en", active: true, variants: [{ id: "american", name: "Amerykański" }, { id: "british", name: "Brytyjski" }] },
   { id: "it", active: true, variants: null },
   { id: "sv", active: true, variants: null },
   { id: "de", active: true, variants: null },
