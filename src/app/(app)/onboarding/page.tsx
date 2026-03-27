@@ -58,6 +58,7 @@ const LANGUAGES: Language[] = [
   { id: "sv", name: "Szwedzki", flag: "\uD83C\uDDF8\uD83C\uDDEA", active: true },
   { id: "de", name: "Niemiecki", flag: "\uD83C\uDDE9\uD83C\uDDEA", active: true },
   { id: "fi", name: "Fiński", flag: "\uD83C\uDDEB\uD83C\uDDEE", active: true },
+  { id: "ko", name: "Koreański 한국어", flag: "🇰🇷", active: true },
   { id: "pt", name: "Portugalski", flag: "\uD83C\uDDF5\uD83C\uDDF9", active: false },
   { id: "hu", name: "Węgierski", flag: "\uD83C\uDDED\uD83C\uDDFA", active: false },
 ];

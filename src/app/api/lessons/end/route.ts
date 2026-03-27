@@ -49,10 +49,9 @@ export async function POST(request: Request) {
     }
 
     const langNames: Record<string, string> = {
-      es: "hiszpański",
-      en: "angielski",
-      no: "norweski",
-      fr: "francuski",
+      es: "hiszpański", en: "angielski", no: "norweski", fr: "francuski",
+      it: "włoski", sv: "szwedzki", de: "niemiecki", fi: "fiński",
+      pt: "portugalski", hu: "węgierski", ko: "koreański",
     };
     const langName = langNames[lesson.language] ?? lesson.language;
 

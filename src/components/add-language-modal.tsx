@@ -13,6 +13,7 @@ const LANGUAGES = [
   { id: "sv", active: true, variants: null },
   { id: "de", active: true, variants: null },
   { id: "fi", active: true, variants: null },
+  { id: "ko", active: true, variants: null },
 ];
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];

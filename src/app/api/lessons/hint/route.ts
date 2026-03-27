@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     const langNamesEn: Record<string, string> = {
       es: "Spanish", en: "English", no: "Norwegian", fr: "French",
-      it: "Italian", sv: "Swedish", de: "German", fi: "Finnish",
+      it: "Italian", sv: "Swedish", de: "German", fi: "Finnish", ko: "Korean",
       pt: "Portuguese", hu: "Hungarian", pl: "Polish", uk: "Ukrainian",
     };
 
@@ -64,7 +64,8 @@ export async function POST(request: Request) {
 - Keep suggestions related to the conversation topic
 - Hints should help the user express everyday, normal thoughts
 - Focus on practical vocabulary: food, travel, work, hobbies, weather, family, daily life
-- If the conversation context seems to be going in an inappropriate direction, redirect with neutral suggestions`;
+- If the conversation context seems to be going in an inappropriate direction, redirect with neutral suggestions
+${target_language === "ko" ? "- For Korean: always include Hangul, followed by romanization in parentheses, then the translation. E.g.: {\"phrase\": \"안녕하세요 (annyeonghaseyo)\", \"translation\": \"Hello\"}" : ""}`;
 
     const prompt =
       level === 1

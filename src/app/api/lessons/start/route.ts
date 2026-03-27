@@ -80,14 +80,14 @@ export async function POST(request: Request) {
     const langNames: Record<string, string> = {
       es: "hiszpańskim", en: "angielskim", no: "norweskim", fr: "francuskim",
       it: "włoskim", sv: "szwedzkim", de: "niemieckim", fi: "fińskim",
-      pt: "portugalskim", hu: "węgierskim",
+      pt: "portugalskim", hu: "węgierskim", ko: "koreańskim",
     };
     const langName = langNames[language] ?? language;
 
     const langNamesEn: Record<string, string> = {
       no: "Norwegian", es: "Spanish", en: "English", fr: "French",
       sv: "Swedish", it: "Italian", pt: "Portuguese", de: "German",
-      hu: "Hungarian", fi: "Finnish",
+      hu: "Hungarian", fi: "Finnish", ko: "Korean",
     };
     const languageNameEn = langNamesEn[language] ?? language;
 

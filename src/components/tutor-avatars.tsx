@@ -10,6 +10,7 @@ const AVATAR_MAP: Record<string, { src: string; name: string }> = {
   "godoj-sv-adult-astrid": { src: "/avatars/astrid.jpg", name: "Astrid" },
   "godoj-de-adult-heidi": { src: "/avatars/heidi.jpg", name: "Heidi" },
   "godoj-fi-adult-sanna": { src: "/avatars/sanna.jpg", name: "Sanna" },
+  "godoj-ko-adult-minji": { src: "/avatars/minji.jpg", name: "Minji" },
   ingrid: { src: "/avatars/mia.jpg", name: "Mia" },
 };
 

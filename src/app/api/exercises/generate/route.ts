@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
     const langNamesEn: Record<string, string> = {
       es: "Spanish", en: "English", no: "Norwegian", fr: "French",
-      it: "Italian", sv: "Swedish", de: "German", fi: "Finnish",
+      it: "Italian", sv: "Swedish", de: "German", fi: "Finnish", ko: "Korean",
       pt: "Portuguese", hu: "Hungarian",
     };
     const nativeLangNames: Record<string, string> = {
