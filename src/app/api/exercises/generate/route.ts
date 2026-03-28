@@ -127,6 +127,20 @@ Reply ONLY as JSON array (no markdown):
       };
     });
 
+    // Validate: reassign types with missing data
+    for (const ex of exercises) {
+      if (ex.type === "fill_gap" && !ex.fill_sentence?.sentence_with_gap) {
+        ex.type = "translate_to_native";
+      }
+      if (ex.type === "word_order" && (!ex.word_order?.words || !ex.word_order?.correct_order)) {
+        ex.type = "translate_to_native";
+      }
+      if ((!ex.distractors_translations || ex.distractors_translations.length === 0) &&
+          ["translate_to_native", "translate_to_target"].includes(ex.type)) {
+        ex.type = "flashcard";
+      }
+    }
+
     // Create session
     const { data: session } = await supabase
       .from("exercise_sessions")

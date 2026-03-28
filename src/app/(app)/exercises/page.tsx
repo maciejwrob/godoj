@@ -390,14 +390,18 @@ export default function ExercisesPage() {
               onTTS={playTTS}
             />
           )}
-          {/* Fallback for missing data */}
-          {!["flashcard", "translate_to_native", "translate_to_target", "fill_gap", "word_order", "matching", "listening"].includes(current.type) && (
+          {/* Fallback: known type with missing data, or unknown type */}
+          {((current.type === "fill_gap" && !current.fill_sentence) ||
+            (current.type === "word_order" && !current.word_order) ||
+            !["flashcard", "translate_to_native", "translate_to_target", "fill_gap", "word_order", "matching", "listening"].includes(current.type)) && (
             <MultipleChoiceExercise
               question={current.word}
               questionLabel={t("howToTranslate")}
               correct={current.translation}
               options={dedupeOptions(current.translation, current.distractors_translations)}
               onResult={submitAnswer}
+              onTTS={() => playTTS(current.word, current.language)}
+              showTTS
             />
           )}
         </div>
