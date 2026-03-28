@@ -47,6 +47,17 @@ export default function AdminUsersPage() {
     fetchUsers();
   };
 
+  const handleDelete = async (userId: string, email: string) => {
+    if (!confirm(`Usunąć konto ${email}? To usunie WSZYSTKIE dane i pozwoli na ponowną rejestrację na ten email.`)) return;
+    await fetch("/api/admin/users", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId }),
+    });
+    setExpandedId(null);
+    fetchUsers();
+  };
+
   const filtered = users.filter((u) => {
     const matchesSearch =
       u.displayName.toLowerCase().includes(search.toLowerCase()) ||
@@ -190,6 +201,15 @@ export default function AdminUsersPage() {
                             <option value="adult">adult</option>
                             <option value="child">child</option>
                           </select>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(user.id, user.email);
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-sm bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+                          >
+                            Usuń konto
+                          </button>
                         </div>
                       </td>
                     </tr>

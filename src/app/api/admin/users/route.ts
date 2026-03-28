@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -64,6 +65,42 @@ export async function PATCH(request: Request) {
 
   const { error } = await supabase.from("users").update(sanitized).eq("id", user_id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ success: true });
+}
+
+export async function DELETE(request: Request) {
+  const { isAdmin } = await requireAdmin();
+  if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { user_id } = await request.json();
+  if (!user_id) return NextResponse.json({ error: "user_id required" }, { status: 400 });
+
+  const admin = createAdminClient();
+
+  // Delete all user data (cascade-safe order)
+  const tables = [
+    "error_logs",
+    "user_achievements",
+    "exercise_sessions",
+    "feedback",
+    "vocabulary",
+    "lessons",
+    "streaks",
+    "user_profiles",
+    "users",
+  ];
+
+  for (const table of tables) {
+    await admin.from(table).delete().eq("user_id", user_id);
+  }
+
+  // Delete from auth.users (completely removes the account)
+  const { error } = await admin.auth.admin.deleteUser(user_id);
+  if (error) {
+    console.error("Auth delete error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 }
