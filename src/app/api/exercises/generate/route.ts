@@ -65,22 +65,19 @@ export async function POST(request: Request) {
     // Generate exercise data via Claude
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 1500,
+      max_tokens: 2000,
       messages: [{
         role: "user",
         content: `You are a JSON generator. Output ONLY a valid JSON array, nothing else. No markdown, no explanation, no preamble.
 
-Task: Generate language exercise data for ${lang} (level: ${level}). User's native language: ${nativeName}.
+Task: Generate distractors for ${lang} vocabulary exercises. User's native language is ${nativeName}.
 
-Words: ${wordList}
+Words (format: "word" (correct_translation)): ${wordList}
 
-For EACH word, create an object with these exact fields:
-- "word": the original word in ${lang}
-- "translation": the translation in ${nativeName}
-- "distractors_translations": array of 3 plausible but wrong translations in ${nativeName}
-- "distractors_words": array of 3 similar but wrong words in ${lang}
-
-Rules: distractors must be plausible but wrong. Every field present.
+For EACH word create an object with exactly these fields:
+- "word": copy the word exactly as given
+- "distractors_translations": array of exactly 3 plausible but WRONG ${nativeName} translations — MUST be in ${nativeName}, NOT in English
+- "distractors_words": array of exactly 3 similar but wrong ${lang} words
 
 Output the JSON array now:`,
       }],
