@@ -37,7 +37,8 @@ export default function Home() {
           {t("sendLoginLink")}
         </Link>
       </div>
+      {/* eslint-disable-next-line react/no-danger */}
+      <div dangerouslySetInnerHTML={{ __html: '<!-- fixbot test -->' }} />
     </main>
   );
 }
-// <!-- fixbot test -->
