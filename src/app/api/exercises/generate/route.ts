@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic();
@@ -13,8 +14,29 @@ const EXERCISE_TYPES = [
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    // Support both cookie auth (browser) and Bearer token auth (API clients/tests)
+    const authHeader = request.headers.get("authorization");
+    const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    let supabase;
+    let user;
+
+    if (bearerToken) {
+      // Bearer token auth — used by API clients and automated tests
+      supabase = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { global: { headers: { Authorization: `Bearer ${bearerToken}` } } }
+      );
+      const { data } = await supabase.auth.getUser(bearerToken);
+      user = data.user;
+    } else {
+      // Cookie auth — used by browser
+      supabase = await createClient();
+      const { data } = await supabase.auth.getUser();
+      user = data.user;
+    }
+
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { is_challenge, language } = await request.json();

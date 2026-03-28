@@ -339,9 +339,6 @@ export default function ExercisesPage() {
         <ProgressBar current={currentIndex + 1} total={total} />
 
         <div className="mt-8">
-          {current.type === "flashcard" && (
-            <FlashcardExercise ex={current} onResult={submitAnswer} onTTS={playTTS} />
-          )}
           {current.type === "translate_to_native" && (
             <MultipleChoiceExercise
               question={current.word}
@@ -395,7 +392,7 @@ export default function ExercisesPage() {
           {/* Fallback: known type with missing data, or unknown type */}
           {((current.type === "fill_gap" && !current.fill_sentence) ||
             (current.type === "word_order" && !current.word_order) ||
-            !["flashcard", "translate_to_native", "translate_to_target", "fill_gap", "word_order", "matching", "listening"].includes(current.type)) && (
+            !["translate_to_native", "translate_to_target", "fill_gap", "word_order", "matching", "listening"].includes(current.type)) && (
             <MultipleChoiceExercise
               question={current.word}
               questionLabel={t("howToTranslate")}
@@ -447,61 +444,6 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 }
 
 // ---- Exercise Components ----
-
-function FlashcardExercise({ ex, onResult, onTTS }: {
-  ex: Exercise;
-  onResult: (correct: boolean, answer?: string, neutral?: boolean) => void;
-  onTTS: (text: string, lang: string) => void;
-}) {
-  const [flipped, setFlipped] = useState(false);
-  const { t } = useTranslation();
-
-  return (
-    <div className="text-center">
-      <p className="mb-4 text-sm text-text-secondary">{t("doYouKnow")}</p>
-
-      <div
-        onClick={() => setFlipped(!flipped)}
-        className="mx-auto flex h-48 w-full max-w-sm cursor-pointer items-center justify-center rounded-2xl border border-border bg-bg-card p-6 transition-all hover:border-primary/50"
-        style={{ perspective: "1000px" }}
-      >
-        {!flipped ? (
-          <div className="text-center">
-            <div className="text-2xl font-bold">{ex.word}</div>
-            <div className="mt-2 text-xs text-text-secondary">{t("tapToReveal")}</div>
-          </div>
-        ) : (
-          <div className="text-center">
-            <div className="text-xl font-bold text-primary">{ex.translation}</div>
-            {ex.context && (
-              <div className="mt-2 text-sm italic text-text-secondary">&ldquo;{ex.context}&rdquo;</div>
-            )}
-            <button
-              onClick={(e) => { e.stopPropagation(); onTTS(ex.word, ex.language); }}
-              className="mt-3 inline-flex items-center gap-1 rounded-full bg-bg-card-hover px-3 py-1 text-xs text-text-secondary hover:text-primary"
-            >
-              <Volume2 className="h-3 w-3" />{t("pronunciation")}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {flipped && (
-        <div className="mt-6 flex gap-3">
-          <button onClick={() => onResult(false, "", true)} className="flex-1 rounded-xl border border-slate-500/30 py-3 text-sm font-medium text-slate-400 hover:bg-slate-500/10">
-            {t("didntKnow")}
-          </button>
-          <button onClick={() => onResult(true, "", true)} className="flex-1 rounded-xl border border-tertiary/30 py-3 text-sm font-medium text-tertiary hover:bg-tertiary/10">
-            {t("hard")}
-          </button>
-          <button onClick={() => onResult(true)} className="flex-1 rounded-xl border border-green-500/30 py-3 text-sm font-medium text-green-400 hover:bg-green-500/10">
-            {t("easy")}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function MultipleChoiceExercise({ question, questionLabel, correct, options, onResult, onTTS, showTTS }: {
   question: string;
