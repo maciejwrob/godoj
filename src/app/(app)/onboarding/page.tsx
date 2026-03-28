@@ -13,7 +13,7 @@ import { LogoFull } from "@/components/logo";
 import { UILanguageToggle } from "@/components/ui-language-toggle";
 import { getLocalizedLevels, getLocalizedGoals, getLocalizedInterests, getLocalizedFrequencies, getLocalizedTimes } from "@/config/onboarding-data";
 import { WORLD_LANGUAGES } from "@/config/world-languages";
-import { useTranslation } from "@/lib/i18n";
+import { useTranslation, resolveLocale } from "@/lib/i18n";
 
 const TOTAL_STEPS = 8;
 
@@ -70,7 +70,7 @@ const DURATIONS = [5, 10, 15, 20, 30];
 type TutorDef = { id: string; name: string; desc: string; lang: string };
 
 export default function OnboardingPage() {
-  const { t, locale } = useTranslation();
+  const { t, locale, setLocale } = useTranslation();
 
   const LEVELS = getLocalizedLevels(locale);
   const GOALS = getLocalizedGoals(locale);
@@ -100,6 +100,13 @@ export default function OnboardingPage() {
   const [availableTutors, setAvailableTutors] = useState<TutorDef[]>([]);
 
   const selectedLanguage = LANGUAGES.find((l) => l.id === selectedLang);
+
+  // Sync UI locale when user selects their native language
+  useEffect(() => {
+    const resolved = resolveLocale(nativeLang);
+    localStorage.setItem("godoj_ui_locale", resolved);
+    setLocale(resolved);
+  }, [nativeLang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load available tutors from agents_config when language/variant changes
   useEffect(() => {
