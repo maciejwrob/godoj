@@ -35,10 +35,12 @@ export async function updateSession(request: NextRequest) {
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
   const isOnboarding = pathname === "/onboarding";
   const isAdmin = pathname.startsWith("/admin");
+  const isApiPath = pathname.startsWith("/api/");
 
-  // Not logged in → redirect to /login (unless on public page)
+  // Not logged in → redirect to /login (unless on public page or API route)
+  // API routes handle their own auth and return 401
   if (!user) {
-    if (!isPublicPath) {
+    if (!isPublicPath && !isApiPath) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       return NextResponse.redirect(url);
