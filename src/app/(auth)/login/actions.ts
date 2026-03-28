@@ -43,6 +43,7 @@ export async function sendMagicLink(email: string, locale?: "pl" | "en") {
   });
 
   if (emailError) {
+    console.error("[sendMagicLink] Resend error:", emailError);
     return {
       success: false as const,
       error: "Failed to send link. Please try again.",
