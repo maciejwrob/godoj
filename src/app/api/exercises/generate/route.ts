@@ -5,7 +5,6 @@ import Anthropic from "@anthropic-ai/sdk";
 const anthropic = new Anthropic();
 
 const EXERCISE_TYPES = [
-  "flashcard",
   "translate_to_native",
   "translate_to_target",
   "matching",
@@ -141,7 +140,7 @@ Output the JSON array now:`,
     for (const ex of exercises) {
       if ((!ex.distractors_translations || ex.distractors_translations.length === 0) &&
           ["translate_to_native", "translate_to_target"].includes(ex.type)) {
-        ex.type = "flashcard";
+        ex.type = "listening";
       }
     }
 
