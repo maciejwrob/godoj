@@ -8,8 +8,6 @@ const EXERCISE_TYPES = [
   "flashcard",
   "translate_to_native",
   "translate_to_target",
-  "fill_gap",
-  "word_order",
   "matching",
   "listening",
 ] as const;
@@ -139,19 +137,11 @@ Output the JSON array now:`,
         language: vocab.language,
         distractors_translations: data?.distractors_translations ?? [],
         distractors_words: data?.distractors_words ?? [],
-        fill_sentence: data?.fill_sentence ?? null,
-        word_order: data?.word_order ?? null,
       };
     });
 
     // Validate: reassign types with missing data
     for (const ex of exercises) {
-      if (ex.type === "fill_gap" && !ex.fill_sentence?.sentence_with_gap) {
-        ex.type = "translate_to_native";
-      }
-      if (ex.type === "word_order" && (!ex.word_order?.words || !ex.word_order?.correct_order)) {
-        ex.type = "translate_to_native";
-      }
       if ((!ex.distractors_translations || ex.distractors_translations.length === 0) &&
           ["translate_to_native", "translate_to_target"].includes(ex.type)) {
         ex.type = "flashcard";
