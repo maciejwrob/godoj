@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     // Select 15 words (or less if not enough)
-    const selectedWords = vocab.slice(0, Math.min(15, vocab.length));
+    const selectedWords = vocab.slice(0, Math.min(10, vocab.length));
     const wordList = selectedWords.map((w) => `"${w.word}" (${w.translation})`).join(", ");
 
     const langNamesEn: Record<string, string> = {
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     // Generate exercise data via Claude
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 2000,
+      max_tokens: 4096,
       messages: [{
         role: "user",
         content: `You are a JSON generator. Output ONLY a valid JSON array, nothing else. No markdown, no explanation, no preamble.
@@ -89,6 +89,12 @@ Rules: sentences 4-7 words, natural, ${level} level. Distractors plausible but w
 Output the JSON array now:`,
       }],
     });
+
+    // Check if response was truncated
+    if (response.stop_reason === "max_tokens") {
+      console.error("Exercise generation truncated — hit max_tokens limit");
+      return NextResponse.json({ error: "Exercise generation timed out. Please try again." }, { status: 500 });
+    }
 
     const text = response.content[0].type === "text" ? response.content[0].text : "[]";
 
