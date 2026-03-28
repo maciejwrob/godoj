@@ -39,6 +39,8 @@ export default function Home() {
       </div>
       {/* eslint-disable-next-line react/no-danger */}
       <div dangerouslySetInnerHTML={{ __html: '<!-- fixbot test -->' }} />
+      {/* eslint-disable-next-line react/no-danger */}
+      <div dangerouslySetInnerHTML={{ __html: '<!-- fixbot-v2-test -->' }} />
     </main>
   );
 }
