@@ -16,6 +16,7 @@ import {
   Star,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { useLanguage } from "@/lib/language-context";
 
 // ---- Types ----
 
@@ -43,6 +44,7 @@ type PageState = "loading" | "ready" | "exercise" | "feedback" | "summary" | "no
 export default function ExercisesPage() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const [state, setState] = useState<PageState>("ready");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [matchingGroup, setMatchingGroup] = useState<MatchPair[]>([]);
@@ -72,7 +74,7 @@ export default function ExercisesPage() {
       const res = await fetch("/api/exercises/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_challenge: challenge }),
+        body: JSON.stringify({ is_challenge: challenge, language }),
       });
       const data = await res.json();
 

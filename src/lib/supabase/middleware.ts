@@ -65,8 +65,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Logged in without onboarding → force /onboarding
-  if (!onboardingComplete && !isOnboarding && !isPublicPath) {
+  // Logged in without onboarding → force /onboarding (skip for API routes — they handle auth themselves)
+  if (!onboardingComplete && !isOnboarding && !isPublicPath && !isApiPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/onboarding";
     return NextResponse.redirect(url);

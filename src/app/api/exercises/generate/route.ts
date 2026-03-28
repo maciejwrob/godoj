@@ -18,10 +18,10 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { is_challenge } = await request.json();
+    const { is_challenge, language } = await request.json();
 
     const [{ data: profile }, { data: userData }] = await Promise.all([
-      supabase.from("user_profiles").select("target_language, current_level").eq("user_id", user.id).limit(1).single(),
+      supabase.from("user_profiles").select("target_language, current_level").eq("user_id", user.id).eq("target_language", language).single(),
       supabase.from("users").select("native_language").eq("id", user.id).single(),
     ]);
 
