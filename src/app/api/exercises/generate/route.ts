@@ -70,37 +70,50 @@ export async function POST(request: Request) {
       max_tokens: 2000,
       messages: [{
         role: "user",
-        content: `Generate language exercises (${lang}, level ${level}).
-The user's native language is ${nativeName}. All translations must be in ${nativeName}.
+        content: `You are a JSON generator. Output ONLY a valid JSON array, nothing else. No markdown, no explanation, no preamble.
+
+Task: Generate language exercise data for ${lang} (level: ${level}). User's native language: ${nativeName}.
 
 Words: ${wordList}
 
-For EACH word generate:
-1. distractors_translations: 3 false translations in ${nativeName} (semantically close)
-2. distractors_words: 3 false words in ${lang} (similar to original)
-3. fill_sentence: sentence with gap {"sentence_with_gap": "... ____ ...", "answer": "word", "translation_pl": "sentence translation in ${nativeName}"}
-4. word_order: {"translation_pl": "translation in ${nativeName}", "words": ["scrambled","words"], "correct_order": ["correct","order"]}
+For EACH word, create an object with these exact fields:
+- "word": the original word
+- "translation": the translation
+- "distractors_translations": array of 3 plausible but wrong translations in ${nativeName}
+- "distractors_words": array of 3 similar but wrong words in ${lang}
+- "fill_sentence": {"sentence_with_gap": "A short sentence with ____ for the missing word", "answer": "the correct word", "translation_pl": "full sentence translation in ${nativeName}"}
+- "word_order": {"translation_pl": "translation in ${nativeName}", "words": ["scrambled","words","array"], "correct_order": ["correct","word","order"]}
 
-IMPORTANT:
-- Sentences must be natural and at ${level} level
-- Distractors must be plausible but clearly wrong
-- Content appropriate for language learning (everyday topics)
-- Sentences 4-7 words
+Rules: sentences 4-7 words, natural, ${level} level. Distractors plausible but wrong. Every field present.
 
-Reply ONLY as JSON array (no markdown):
-[{"word": "...", "translation": "...", "distractors_translations": [...], "distractors_words": [...], "fill_sentence": {...}, "word_order": {...}}]`,
+Output the JSON array now:`,
       }],
     });
 
     const text = response.content[0].type === "text" ? response.content[0].text : "[]";
-    const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
+
+    // Robust JSON extraction
     let exerciseData;
     try {
+      const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
       exerciseData = JSON.parse(cleaned);
-    } catch (parseErr) {
-      console.error("Exercise JSON parse error:", parseErr);
-      console.error("Raw response:", text.substring(0, 500));
-      console.error("Cleaned:", cleaned.substring(0, 500));
+    } catch {
+      try {
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          exerciseData = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("No JSON array found");
+        }
+      } catch (parseErr) {
+        console.error("Exercise JSON parse error:", parseErr);
+        console.error("Raw response:", text.substring(0, 1000));
+        return NextResponse.json({ error: "Failed to generate exercises — invalid AI response" }, { status: 500 });
+      }
+    }
+
+    if (!Array.isArray(exerciseData) || exerciseData.length === 0) {
+      console.error("Exercise data not a valid array:", typeof exerciseData);
       return NextResponse.json({ error: "Failed to generate exercises — invalid AI response" }, { status: 500 });
     }
 
