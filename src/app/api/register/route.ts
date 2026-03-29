@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
+import { magicLinkEmail } from "@/lib/email-templates";
 
 export async function POST(request: Request) {
   const { token, display_name } = await request.json();
@@ -60,9 +61,32 @@ export async function POST(request: Request) {
     })
     .eq("id", newUser.user.id);
 
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  // Send magic link so the user can log in immediately after registration
+  try {
+    const { data: linkData } = await adminClient.auth.admin.generateLink({
+      type: "magiclink",
+      email: invitation.email,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
+      },
+    });
+
+    if (linkData?.properties?.action_link) {
+      await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL ?? "noreply@godoj.co",
+        to: invitation.email,
+        subject: "Zaloguj się do Godoj.co 🎙",
+        html: magicLinkEmail(linkData.properties.action_link, "pl"),
+      });
+    }
+  } catch (err) {
+    console.error("[register] Failed to send magic link:", err);
+  }
+
   // Notify admin about new registration
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
     const now = new Date().toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" });
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL ?? "noreply@godoj.co",
