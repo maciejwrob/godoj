@@ -191,20 +191,6 @@ export default async function LessonSummaryPage({
         </div>
       )}
 
-      {/* Feedback CTA */}
-      <div className="mb-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 flex items-center gap-4">
-        <div className="h-12 w-12 shrink-0 rounded-full bg-surface-container-high flex items-center justify-center border border-primary/20">
-          <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top rounded-full" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-medium text-on-surface">Maciej, twórca Godoj.co, chcialby uslyszec Twoj feedback!</p>
-          <p className="text-xs text-on-surface-variant">Krótka rozmowa (2 min)</p>
-        </div>
-        <Link href={`/feedback?lesson_id=${id}`} className="shrink-0 rounded-xl bg-godoj-blue px-4 py-2 text-sm font-bold text-white hover:scale-105 transition-all">
-          Daj feedback
-        </Link>
-      </div>
-
       {/* Actions */}
       <div className="flex gap-3">
         <Link
