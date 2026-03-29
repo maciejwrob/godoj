@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getTranslations } from "@/lib/i18n-data";
-import { UILanguageToggle, getStoredUILocale } from "@/components/ui-language-toggle";
+import { getTranslations, detectBrowserLocale } from "@/lib/i18n-data";
+import { UILanguageToggle } from "@/components/ui-language-toggle";
 
 export default function Home() {
   const [locale, setLocale] = useState<"pl" | "en">("en");
-  useEffect(() => { setLocale(getStoredUILocale()); }, []);
+  useEffect(() => { setLocale(detectBrowserLocale()); }, []);
   const t = (key: string) => getTranslations(locale)[key] ?? key;
 
   return (
@@ -27,7 +27,7 @@ export default function Home() {
         </div>
 
         <p className="text-xl text-on-surface-variant">
-          {locale === "pl" ? "Godoj. Ucz si\u0119. P\u0142ynnie." : "Speak. Learn. Fluently."}
+          {t("tagline")}
         </p>
 
         <Link

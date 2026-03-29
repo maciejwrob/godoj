@@ -117,6 +117,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     privacy: "Prywatność", help: "Pomoc", premium: "Premium",
     loading: "Ładowanie...", error: "Błąd",
     errorSendingLink: "Nie udało się wysłać linku. Spróbuj ponownie.",
+    tagline: "Godoj. Ucz się. Płynnie.",
+    metaTitle: "Godoj.co — Godoj. Ucz się. Płynnie.",
+    metaDescription: "Ucz się języków rozmawiając z AI. Godoj.co to Twój prywatny tutor konwersacyjny.",
+    metaDescriptionOG: "Ucz się języków rozmawiając z AI.",
   },
   en: {
     dashboard: "Dashboard", lesson: "Lesson", vocabulary: "Vocabulary", exercises: "Exercises",
@@ -231,6 +235,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     privacy: "Privacy", help: "Help", premium: "Premium",
     loading: "Loading...", error: "Error",
     errorSendingLink: "Failed to send link. Please try again.",
+    tagline: "Speak. Learn. Fluently.",
+    metaTitle: "Godoj.co — Speak. Learn. Fluently.",
+    metaDescription: "Learn languages by talking to AI. Godoj.co is your private conversational tutor.",
+    metaDescriptionOG: "Learn languages by talking to AI.",
   },
 };
 
