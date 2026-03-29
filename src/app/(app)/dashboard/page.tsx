@@ -143,8 +143,8 @@ export default function DashboardPage() {
   if (!data) return null;
 
   const { displayName, profiles, currentLevel, currentStreak, weeklyGoal, weeklyDone, lessons, achievements, vocabCount, totalMinutes, totalLessonsCount, needsFeedback, feedbackLessonId } = data;
-  const showFeedbackPopup = totalLessonsCount === 1 && needsFeedback && !feedbackDismissed;
-  const showFeedbackBanner = totalLessonsCount > 1 && needsFeedback && !feedbackDismissed;
+  const showFeedbackPopup = false; // hidden: totalLessonsCount === 1 && needsFeedback && !feedbackDismissed;
+  const showFeedbackBanner = false; // hidden: totalLessonsCount > 1 && needsFeedback && !feedbackDismissed;
   const weeklyPct = weeklyGoal > 0 ? Math.min(100, Math.round((weeklyDone / weeklyGoal) * 100)) : 0;
   const activeProfile = profiles.find((p) => p.target_language === activeLang);
   const activeVariant = activeProfile?.language_variant ?? null;
