@@ -18,7 +18,7 @@ const manrope = Manrope({
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers();
   const acceptLanguage = headersList.get("accept-language") ?? "";
-  const locale: Locale = acceptLanguage.toLowerCase().startsWith("pl") ? "pl" : "en";
+  const locale: Locale = acceptLanguage.toLowerCase().startsWith("en") ? "en" : "pl";
   const t = getTranslations(locale);
 
   return {
