@@ -28,17 +28,38 @@ export async function POST(request: Request) {
     const { language, agent_id } = await request.json();
 
     // Look up ElevenLabs agent ID from agents_config
-    const { data: agentConfig } = await supabase
+    let { data: agentConfig } = await supabase
       .from("agents_config")
       .select("elevenlabs_agent_id, voice_name")
       .eq("id", agent_id)
       .single();
 
+    // Fallback: if requested agent not found, try first active agent for this language
     if (!agentConfig) {
-      await serverLogError(user.id, "/api/lessons/start", "Agent not found in agents_config", { agent_id });
+      console.log(`[lessons/start] Agent '${agent_id}' not found, falling back to first active agent for language '${language}'`);
+      const { data: fallbackAgent } = await supabase
+        .from("agents_config")
+        .select("elevenlabs_agent_id, voice_name")
+        .eq("language", language)
+        .eq("is_active", true)
+        .limit(1)
+        .single();
+      agentConfig = fallbackAgent;
+    }
+
+    if (!agentConfig) {
+      await serverLogError(user.id, "/api/lessons/start", "Agent not found in agents_config", { agent_id, language });
       return NextResponse.json(
-        { error: "Nie znaleziono tutora. Wybierz tutora w ustawieniach." },
+        { error: "Nie znaleziono tutora. Skontaktuj się z administratorem." },
         { status: 400 }
+      );
+    }
+
+    if (!agentConfig.elevenlabs_agent_id) {
+      await serverLogError(user.id, "/api/lessons/start", "Agent has no elevenlabs_agent_id", { agent_id });
+      return NextResponse.json(
+        { error: "Tutor nie ma skonfigurowanego identyfikatora ElevenLabs." },
+        { status: 500 }
       );
     }
 

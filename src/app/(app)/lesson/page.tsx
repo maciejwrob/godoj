@@ -148,6 +148,7 @@ export default function LessonPage() {
   // ---- ElevenLabs ----
   const conversation = useConversation({
     onConnect: ({ conversationId }) => {
+      console.log("[ElevenLabs] WebSocket connected, conversationId:", conversationId);
       dbg(`Connected: ${conversationId}`);
       setLessonState("active");
       lessonActiveRef.current = true;
@@ -304,7 +305,15 @@ export default function LessonPage() {
   const startConversation = async () => {
     setLessonState("connecting");
     try {
+      console.log("[ElevenLabs] Requesting microphone permissions...");
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("[ElevenLabs] Mic granted. signedUrl present:", !!signedUrl);
+
+      if (!signedUrl) {
+        throw new Error("Brak signed URL — odśwież stronę.");
+      }
+
+      console.log("[ElevenLabs] Starting session...");
       await conversation.startSession({
         signedUrl,
         dynamicVariables: {
@@ -315,7 +324,14 @@ export default function LessonPage() {
         },
       });
     } catch (err) {
-      const msg = err instanceof DOMException && err.name === "NotAllowedError" ? "Zezwól na dostęp do mikrofonu." : "Nie udało się połączyć.";
+      console.error("[ElevenLabs] startConversation error:", err);
+      let msg = "Nie udało się połączyć.";
+      if (err instanceof DOMException) {
+        if (err.name === "NotAllowedError") msg = "Zezwól na dostęp do mikrofonu.";
+        else if (err.name === "NotFoundError") msg = "Nie znaleziono mikrofonu. Podłącz mikrofon i spróbuj ponownie.";
+      } else if (err instanceof Error && err.message.startsWith("Brak signed URL")) {
+        msg = err.message;
+      }
       setError(msg); setLessonState("error"); logError("/lesson", msg, { step: "startConversation", error: String(err) });
     }
   };
