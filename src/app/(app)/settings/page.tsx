@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { User, BookOpen, Target, LogOut, Save, Loader2 } from "lucide-react";
+import { ChildrenSection } from "@/components/kids/children-section";
+import { clearActiveChild } from "@/lib/kids";
 import { useTranslation } from "@/lib/i18n";
 
 const NATIVE_LANGUAGES = [
@@ -146,6 +148,7 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
+    clearActiveChild();
     await supabase.auth.signOut();
     router.push("/login");
   };
@@ -352,6 +355,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {/* Konta dzieci */}
+      <ChildrenSection />
 
       {/* Konto */}
       <section className="mb-8 rounded-2xl border border-border bg-bg-card p-6">

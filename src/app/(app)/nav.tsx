@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { clearActiveChild } from "@/lib/kids";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogoFull } from "@/components/logo";
@@ -40,6 +41,7 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
   ];
 
   const handleLogout = async () => {
+    clearActiveChild();
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
