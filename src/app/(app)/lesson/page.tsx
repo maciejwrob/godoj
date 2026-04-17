@@ -5,6 +5,7 @@ import { useConversation } from "@11labs/react";
 import { Loader2, Play, ArrowLeft, RefreshCw, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TutorAvatar } from "@/components/tutor-avatars";
+import { MicCheckModal } from "@/components/mic-check-modal";
 import { useLanguage } from "@/lib/language-context";
 import { useTranslation } from "@/lib/i18n";
 import { logError } from "@/lib/error-logger";
@@ -56,6 +57,7 @@ export default function LessonPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [hintsEnabled, setHintsEnabled] = useState(true); // SOS toggle
+  const [micCheckOpen, setMicCheckOpen] = useState(false);
 
   // Hints
   const [hintLevel, setHintLevel] = useState<0 | 1 | 2>(0);
@@ -434,10 +436,15 @@ export default function LessonPage() {
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
           {t("startConversation")}
         </button>
+        <button onClick={() => setMicCheckOpen(true)} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-surface-container-high px-4 py-2 text-sm font-medium text-slate-300 hover:border-primary/50 hover:text-white transition-colors">
+          <span className="material-symbols-outlined text-base">mic</span>
+          {t("testMicrophone")}
+        </button>
         <button onClick={() => router.push("/dashboard")} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
           <ArrowLeft className="h-4 w-4" />{t("backToDashboard")}
         </button>
       </div>
+      {micCheckOpen && <MicCheckModal onClose={() => setMicCheckOpen(false)} />}
     </div>
   );
 
