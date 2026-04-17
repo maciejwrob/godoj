@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Loader2, X } from "lucide-react";
 import { getLangFlag, getLangName } from "@/lib/languages";
+import { createClient } from "@/lib/supabase/client";
 
 const LANGUAGES = [
   { id: "no", active: true, variants: null },
@@ -33,15 +34,25 @@ export function AddLanguageModal({ open, onClose, existingLangs }: { open: boole
   const selectedLang = LANGUAGES.find((l) => l.id === lang);
   const availableLangs = LANGUAGES.filter((l) => !existingLangs.includes(l.id));
 
-  // Fetch agents when language is selected
+  // Fetch agents when language/variant is selected
   useEffect(() => {
     if (!lang) return;
-    fetch(`/api/admin/agents`).then((r) => r.json()).then((data) => {
-      const filtered = (data ?? []).filter((a: Agent) => a.language === lang);
-      setAgents(filtered);
-      if (filtered.length > 0) setAgentId(filtered[0].id);
-    }).catch(() => {});
-  }, [lang]);
+    const supabase = createClient();
+    let query = supabase
+      .from("agents_config")
+      .select("id, voice_name, voice_description, language, variant")
+      .eq("language", lang)
+      .eq("audience", "adult")
+      .eq("is_active", true);
+
+    if (variant) query = query.eq("variant", variant);
+
+    query.then(({ data }) => {
+      const rows = (data ?? []) as Agent[];
+      setAgents(rows);
+      setAgentId(rows.length > 0 ? rows[0].id : "");
+    });
+  }, [lang, variant]);
 
   const handleSave = async () => {
     setSaving(true);
