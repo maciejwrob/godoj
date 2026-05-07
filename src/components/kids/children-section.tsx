@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Baby, Plus, Pencil, Trash2, Loader2, Check, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { WORLD_LANGUAGES } from "@/config/world-languages";
 import { THEME_CONFIG, getAgeGroup, calculateAge, setActiveChild } from "@/lib/kids";
+import { KIDS_MODE_ENABLED } from "@/lib/feature-flags";
 import type { ChildProfileWithMeta, KidsTheme } from "@/types/kids";
 
 // --- helpers ---
@@ -667,6 +668,7 @@ function SuccessToast({ childName, onSwitch, onDismiss }: { childName: string; o
 // --- main component ---
 
 export function ChildrenSection() {
+  if (!KIDS_MODE_ENABLED) return null;
   const router = useRouter();
   const [children, setChildren] = useState<ChildProfileWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
