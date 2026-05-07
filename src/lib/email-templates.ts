@@ -43,6 +43,9 @@ function emailShell(content: string, footer: string): string {
     </div>
     <div style="padding:24px 32px;border-top:1px solid #192540;">
       <p style="color:#6d758c;font-size:12px;text-align:center;margin:0;">${footer}</p>
+      <p style="color:#4a5170;font-size:11px;text-align:center;margin:8px 0 0 0;">
+        Maciek — twórca Godoj.co
+      </p>
     </div>
   </div>
 </div>

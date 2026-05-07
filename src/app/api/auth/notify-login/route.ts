@@ -16,7 +16,7 @@ export async function POST() {
   const now = new Date().toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" });
 
   await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? "noreply@godoj.co",
+    from: process.env.RESEND_FROM_EMAIL ?? "maciek@godoj.co",
     to: "maciej.wrob@gmail.com",
     subject: `Logowanie do Godoj.co — ${user.email}`,
     html: `<p><strong>${user.email}</strong> zalogował/a się do Godoj.co</p><p>Data: ${now}</p>`,

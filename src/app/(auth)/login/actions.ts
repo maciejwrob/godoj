@@ -36,7 +36,7 @@ export async function sendMagicLink(email: string, locale?: "pl" | "en") {
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   const { error: emailError } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? "noreply@godoj.co",
+    from: process.env.RESEND_FROM_EMAIL ?? "maciek@godoj.co",
     to: normalizedEmail,
     subject: emailLocale === "pl" ? "Zaloguj się do Godoj.co 🎙" : "Log in to Godoj.co 🎙",
     html: magicLinkEmail(data.properties.action_link, emailLocale),

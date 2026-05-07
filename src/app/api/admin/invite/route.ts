@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/register?token=${token}`;
 
   const { error: emailError } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? "noreply@godoj.co",
+    from: process.env.RESEND_FROM_EMAIL ?? "maciek@godoj.co",
     to: email,
     subject: "Zaproszenie do Godoj.co 🎙",
     html: invitationEmail(inviteUrl, adminName),

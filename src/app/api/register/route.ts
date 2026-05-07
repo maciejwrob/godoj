@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
     if (linkData?.properties?.action_link) {
       await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL ?? "noreply@godoj.co",
+        from: process.env.RESEND_FROM_EMAIL ?? "maciek@godoj.co",
         to: invitation.email,
         subject: "Zaloguj się do Godoj.co 🎙",
         html: magicLinkEmail(linkData.properties.action_link, "pl"),
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
   try {
     const now = new Date().toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" });
     await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL ?? "noreply@godoj.co",
+      from: process.env.RESEND_FROM_EMAIL ?? "maciek@godoj.co",
       to: "maciej.wrob@gmail.com",
       subject: `Nowy użytkownik Godoj.co — ${display_name}`,
       html: `<p><strong>${display_name}</strong> (${invitation.email}) właśnie utworzył konto na Godoj.co</p><p>Rola: ${invitation.role}</p><p>Data: ${now}</p>`,
