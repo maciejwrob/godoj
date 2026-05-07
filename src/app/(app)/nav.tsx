@@ -11,6 +11,7 @@ import { useLanguage } from "@/lib/language-context";
 import { LanguageDropdown } from "@/components/language-dropdown";
 import { UILanguageToggle } from "@/components/ui-language-toggle";
 import { useTranslation } from "@/lib/i18n";
+import { FEEDBACK_ENABLED } from "@/lib/feature-flags";
 
 function MaterialIcon({ name, filled, className }: { name: string; filled?: boolean; className?: string }) {
   return (
@@ -91,6 +92,15 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
           </div>
         </nav>
 
+        {FEEDBACK_ENABLED && (
+          <Link
+            href="/feedback?source=nav"
+            className="px-6 pb-2 text-xs text-slate-500/70 hover:text-slate-300 transition-colors"
+          >
+            {t("shareFeedback")}
+          </Link>
+        )}
+
         <div className="px-6 pb-2">
           <UILanguageToggle className="w-full justify-center" />
         </div>
@@ -131,6 +141,15 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
                 </Link>
               );
             })}
+            {FEEDBACK_ENABLED && (
+              <Link
+                href="/feedback?source=nav"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500/70 hover:text-slate-300"
+              >
+                <MaterialIcon name="rate_review" />{t("shareFeedback")}
+              </Link>
+            )}
             <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-4 py-4 text-base font-medium text-red-400">
               <MaterialIcon name="logout" />{t("logout")}
             </button>
