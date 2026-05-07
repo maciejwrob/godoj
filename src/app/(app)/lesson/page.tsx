@@ -308,7 +308,16 @@ export default function LessonPage() {
     setLessonState("connecting");
     try {
       console.log("[ElevenLabs] Requesting microphone permissions...");
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Mobile-friendly mic constraints: noise suppression + AGC for outdoor/car use
+      await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 16000,
+        },
+      });
       console.log("[ElevenLabs] Mic granted. signedUrl present:", !!signedUrl);
 
       if (!signedUrl) {
