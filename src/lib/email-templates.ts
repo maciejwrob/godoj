@@ -16,6 +16,10 @@ const emailStrings = {
     inviteTitle: "Zaproszenie do Godoj.co",
     inviteBody: (adminName: string) => `${adminName} zaprasza Cię do nauki języków z AI!<br><br>Godoj.co to aplikacja do nauki języków przez rozmowę z inteligentnymi tutorami AI. Dołącz i zacznij mówić!`,
     inviteButton: "Dołącz do Godoj",
+    waitlistSubject: "Jesteś na liście oczekujących Godoj.co!",
+    waitlistTitle: "Jesteś na liście!",
+    waitlistBody: "Dziękuję za zainteresowanie Godoj! Nasz trial jest chwilowo pełny, ale już pracujemy nad kolejną turą.<br><br>Postaramy się wpuścić więcej osób w ciągu <strong>2-3 tygodni</strong>. Dam Ci znać mailem, jak tylko zwolni się miejsce.",
+    waitlistClosing: "Do usłyszenia wkrótce!",
   },
   en: {
     greeting: "Hi!",
@@ -27,6 +31,10 @@ const emailStrings = {
     inviteTitle: "Invitation to Godoj.co",
     inviteBody: (adminName: string) => `${adminName} invites you to learn languages with AI!<br><br>Godoj.co is an app for learning languages through conversation with intelligent AI tutors. Join and start speaking!`,
     inviteButton: "Join Godoj",
+    waitlistSubject: "You're on the Godoj.co waitlist!",
+    waitlistTitle: "You're on the list!",
+    waitlistBody: "Thanks for your interest in Godoj! Our trial is temporarily full, but we're working on the next round.<br><br>We'll try to let more people in within <strong>2-3 weeks</strong>. I'll email you as soon as a spot opens up.",
+    waitlistClosing: "Talk soon!",
   },
 };
 
@@ -70,6 +78,16 @@ export function magicLinkEmail(magicLinkUrl: string, nativeLang?: string | null)
       <p style="color:#6d758c;font-size:12px;text-align:center;margin:0 0 8px 0;">${s.linkFallback}</p>
       <p style="color:#84adff;font-size:11px;text-align:center;word-break:break-all;margin:0;">${magicLinkUrl}</p>`;
   return emailShell(content, s.footer, s.helpLine);
+}
+
+export function waitlistConfirmationEmail(locale?: string | null): { subject: string; html: string } {
+  const l = locale === "en" ? "en" : "pl";
+  const s = emailStrings[l];
+  const content = `
+      <h1 style="color:#dee5ff;font-size:20px;font-weight:700;text-align:center;margin:0 0 16px 0;">${s.waitlistTitle}</h1>
+      <p style="color:#a3aac4;font-size:14px;line-height:1.6;text-align:center;margin:0 0 24px 0;">${s.waitlistBody}</p>
+      <p style="color:#dee5ff;font-size:14px;font-weight:600;text-align:center;margin:0;">${s.waitlistClosing}</p>`;
+  return { subject: s.waitlistSubject, html: emailShell(content, s.footer, s.helpLine) };
 }
 
 export function invitationEmail(inviteUrl: string, adminName: string, nativeLang?: string | null): string {
