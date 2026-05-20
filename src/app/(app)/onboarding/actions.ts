@@ -30,15 +30,17 @@ export async function saveOnboarding(data: OnboardingData) {
     return { success: false, error: "Nie jesteś zalogowany." };
   }
 
-  // Check beta user limit
+  // Check beta user limit (only count users registered after baseline)
   const adminCheck = createAdminClient();
-  const betaLimit = parseInt(process.env.BETA_USER_LIMIT ?? "30", 10);
+  const betaLimit = parseInt(process.env.BETA_USER_LIMIT ?? "40", 10);
+  const baseline = parseInt(process.env.BETA_BASELINE_USERS ?? "0", 10);
   const { count: currentUsers } = await adminCheck
     .from("users")
     .select("*", { count: "exact", head: true })
     .eq("onboarding_complete", true);
 
-  if ((currentUsers ?? 0) >= betaLimit) {
+  const newUsers = Math.max(0, (currentUsers ?? 0) - baseline);
+  if (newUsers >= betaLimit) {
     // Save to waitlist
     await adminCheck.from("waitlist").upsert(
       {
