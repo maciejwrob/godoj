@@ -119,6 +119,8 @@ export async function GET(request: Request) {
     }
 
     // Trial usage limits
+    const unlimitedEmails = (process.env.UNLIMITED_USERS ?? "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+    const isUnlimited = unlimitedEmails.includes(user.email?.toLowerCase() ?? "");
     const dailyLimitMin = parseInt(process.env.DAILY_MINUTES_PER_USER ?? "10", 10);
     const monthlyLimitMin = parseInt(process.env.MONTHLY_MINUTES_PER_USER ?? "100", 10);
 
@@ -158,6 +160,8 @@ export async function GET(request: Request) {
         dailyLimit: dailyLimitMin,
         monthMinutes: monthMinutesUsed,
         monthlyLimit: monthlyLimitMin,
+        unlimited: isUnlimited,
+        tier: isUnlimited ? "friends_family" : "beta",
       },
     });
   } catch (error) {

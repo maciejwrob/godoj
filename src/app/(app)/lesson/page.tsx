@@ -492,10 +492,11 @@ export default function LessonPage() {
         </div>
         <div className="rounded-2xl border border-white/5 bg-surface-container-high p-4 sm:p-6 text-left">
           <div className="text-sm text-on-surface-variant">{t("topicOfDay")}</div>
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-base sm:text-lg font-bold">{topic}</span>
-            <button onClick={refreshTopic} className="text-slate-400 hover:text-primary"><RefreshCw className="h-4 w-4" /></button>
-          </div>
+          <div className="mt-2 text-base sm:text-lg font-bold leading-snug">{topic}</div>
+          <button onClick={refreshTopic} className="mt-3 inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-primary transition-colors">
+            <RefreshCw className="h-3 w-3" />
+            Inny temat
+          </button>
         </div>
         <div>
           <div className="mb-2 text-sm text-on-surface-variant text-center">{t("lessonDuration")}</div>
@@ -512,13 +513,16 @@ export default function LessonPage() {
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
           {t("startConversation")}
         </button>
-        <button onClick={() => setMicCheckOpen(true)} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-surface-container-high px-4 py-2 text-sm font-medium text-slate-300 hover:border-primary/50 hover:text-white transition-colors">
-          <span className="material-symbols-outlined text-base">mic</span>
-          {t("testMicrophone")}
-        </button>
-        <button onClick={() => router.push("/dashboard")} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
-          <ArrowLeft className="h-4 w-4" />{t("backToDashboard")}
-        </button>
+        <div className="flex items-center justify-center gap-4 pt-2">
+          <button onClick={() => router.push("/dashboard")} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
+            <ArrowLeft className="h-4 w-4" />{t("backToDashboard")}
+          </button>
+          <span className="text-slate-700">·</span>
+          <button onClick={() => setMicCheckOpen(true)} className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors">
+            <span className="material-symbols-outlined text-sm">mic</span>
+            {t("testMicrophone")}
+          </button>
+        </div>
       </div>
       {micCheckOpen && <MicCheckModal onClose={() => setMicCheckOpen(false)} />}
     </div>

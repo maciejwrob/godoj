@@ -164,7 +164,7 @@ export default function DashboardPage() {
   );
   if (!data) return null;
 
-  const { displayName, profiles, currentLevel, currentStreak, weeklyGoal, weeklyDone, lessons, achievements, vocabCount, totalMinutes, totalLessonsCount, needsFeedback, feedbackLessonId, trialUsage } = data as DashboardData & { trialUsage?: { todayMinutes: number; dailyLimit: number; monthMinutes: number; monthlyLimit: number } };
+  const { displayName, profiles, currentLevel, currentStreak, weeklyGoal, weeklyDone, lessons, achievements, vocabCount, totalMinutes, totalLessonsCount, needsFeedback, feedbackLessonId, trialUsage } = data as DashboardData & { trialUsage?: { todayMinutes: number; dailyLimit: number; monthMinutes: number; monthlyLimit: number; unlimited?: boolean; tier?: string } };
   const showFeedbackPopup = false; // hidden: totalLessonsCount === 1 && needsFeedback && !feedbackDismissed;
   const showFeedbackBanner = false; // hidden: totalLessonsCount > 1 && needsFeedback && !feedbackDismissed;
   const weeklyPct = weeklyGoal > 0 ? Math.min(100, Math.round((weeklyDone / weeklyGoal) * 100)) : 0;
@@ -228,26 +228,47 @@ export default function DashboardPage() {
         {trialUsage && (
           <div className="rounded-2xl border border-white/5 bg-surface-container p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-3">
-              <span className="material-symbols-outlined text-sm text-amber-400">timer</span>
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Beta trial</span>
+              {trialUsage.unlimited ? (
+                <>
+                  <span className="material-symbols-outlined text-sm text-emerald-400">diamond</span>
+                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Friends & Family — Unlimited</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm text-amber-400">timer</span>
+                  <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Beta trial</span>
+                </>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-on-surface-variant">Dzisiaj</span>
-                  <span className="text-xs font-bold text-white">{trialUsage.todayMinutes} / {trialUsage.dailyLimit} min</span>
+                  <span className="text-xs font-bold text-white">
+                    {trialUsage.todayMinutes} / {trialUsage.unlimited ? "∞" : `${trialUsage.dailyLimit} min`}
+                  </span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${trialUsage.todayMinutes >= trialUsage.dailyLimit ? "bg-red-500" : trialUsage.todayMinutes >= trialUsage.dailyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.todayMinutes / trialUsage.dailyLimit) * 100)}%` }} />
+                  {trialUsage.unlimited ? (
+                    <div className="h-full rounded-full bg-emerald-500" style={{ width: "100%" }} />
+                  ) : (
+                    <div className={`h-full rounded-full transition-all ${trialUsage.todayMinutes >= trialUsage.dailyLimit ? "bg-red-500" : trialUsage.todayMinutes >= trialUsage.dailyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.todayMinutes / trialUsage.dailyLimit) * 100)}%` }} />
+                  )}
                 </div>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-on-surface-variant">Ten miesiąc</span>
-                  <span className="text-xs font-bold text-white">{trialUsage.monthMinutes} / {trialUsage.monthlyLimit} min</span>
+                  <span className="text-xs font-bold text-white">
+                    {trialUsage.monthMinutes} / {trialUsage.unlimited ? "∞" : `${trialUsage.monthlyLimit} min`}
+                  </span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${trialUsage.monthMinutes >= trialUsage.monthlyLimit ? "bg-red-500" : trialUsage.monthMinutes >= trialUsage.monthlyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.monthMinutes / trialUsage.monthlyLimit) * 100)}%` }} />
+                  {trialUsage.unlimited ? (
+                    <div className="h-full rounded-full bg-emerald-500" style={{ width: "100%" }} />
+                  ) : (
+                    <div className={`h-full rounded-full transition-all ${trialUsage.monthMinutes >= trialUsage.monthlyLimit ? "bg-red-500" : trialUsage.monthMinutes >= trialUsage.monthlyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.monthMinutes / trialUsage.monthlyLimit) * 100)}%` }} />
+                  )}
                 </div>
               </div>
             </div>
@@ -271,7 +292,7 @@ export default function DashboardPage() {
               <div className="flex flex-wrap items-center gap-3 mt-6 lg:mt-8">
                 {/* Duration picker */}
                 <div className="flex gap-1.5">
-                  {[5, 10, 15].map((d) => (
+                  {[5, 10].map((d) => (
                     <button key={d} onClick={() => setSelectedDuration(d)}
                       className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${selectedDuration === d ? "bg-white text-surface" : "bg-white/20 text-white hover:bg-white/30"}`}>
                       {d} min
