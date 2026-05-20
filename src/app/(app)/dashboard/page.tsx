@@ -98,12 +98,28 @@ function FlagSvg({ lang, variant }: { lang: string; variant?: string | null }) {
       );
     case "en":
       if (variant === "american") {
-        // US Flag — 19:10
+        // US Flag — simplified, recognizable at low opacity
+        const stripeH = 10 / 13;
         return (
           <svg viewBox="0 0 19 10" preserveAspectRatio="xMidYMid slice" style={fill}>
-            <rect width="19" height="10" fill="#B22234"/>
-            {[0,2,4,6,8,10,12].map(i => <rect key={i} y={i * (10/13)} width="19" height={10/13} fill={i % 2 === 0 ? "#B22234" : "#fff"}/>)}
-            <rect width="7.6" height={10*7/13} fill="#3C3B6E"/>
+            {/* 13 alternating stripes */}
+            {Array.from({ length: 13 }, (_, i) => (
+              <rect key={i} y={i * stripeH} width="19" height={stripeH} fill={i % 2 === 0 ? "#B22234" : "#fff"} />
+            ))}
+            {/* Blue canton */}
+            <rect width="7.6" height={7 * stripeH} fill="#3C3B6E" />
+            {/* Simplified stars as white dots — 5 rows */}
+            {[
+              [0.95, 0.55], [2.2, 0.55], [3.45, 0.55], [4.7, 0.55], [5.95, 0.55],
+              [1.58, 1.15], [2.83, 1.15], [4.08, 1.15], [5.33, 1.15],
+              [0.95, 1.75], [2.2, 1.75], [3.45, 1.75], [4.7, 1.75], [5.95, 1.75],
+              [1.58, 2.35], [2.83, 2.35], [4.08, 2.35], [5.33, 2.35],
+              [0.95, 2.95], [2.2, 2.95], [3.45, 2.95], [4.7, 2.95], [5.95, 2.95],
+              [1.58, 3.55], [2.83, 3.55], [4.08, 3.55], [5.33, 3.55],
+              [0.95, 4.15], [2.2, 4.15], [3.45, 4.15], [4.7, 4.15], [5.95, 4.15],
+            ].map(([cx, cy], i) => (
+              <circle key={`s${i}`} cx={cx} cy={cy} r="0.2" fill="#fff" />
+            ))}
           </svg>
         );
       }
