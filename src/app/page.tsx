@@ -27,6 +27,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [seatsLeft, setSeatsLeft] = useState<number | null>(null);
   const [betaLimit, setBetaLimit] = useState<number>(30);
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
 
   useEffect(() => {
     setLocale(getStoredUILocale());
@@ -61,10 +62,34 @@ export default function Home() {
 
   const t = (key: string) => getTranslations(locale)[key] ?? key;
 
+  const betaFull = seatsLeft !== null && seatsLeft <= 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (betaFull) {
+      // Waitlist signup
+      try {
+        const res = await fetch("/api/waitlist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, locale }),
+        });
+        if (res.ok) {
+          setWaitlistJoined(true);
+        } else if (res.status === 409) {
+          setError(t("waitlistAlready"));
+        } else {
+          setError(t("waitlistError"));
+        }
+      } catch {
+        setError(t("waitlistError"));
+      }
+      setLoading(false);
+      return;
+    }
 
     const result = await sendMagicLink(email, locale);
 
@@ -75,6 +100,40 @@ export default function Home() {
     }
     setLoading(false);
   };
+
+  // Waitlist confirmation state
+  if (waitlistJoined) {
+    return (
+      <main className="relative flex min-h-screen flex-col items-center justify-center px-4">
+        <UILanguageToggle className="absolute top-6 right-6 z-10" />
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div className="flex justify-center -space-x-2">
+            {[FEATURED, ...GRID_TUTORS.slice(0, 4)].map((tutor) => (
+              <div key={tutor.name} className="relative h-11 w-11 overflow-hidden rounded-full border-2 border-surface-container">
+                <Image src={tutor.src} alt={tutor.name} fill quality={95} className="object-cover object-top" sizes="88px" />
+              </div>
+            ))}
+          </div>
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10">
+            <span className="text-3xl">🎉</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>{t("waitlistDone")}</h1>
+          <p className="text-on-surface-variant">
+            {t("waitlistDoneDesc")}
+          </p>
+          <p className="text-sm text-white/60">
+            <span className="font-semibold text-white">{email}</span>
+          </p>
+          <p className="text-xs text-on-surface-variant/40 pt-4 border-t border-white/5">
+            {t("needHelp")}{" "}
+            <a href="mailto:maciej@godoj.co" className="text-godoj-blue/70 hover:text-godoj-blue transition-colors">
+              maciej@godoj.co
+            </a>
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   // "Check inbox" confirmation state
   if (sent) {
@@ -173,15 +232,15 @@ export default function Home() {
             className="mb-3 sm:mb-4 text-[2rem] sm:text-[2.5rem] font-extrabold leading-[1.08] text-white lg:text-5xl"
             style={{ fontFamily: "var(--font-manrope), sans-serif" }}
           >
-            {t("landingH1")}
+            {betaFull ? t("waitlistTitle") : t("landingH1")}
           </h1>
 
           {/* Subtitle */}
           <p className="mb-7 sm:mb-8 max-w-[420px] text-sm sm:text-base leading-relaxed text-on-surface-variant">
-            {t("landingSub")}
+            {betaFull ? t("waitlistDesc") : t("landingSub")}
           </p>
 
-          {/* Email form + CTA button — breathing room */}
+          {/* Email form + CTA button */}
           <form onSubmit={handleSubmit} className="max-w-[420px] space-y-2.5">
             <input
               type="email"
@@ -194,23 +253,36 @@ export default function Home() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-godoj-blue px-6 py-3.5 text-base font-bold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+              className={`w-full flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-bold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 ${betaFull ? "bg-amber-500" : "bg-godoj-blue"}`}
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : t("landingCta")}
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : betaFull ? t("waitlistCta") : t("landingCta")}
             </button>
           </form>
 
-          {/* Seats counter — compact, under CTA */}
+          {/* Seats counter or waitlist badge */}
           <div className="max-w-[420px] flex items-center justify-center gap-2 py-2">
-            <span className="relative flex h-1.5 w-1.5 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-50"></span>
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400"></span>
-            </span>
-            <span className="text-[11px] sm:text-xs font-medium text-amber-400/80">
-              {seatsLeft !== null
-                ? (locale === "pl" ? `Zostało tylko ${seatsLeft} z ${betaLimit} wolnych miejsc!` : `Only ${seatsLeft} of ${betaLimit} seats left!`)
-                : t("landingSeats")}
-            </span>
+            {betaFull ? (
+              <>
+                <span className="relative flex h-1.5 w-1.5 shrink-0">
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-400"></span>
+                </span>
+                <span className="text-[11px] sm:text-xs font-medium text-red-400/80">
+                  {locale === "pl" ? `${betaLimit} z ${betaLimit} miejsc zajętych` : `${betaLimit} of ${betaLimit} seats taken`}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="relative flex h-1.5 w-1.5 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-50"></span>
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400"></span>
+                </span>
+                <span className="text-[11px] sm:text-xs font-medium text-amber-400/80">
+                  {seatsLeft !== null
+                    ? (locale === "pl" ? `Zostało tylko ${seatsLeft} z ${betaLimit} wolnych miejsc!` : `Only ${seatsLeft} of ${betaLimit} seats left!`)
+                    : t("landingSeats")}
+                </span>
+              </>
+            )}
           </div>
 
           {/* Error */}
