@@ -35,7 +35,7 @@ type DashboardData = {
 // Flag pattern CSS for hero background
 // SVG-based flag patterns — preserves correct aspect ratios for cross flags
 // (Norway, Sweden, Finland) which were distorted with %-based divs
-function FlagSvg({ lang }: { lang: string }) {
+function FlagSvg({ lang, variant }: { lang: string; variant?: string | null }) {
   const fill: React.CSSProperties = { width: "100%", height: "100%", display: "block" };
   switch (lang) {
     case "no": // Norway — 22:16
@@ -96,7 +96,18 @@ function FlagSvg({ lang }: { lang: string }) {
           <rect y="2" width="5" height="1" fill="#FFCC00"/>
         </svg>
       );
-    case "en": // UK Union Jack — 60:30
+    case "en":
+      if (variant === "american") {
+        // US Flag — 19:10
+        return (
+          <svg viewBox="0 0 19 10" preserveAspectRatio="xMidYMid slice" style={fill}>
+            <rect width="19" height="10" fill="#B22234"/>
+            {[0,2,4,6,8,10,12].map(i => <rect key={i} y={i * (10/13)} width="19" height={10/13} fill={i % 2 === 0 ? "#B22234" : "#fff"}/>)}
+            <rect width="7.6" height={10*7/13} fill="#3C3B6E"/>
+          </svg>
+        );
+      }
+      // UK Union Jack — 60:30
       return (
         <svg viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" style={fill}>
           <clipPath id="uk-clip"><rect width="60" height="30"/></clipPath>
@@ -131,11 +142,11 @@ function FlagSvg({ lang }: { lang: string }) {
   }
 }
 
-function FlagPattern({ lang }: { lang: string }) {
+function FlagPattern({ lang, variant }: { lang: string; variant?: string | null }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
       <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg]">
-        <FlagSvg lang={lang} />
+        <FlagSvg lang={lang} variant={variant} />
       </div>
     </div>
   );
@@ -279,7 +290,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-12 gap-4 lg:gap-6">
           {/* Hero CTA */}
           <section className="col-span-12 lg:col-span-8 overflow-hidden rounded-[2rem] hero-gradient relative min-h-[280px] lg:min-h-[380px] shadow-2xl shadow-primary/20 group border border-white/10 flex items-stretch">
-            <FlagPattern lang={activeLang} />
+            <FlagPattern lang={activeLang} variant={activeVariant} />
             {/* Left content */}
             <div className="relative z-10 w-full lg:w-3/5 p-8 lg:p-10 flex flex-col justify-between">
               <div>
