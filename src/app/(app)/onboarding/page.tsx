@@ -11,17 +11,10 @@ import {
 } from "lucide-react";
 import { LogoFull } from "@/components/logo";
 import { UILanguageToggle } from "@/components/ui-language-toggle";
-import { getLocalizedLevels, getLocalizedGoals, getLocalizedInterests, getLocalizedFrequencies, getLocalizedTimes } from "@/config/onboarding-data";
-import { WORLD_LANGUAGES } from "@/config/world-languages";
-import { useTranslation, resolveLocale } from "@/lib/i18n";
+import { getLocalizedLevels, getLocalizedGoals, getLocalizedInterests } from "@/config/onboarding-data";
+import { useTranslation } from "@/lib/i18n";
 
-const TOTAL_STEPS = 8;
-
-const NATIVE_LANGUAGES = [
-  { id: "pl", name: "Polski", flag: "🇵🇱" },
-  { id: "en", name: "English", flag: "🇬🇧" },
-  { id: "uk", name: "Українська", flag: "🇺🇦" },
-];
+const TOTAL_STEPS = 5;
 
 // -- Data definitions --
 
@@ -65,8 +58,6 @@ const LANGUAGES: Language[] = [
   { id: "hu", name: "Węgierski", flag: "\uD83C\uDDED\uD83C\uDDFA", active: false },
 ];
 
-const DURATIONS = [5, 10, 15, 20, 30];
-
 type TutorDef = { id: string; name: string; desc: string; lang: string };
 
 export default function OnboardingPage() {
@@ -75,38 +66,25 @@ export default function OnboardingPage() {
   const LEVELS = getLocalizedLevels(locale);
   const GOALS = getLocalizedGoals(locale);
   const INTERESTS = getLocalizedInterests(locale);
-  const FREQUENCIES = getLocalizedFrequencies(locale);
-  const TIMES = getLocalizedTimes(locale);
 
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [waitlisted, setWaitlisted] = useState(false);
 
   // Form state
   const [displayName, setDisplayName] = useState("");
-  const [nativeLang, setNativeLang] = useState("pl");
   const [selectedLang, setSelectedLang] = useState("");
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [showVariants, setShowVariants] = useState(false);
   const [level, setLevel] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
-  const [duration, setDuration] = useState(15);
-  const [frequency, setFrequency] = useState("3-4x");
-  const [time, setTime] = useState("any");
-  const [reminders, setReminders] = useState(false);
   const [tutor, setTutor] = useState<string | null>(null);
   const [availableTutors, setAvailableTutors] = useState<TutorDef[]>([]);
 
   const selectedLanguage = LANGUAGES.find((l) => l.id === selectedLang);
-
-  // Sync UI locale when user selects their native language
-  useEffect(() => {
-    const resolved = resolveLocale(nativeLang);
-    localStorage.setItem("godoj_ui_locale", resolved);
-    setLocale(resolved);
-  }, [nativeLang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load available tutors from agents_config when language/variant changes
   useEffect(() => {
@@ -139,23 +117,17 @@ export default function OnboardingPage() {
 
   const canProceed = () => {
     switch (step) {
-      case 1:
+      case 1: // Name
         return displayName.trim().length >= 2;
-      case 2:
-        return !!nativeLang;
-      case 3:
+      case 2: // Target language
         if (!selectedLang) return false;
         if (selectedLanguage?.variants && !selectedVariant) return false;
         return true;
-      case 4:
+      case 3: // Level
         return !!level;
-      case 5:
-        return goals.length >= 1;
-      case 6:
-        return interests.length >= 2;
-      case 7:
-        return true;
-      case 8:
+      case 4: // Goals + Interests
+        return goals.length >= 1 && interests.length >= 1;
+      case 5: // Tutor
         return !!tutor;
       default:
         return false;
@@ -202,24 +174,30 @@ export default function OnboardingPage() {
     // Pre-set localStorage so dashboard uses the correct language immediately
     localStorage.setItem("godoj_active_lang", selectedLang);
     startTransition(async () => {
+      // Derive native language from UI locale
+      const derivedNativeLang = locale === "pl" ? "pl" : "en";
       const data: OnboardingData = {
         displayName: displayName.trim(),
-        nativeLanguage: nativeLang,
+        nativeLanguage: derivedNativeLang,
         targetLanguage: selectedLang,
         languageVariant: selectedVariant,
         currentLevel: level,
         learningGoals: goals,
         interests,
-        preferredDurationMin: duration,
-        preferredFrequency: frequency,
-        preferredTime: time,
-        remindersEnabled: reminders,
+        preferredDurationMin: 10,
+        preferredFrequency: "3-4x",
+        preferredTime: "any",
+        remindersEnabled: false,
         selectedAgentId: tutor,
         uiLanguage: locale,
       };
 
       const result = await saveOnboarding(data);
       if (result && !result.success) {
+        if (result.error === "WAITLIST") {
+          setWaitlisted(true);
+          return;
+        }
         setError(result.error);
         return;
       }
@@ -230,8 +208,34 @@ export default function OnboardingPage() {
 
   const filteredTutors = availableTutors;
 
+  if (waitlisted) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md text-center space-y-6">
+          <LogoFull size={40} />
+          <div className="text-5xl">🙏</div>
+          <h1 className="text-2xl font-bold">
+            {locale === "pl" ? "Beta jest tymczasowo pełna" : "Beta is temporarily full"}
+          </h1>
+          <p className="text-text-secondary leading-relaxed">
+            {locale === "pl"
+              ? "Zapisaliśmy Twojego maila — odezwę się osobiście, gdy zwolni się miejsce."
+              : "We've saved your email — I'll personally reach out when a spot opens up."}
+          </p>
+          <div className="rounded-xl border border-border bg-bg-card p-4 text-sm text-text-secondary">
+            {locale === "pl"
+              ? "Tu Maciek, daj znać czy chcesz żebym Ci zarezerwował kolejne miejsce:"
+              : "— Maciek, reach me at:"}
+            <br />
+            <a href="mailto:maciej@godoj.co" className="text-primary font-medium">maciej@godoj.co</a>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center px-4 py-8">
+    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
@@ -261,13 +265,6 @@ export default function OnboardingPage() {
             <StepName value={displayName} onChange={setDisplayName} />
           )}
           {step === 2 && (
-            <StepNativeLanguage
-              languages={NATIVE_LANGUAGES}
-              selected={nativeLang}
-              onSelect={setNativeLang}
-            />
-          )}
-          {step === 3 && (
             <StepLanguage
               languages={LANGUAGES}
               selected={selectedLang}
@@ -278,38 +275,20 @@ export default function OnboardingPage() {
               onVariant={setSelectedVariant}
             />
           )}
-          {step === 4 && (
+          {step === 3 && (
             <StepLevel levels={LEVELS} selected={level} onSelect={setLevel} />
           )}
-          {step === 5 && (
-            <StepGoals
+          {step === 4 && (
+            <StepGoalsAndInterests
               goals={GOALS}
-              selected={goals}
-              onToggle={(id) => toggleMulti(id, goals, setGoals)}
-            />
-          )}
-          {step === 6 && (
-            <StepInterests
               interests={INTERESTS}
-              selected={interests}
-              onToggle={(id) => toggleMulti(id, interests, setInterests)}
+              selectedGoals={goals}
+              selectedInterests={interests}
+              onToggleGoal={(id) => toggleMulti(id, goals, setGoals)}
+              onToggleInterest={(id) => toggleMulti(id, interests, setInterests)}
             />
           )}
-          {step === 7 && (
-            <StepPreferences
-              frequencies={FREQUENCIES}
-              times={TIMES}
-              duration={duration}
-              frequency={frequency}
-              time={time}
-              reminders={reminders}
-              onDuration={setDuration}
-              onFrequency={setFrequency}
-              onTime={setTime}
-              onReminders={setReminders}
-            />
-          )}
-          {step === 8 && (
+          {step === 5 && (
             <StepTutor
               tutors={filteredTutors}
               selected={tutor}
@@ -383,46 +362,6 @@ function StepName({ value, onChange }: { value: string; onChange: (v: string) =>
         autoFocus
         className="w-full rounded-xl border border-border bg-bg-card px-4 py-3 text-lg text-text-primary placeholder:text-text-secondary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       />
-    </div>
-  );
-}
-
-function StepNativeLanguage({
-  languages,
-  selected,
-  onSelect,
-}: {
-  languages: typeof NATIVE_LANGUAGES;
-  selected: string;
-  onSelect: (id: string) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div>
-      <h2 className="mb-2 text-2xl font-bold">{t("nativeLangQuestion")}</h2>
-      <p className="mb-6 text-text-secondary">
-        {t("nativeLangHint")}
-      </p>
-
-      <div className="space-y-3">
-        {languages.map((lang) => (
-          <button
-            key={lang.id}
-            onClick={() => onSelect(lang.id)}
-            className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all ${
-              selected === lang.id
-                ? "border-primary bg-primary/10"
-                : "border-border bg-bg-card hover:border-primary/50"
-            }`}
-          >
-            <span className="text-2xl">{lang.flag}</span>
-            <span className="font-medium">{lang.name}</span>
-            {selected === lang.id && (
-              <Check className="ml-auto h-5 w-5 text-primary" />
-            )}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -544,196 +483,66 @@ function StepLevel({
   );
 }
 
-function StepGoals({
+function StepGoalsAndInterests({
   goals,
-  selected,
-  onToggle,
+  interests,
+  selectedGoals,
+  selectedInterests,
+  onToggleGoal,
+  onToggleInterest,
 }: {
   goals: { id: string; icon: string; label: string }[];
-  selected: string[];
-  onToggle: (id: string) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div>
-      <h2 className="mb-2 text-2xl font-bold">{t("goalsQuestion")}</h2>
-      <p className="mb-6 text-text-secondary">{t("goalsHint")}</p>
-
-      <div className="grid grid-cols-1 gap-3">
-        {goals.map((g) => (
-          <button
-            key={g.id}
-            onClick={() => onToggle(g.id)}
-            className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-all ${
-              selected.includes(g.id)
-                ? "border-primary bg-primary/10"
-                : "border-border bg-bg-card hover:border-primary/50"
-            }`}
-          >
-            <span className="text-2xl">{g.icon}</span>
-            <span className="font-medium">{g.label}</span>
-            {selected.includes(g.id) && (
-              <Check className="ml-auto h-5 w-5 text-primary" />
-            )}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function StepInterests({
-  interests,
-  selected,
-  onToggle,
-}: {
   interests: { id: string; icon: string; label: string }[];
-  selected: string[];
-  onToggle: (id: string) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div>
-      <h2 className="mb-2 text-2xl font-bold">{t("interestsQuestion")}</h2>
-      <p className="mb-6 text-text-secondary">
-        {t("interestsHint")}
-      </p>
-
-      <div className="flex flex-wrap gap-2">
-        {interests.map((i) => (
-          <button
-            key={i.id}
-            onClick={() => onToggle(i.id)}
-            className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm transition-all ${
-              selected.includes(i.id)
-                ? "border-primary bg-primary/10 text-text-primary"
-                : "border-border bg-bg-card text-text-secondary hover:border-primary/50"
-            }`}
-          >
-            <span>{i.icon}</span>
-            <span>{i.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function StepPreferences({
-  frequencies,
-  times,
-  duration,
-  frequency,
-  time,
-  reminders,
-  onDuration,
-  onFrequency,
-  onTime,
-  onReminders,
-}: {
-  frequencies: { id: string; label: string }[];
-  times: { id: string; icon: string; label: string }[];
-  duration: number;
-  frequency: string;
-  time: string;
-  reminders: boolean;
-  onDuration: (v: number) => void;
-  onFrequency: (v: string) => void;
-  onTime: (v: string) => void;
-  onReminders: (v: boolean) => void;
+  selectedGoals: string[];
+  selectedInterests: string[];
+  onToggleGoal: (id: string) => void;
+  onToggleInterest: (id: string) => void;
 }) {
   const { t } = useTranslation();
   return (
     <div className="space-y-8">
+      {/* Goals */}
       <div>
-        <h2 className="mb-2 text-2xl font-bold">{t("preferencesTitle")}</h2>
-        <p className="text-text-secondary">{t("preferencesHint")}</p>
-      </div>
-
-      {/* Duration */}
-      <div>
-        <h3 className="mb-3 text-sm font-medium text-text-secondary">
-          {t("lessonDurationLabel")}
-        </h3>
-        <div className="flex gap-2">
-          {DURATIONS.map((d) => (
-            <button
-              key={d}
-              onClick={() => onDuration(d)}
-              className={`flex-1 rounded-lg border py-2.5 text-center text-sm font-medium transition-all ${
-                duration === d
-                  ? "border-primary bg-primary/10 text-text-primary"
-                  : "border-border bg-bg-card text-text-secondary hover:border-primary/50"
-              }`}
-            >
-              {d} min
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Frequency */}
-      <div>
-        <h3 className="mb-3 text-sm font-medium text-text-secondary">
-          {t("frequencyLabel")}
-        </h3>
+        <h2 className="mb-2 text-2xl font-bold">{t("goalsQuestion")}</h2>
+        <p className="mb-4 text-text-secondary">{t("goalsHint")}</p>
         <div className="grid grid-cols-2 gap-2">
-          {frequencies.map((f) => (
+          {goals.map((g) => (
             <button
-              key={f.id}
-              onClick={() => onFrequency(f.id)}
-              className={`rounded-lg border px-3 py-2.5 text-center text-sm font-medium transition-all ${
-                frequency === f.id
-                  ? "border-primary bg-primary/10 text-text-primary"
-                  : "border-border bg-bg-card text-text-secondary hover:border-primary/50"
+              key={g.id}
+              onClick={() => onToggleGoal(g.id)}
+              className={`flex items-center gap-2 rounded-xl border p-3 text-left text-sm transition-all ${
+                selectedGoals.includes(g.id)
+                  ? "border-primary bg-primary/10"
+                  : "border-border bg-bg-card hover:border-primary/50"
               }`}
             >
-              {f.label}
+              <span className="text-lg">{g.icon}</span>
+              <span className="font-medium">{g.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Time of day */}
+      {/* Interests */}
       <div>
-        <h3 className="mb-3 text-sm font-medium text-text-secondary">
-          {t("timeOfDayLabel")}
-        </h3>
-        <div className="grid grid-cols-2 gap-2">
-          {times.map((t) => (
+        <h3 className="mb-2 text-lg font-bold">{t("interestsQuestion")}</h3>
+        <p className="mb-4 text-sm text-text-secondary">{t("interestsHint")}</p>
+        <div className="flex flex-wrap gap-2">
+          {interests.map((i) => (
             <button
-              key={t.id}
-              onClick={() => onTime(t.id)}
-              className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
-                time === t.id
+              key={i.id}
+              onClick={() => onToggleInterest(i.id)}
+              className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition-all ${
+                selectedInterests.includes(i.id)
                   ? "border-primary bg-primary/10 text-text-primary"
                   : "border-border bg-bg-card text-text-secondary hover:border-primary/50"
               }`}
             >
-              <span>{t.icon}</span>
-              {t.label}
+              <span>{i.icon}</span>
+              <span>{i.label}</span>
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Reminders */}
-      <div className="flex items-center justify-between rounded-xl border border-border bg-bg-card p-4">
-        <span className="text-sm font-medium">
-          {t("remindersLabel")}
-        </span>
-        <button
-          onClick={() => onReminders(!reminders)}
-          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
-            reminders ? "bg-primary" : "bg-bg-card-hover"
-          }`}
-        >
-          <span
-            className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-              reminders ? "translate-x-6" : "translate-x-1"
-            }`}
-          />
-        </button>
       </div>
     </div>
   );

@@ -30,6 +30,31 @@ export async function saveOnboarding(data: OnboardingData) {
     return { success: false, error: "Nie jesteś zalogowany." };
   }
 
+  // Check beta user limit
+  const adminCheck = createAdminClient();
+  const betaLimit = parseInt(process.env.BETA_USER_LIMIT ?? "30", 10);
+  const { count: currentUsers } = await adminCheck
+    .from("users")
+    .select("*", { count: "exact", head: true })
+    .eq("onboarding_complete", true);
+
+  if ((currentUsers ?? 0) >= betaLimit) {
+    // Save to waitlist
+    await adminCheck.from("waitlist").upsert(
+      {
+        email: user.email ?? "",
+        name: data.displayName,
+        language: data.targetLanguage,
+        level: data.currentLevel,
+        goals: data.learningGoals,
+        interests: data.interests,
+        ui_language: data.uiLanguage,
+      },
+      { onConflict: "email" }
+    );
+    return { success: false, error: "WAITLIST" };
+  }
+
   // Save user profile
   const { error: profileError } = await supabase
     .from("user_profiles")

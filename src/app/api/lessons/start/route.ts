@@ -27,6 +27,46 @@ export async function POST(request: Request) {
 
     const { language, agent_id } = await request.json();
 
+    // Check daily and monthly usage limits
+    const dailyLimitMin = parseInt(process.env.DAILY_MINUTES_PER_USER ?? "10", 10);
+    const monthlyLimitMin = parseInt(process.env.MONTHLY_MINUTES_PER_USER ?? "100", 10);
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const [{ data: todayUsage }, { data: monthUsage }] = await Promise.all([
+      supabase
+        .from("lessons")
+        .select("duration_seconds")
+        .eq("user_id", user.id)
+        .gte("started_at", todayStart.toISOString()),
+      supabase
+        .from("lessons")
+        .select("duration_seconds")
+        .eq("user_id", user.id)
+        .gte("started_at", monthStart.toISOString()),
+    ]);
+
+    const todaySeconds = (todayUsage ?? []).reduce((s, l) => s + (l.duration_seconds ?? 0), 0);
+    const monthSeconds = (monthUsage ?? []).reduce((s, l) => s + (l.duration_seconds ?? 0), 0);
+
+    if (todaySeconds >= dailyLimitMin * 60) {
+      return NextResponse.json(
+        { error: "DAILY_LIMIT_REACHED", dailyUsed: Math.round(todaySeconds / 60), dailyLimit: dailyLimitMin },
+        { status: 429 }
+      );
+    }
+
+    if (monthSeconds >= monthlyLimitMin * 60) {
+      return NextResponse.json(
+        { error: "MONTHLY_LIMIT_REACHED", monthlyUsed: Math.round(monthSeconds / 60), monthlyLimit: monthlyLimitMin },
+        { status: 429 }
+      );
+    }
+
     // Look up ElevenLabs agent ID from agents_config
     let { data: agentConfig } = await supabase
       .from("agents_config")
@@ -95,7 +135,7 @@ export async function POST(request: Request) {
     const level = profile?.current_level ?? "A1";
     const interests = profile?.interests ?? [];
     const goals = profile?.learning_goals ?? [];
-    const duration = profile?.preferred_duration_min ?? 15;
+    const duration = profile?.preferred_duration_min ?? 10;
     const displayName = userData?.display_name ?? "Użytkownik";
     const nativeLanguage = userData?.native_language ?? "pl";
 

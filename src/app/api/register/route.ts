@@ -74,11 +74,20 @@ export async function POST(request: Request) {
     });
 
     if (linkData?.properties?.action_link) {
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL ?? "maciek@godoj.co",
+      const { data: emailResult } = await resend.emails.send({
+        from: `Maciej z Godoj.co <${process.env.RESEND_FROM_EMAIL ?? "maciej@godoj.co"}>`,
         to: invitation.email,
         subject: "Zaloguj się do Godoj.co 🎙",
         html: magicLinkEmail(linkData.properties.action_link, "pl"),
+      });
+
+      // Log magic link event
+      await adminClient.from("magic_link_events").insert({
+        user_id: newUser.user.id,
+        email: invitation.email,
+        name: display_name,
+        ui_language: "pl",
+        resend_email_id: emailResult?.id ?? null,
       });
     }
   } catch (err) {
@@ -89,7 +98,7 @@ export async function POST(request: Request) {
   try {
     const now = new Date().toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" });
     await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL ?? "maciek@godoj.co",
+      from: process.env.RESEND_FROM_EMAIL ?? "maciej@godoj.co",
       to: "maciej.wrob@gmail.com",
       subject: `Nowy użytkownik Godoj.co — ${display_name}`,
       html: `<p><strong>${display_name}</strong> (${invitation.email}) właśnie utworzył konto na Godoj.co</p><p>Rola: ${invitation.role}</p><p>Data: ${now}</p>`,

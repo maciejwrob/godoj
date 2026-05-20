@@ -15,7 +15,7 @@ const NATIVE_LANGUAGES = [
   { id: "other", name: "Inne" },
 ];
 
-const DURATIONS = [5, 10, 15, 20, 30];
+const DURATIONS = [5, 10];
 
 const FREQUENCIES = [
   { id: "daily", label: "Codziennie" },
@@ -51,7 +51,7 @@ export default function SettingsPage() {
 
   // Learning
   const [currentLevel, setCurrentLevel] = useState("A1");
-  const [preferredDuration, setPreferredDuration] = useState(15);
+  const [preferredDuration, setPreferredDuration] = useState(10);
   const [preferredFrequency, setPreferredFrequency] = useState("3-4x");
   const [preferredTime, setPreferredTime] = useState("any");
   const [reminders, setReminders] = useState(false);
@@ -95,7 +95,7 @@ export default function SettingsPage() {
         setNativeLanguage(userData?.native_language ?? "pl");
         setUiLanguage(userData?.ui_language ?? "en");
         setCurrentLevel(profile?.current_level ?? "A1");
-        setPreferredDuration(profile?.preferred_duration_min ?? 15);
+        setPreferredDuration(profile?.preferred_duration_min ?? 10);
         setPreferredFrequency(profile?.preferred_frequency ?? "3-4x");
         setPreferredTime(profile?.preferred_time ?? "any");
         setReminders(profile?.reminders_enabled ?? false);
