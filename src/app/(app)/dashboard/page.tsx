@@ -239,8 +239,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Header */}
-        <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        {/* Header + usage limits inline */}
+        <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-3xl font-extrabold tracking-tight text-white lg:text-4xl">{t("greeting")}, {displayName}!</h2>
             <p className="mt-1 flex items-center gap-2 text-on-surface-variant">
@@ -248,59 +248,36 @@ export default function DashboardPage() {
               {getLangName(activeLang)} · Poziom {currentLevel}
             </p>
           </div>
-          {/* Language switching is in sidebar */}
-        </section>
-
-        {/* Trial usage limits */}
-        {trialUsage && (
-          <div className="rounded-2xl border border-white/5 bg-surface-container p-4 sm:p-5">
-            <div className="flex items-center gap-2 mb-3">
+          {/* Compact usage limits — top right */}
+          {trialUsage && (
+            <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-surface-container px-3 py-2">
               {trialUsage.unlimited ? (
-                <>
-                  <span className="material-symbols-outlined text-sm text-emerald-400">diamond</span>
-                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Friends & Family — Unlimited</span>
-                </>
+                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                  <span className="material-symbols-outlined text-sm">diamond</span>
+                  Unlimited
+                </span>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-sm text-amber-400">timer</span>
-                  <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Beta trial</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-on-surface-variant">Dziś</span>
+                    <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                      <div className={`h-full rounded-full ${trialUsage.todayMinutes >= trialUsage.dailyLimit ? "bg-red-500" : trialUsage.todayMinutes >= trialUsage.dailyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.todayMinutes / trialUsage.dailyLimit) * 100)}%` }} />
+                    </div>
+                    <span className="text-[11px] font-medium text-white tabular-nums">{trialUsage.todayMinutes}/{trialUsage.dailyLimit}</span>
+                  </div>
+                  <div className="w-px h-4 bg-white/10" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-on-surface-variant">Mies.</span>
+                    <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                      <div className={`h-full rounded-full ${trialUsage.monthMinutes >= trialUsage.monthlyLimit ? "bg-red-500" : trialUsage.monthMinutes >= trialUsage.monthlyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.monthMinutes / trialUsage.monthlyLimit) * 100)}%` }} />
+                    </div>
+                    <span className="text-[11px] font-medium text-white tabular-nums">{trialUsage.monthMinutes}/{trialUsage.monthlyLimit}</span>
+                  </div>
                 </>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-on-surface-variant">Dzisiaj</span>
-                  <span className="text-xs font-bold text-white">
-                    {trialUsage.todayMinutes} / {trialUsage.unlimited ? "∞" : `${trialUsage.dailyLimit} min`}
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                  {trialUsage.unlimited ? (
-                    <div className="h-full rounded-full bg-emerald-500" style={{ width: "100%" }} />
-                  ) : (
-                    <div className={`h-full rounded-full transition-all ${trialUsage.todayMinutes >= trialUsage.dailyLimit ? "bg-red-500" : trialUsage.todayMinutes >= trialUsage.dailyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.todayMinutes / trialUsage.dailyLimit) * 100)}%` }} />
-                  )}
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-on-surface-variant">Ten miesiąc</span>
-                  <span className="text-xs font-bold text-white">
-                    {trialUsage.monthMinutes} / {trialUsage.unlimited ? "∞" : `${trialUsage.monthlyLimit} min`}
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                  {trialUsage.unlimited ? (
-                    <div className="h-full rounded-full bg-emerald-500" style={{ width: "100%" }} />
-                  ) : (
-                    <div className={`h-full rounded-full transition-all ${trialUsage.monthMinutes >= trialUsage.monthlyLimit ? "bg-red-500" : trialUsage.monthMinutes >= trialUsage.monthlyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.monthMinutes / trialUsage.monthlyLimit) * 100)}%` }} />
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </section>
 
         {/* Hero + Stats Bento */}
         <div className="grid grid-cols-12 gap-4 lg:gap-6">
