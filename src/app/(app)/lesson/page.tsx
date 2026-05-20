@@ -60,6 +60,7 @@ export default function LessonPage() {
   const [micCheckOpen, setMicCheckOpen] = useState(false);
   const [autoEndCountdown, setAutoEndCountdown] = useState<number | null>(null);
   const [limitError, setLimitError] = useState<{ type: "daily" | "monthly"; used: number; limit: number } | null>(null);
+  const [isUnlimited, setIsUnlimited] = useState(false);
   const autoEndTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Hints
@@ -163,34 +164,39 @@ export default function LessonPage() {
 
       const effectiveDuration = selectedDuration ?? duration;
       setTimeLeft(effectiveDuration * 60);
-      const hardLimitSeconds = 12 * 60; // 12 min absolute max
+      const hardLimitSeconds = 12 * 60; // 12 min absolute max for beta users
+      const wrapUpSeconds = (effectiveDuration - 1) * 60; // 1 min before selected duration
       let elapsed = 0;
       lessonTimerRef.current = setInterval(() => {
         elapsed++;
-        setTimeLeft((prev) => { if (prev <= 1) { if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); return 0; } return prev - 1; });
+        // For unlimited users: timer counts down to 0 then goes negative (keeps ticking)
+        setTimeLeft((prev) => prev - 1);
 
-        // At 9-10 min: send contextual update to wrap up
-        if (elapsed === 9 * 60 && lessonActiveRef.current) {
+        // Wrap-up reminder: 1 min before selected duration
+        if (elapsed === wrapUpSeconds && lessonActiveRef.current) {
           try { conversation.sendContextualUpdate("The lesson time is almost up. Start wrapping up the conversation naturally within the next minute."); } catch {}
         }
 
-        // At 11:30 (30s before hard limit): start countdown
-        if (elapsed === hardLimitSeconds - 30 && lessonActiveRef.current) {
-          setAutoEndCountdown(30);
-          autoEndTimerRef.current = setInterval(() => {
-            setAutoEndCountdown((prev) => {
-              if (prev === null || prev <= 1) {
-                if (autoEndTimerRef.current) clearInterval(autoEndTimerRef.current);
-                return 0;
-              }
-              return prev - 1;
-            });
-          }, 1000);
-        }
+        // Hard limit only for beta (non-unlimited) users
+        if (!isUnlimited) {
+          // At 11:30 (30s before hard limit): start countdown
+          if (elapsed === hardLimitSeconds - 30 && lessonActiveRef.current) {
+            setAutoEndCountdown(30);
+            autoEndTimerRef.current = setInterval(() => {
+              setAutoEndCountdown((prev) => {
+                if (prev === null || prev <= 1) {
+                  if (autoEndTimerRef.current) clearInterval(autoEndTimerRef.current);
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }, 1000);
+          }
 
-        // At 12 min: force end
-        if (elapsed >= hardLimitSeconds && lessonActiveRef.current) {
-          handleEndLesson();
+          // At 12 min: force end
+          if (elapsed >= hardLimitSeconds && lessonActiveRef.current) {
+            handleEndLesson();
+          }
         }
       }, 1000);
 
@@ -345,6 +351,7 @@ export default function LessonPage() {
       setAgentName(data.agent_name ?? "Tutor"); setFirstMessage(data.first_message ?? "");
       setPreviousContext(data.previous_context ?? "To pierwsza rozmowa.");
       setAgentSystemPrompt(data.agent_system_prompt ?? "");
+      setIsUnlimited(data.unlimited ?? false);
       setLessonState("ready");
     } catch (err) { const msg = err instanceof Error ? err.message : "Blad"; setError(msg); setLessonState("error"); logError("/lesson", msg, { step: "prepareLesson", language, agent_id: agId }); }
   };
@@ -501,7 +508,7 @@ export default function LessonPage() {
         <div>
           <div className="mb-2 text-sm text-on-surface-variant text-center">{t("lessonDuration")}</div>
           <div className="flex justify-center gap-2">
-            {[5, 10].map((d) => (
+            {(isUnlimited ? [5, 10, 15, 20, 30] : [5, 10]).map((d) => (
               <button key={d} onClick={() => setSelectedDuration(d)}
                 className={`rounded-full px-5 py-2 text-sm font-bold transition-all ${(selectedDuration ?? duration) === d ? "bg-godoj-blue text-white shadow-lg shadow-godoj-blue/30" : "border border-white/10 text-on-surface-variant hover:border-primary/50"}`}>
                 {d} min

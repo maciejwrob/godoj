@@ -336,6 +336,7 @@ ZASADY:
       first_message: firstMessage,
       previous_context: previousCtx,
       agent_system_prompt: builtPrompt,
+      unlimited: isUnlimited,
     });
   } catch (error) {
     console.error("Start lesson error:", error);

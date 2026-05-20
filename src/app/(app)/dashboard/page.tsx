@@ -319,7 +319,7 @@ export default function DashboardPage() {
               <div className="flex flex-wrap items-center gap-3 mt-6 lg:mt-8">
                 {/* Duration picker */}
                 <div className="flex gap-1.5">
-                  {[5, 10].map((d) => (
+                  {(trialUsage?.unlimited ? [5, 10, 15, 20, 30] : [5, 10]).map((d) => (
                     <button key={d} onClick={() => setSelectedDuration(d)}
                       className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${selectedDuration === d ? "bg-white text-surface" : "bg-white/20 text-white hover:bg-white/30"}`}>
                       {d} min
