@@ -12,6 +12,7 @@ const emailStrings = {
     loginButton: "Zaloguj się do Godoj",
     linkFallback: "Jeśli przycisk nie działa, skopiuj ten link:",
     footer: "Godoj.co — Speak. Learn. Fluently.",
+    helpLine: "Potrzebujesz pomocy? Po prostu odpisz na tego maila.",
     inviteTitle: "Zaproszenie do Godoj.co",
     inviteBody: (adminName: string) => `${adminName} zaprasza Cię do nauki języków z AI!<br><br>Godoj.co to aplikacja do nauki języków przez rozmowę z inteligentnymi tutorami AI. Dołącz i zacznij mówić!`,
     inviteButton: "Dołącz do Godoj",
@@ -22,13 +23,15 @@ const emailStrings = {
     loginButton: "Log in to Godoj",
     linkFallback: "If the button doesn't work, copy this link:",
     footer: "Godoj.co — Speak. Learn. Fluently.",
+    helpLine: "Need help? Just reply to this email.",
     inviteTitle: "Invitation to Godoj.co",
     inviteBody: (adminName: string) => `${adminName} invites you to learn languages with AI!<br><br>Godoj.co is an app for learning languages through conversation with intelligent AI tutors. Join and start speaking!`,
     inviteButton: "Join Godoj",
   },
 };
 
-function emailShell(content: string, footer: string): string {
+function emailShell(content: string, footer: string, helpLine: string): string {
+  const avatarUrl = "https://godoj.co/avatars/maciej.png";
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:0;background-color:#060e20;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
@@ -42,10 +45,13 @@ function emailShell(content: string, footer: string): string {
       ${content}
     </div>
     <div style="padding:24px 32px;border-top:1px solid #192540;">
-      <p style="color:#6d758c;font-size:12px;text-align:center;margin:0;">${footer}</p>
-      <p style="color:#4a5170;font-size:11px;text-align:center;margin:8px 0 0 0;">
-        Maciek — twórca Godoj.co
-      </p>
+      <div style="display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <img src="${avatarUrl}" alt="Maciej" width="36" height="36" style="border-radius:50%;border:2px solid #192540;margin-right:10px;" />
+        <span style="color:#a3aac4;font-size:13px;font-weight:600;">Maciej</span>
+        <span style="color:#6d758c;font-size:13px;margin-left:4px;">— founder, Godoj.co</span>
+      </div>
+      <p style="color:#6d758c;font-size:12px;text-align:center;margin:0 0 8px 0;">${helpLine}</p>
+      <p style="color:#4a5170;font-size:11px;text-align:center;margin:0;">${footer}</p>
     </div>
   </div>
 </div>
@@ -63,7 +69,7 @@ export function magicLinkEmail(magicLinkUrl: string, nativeLang?: string | null)
       </div>
       <p style="color:#6d758c;font-size:12px;text-align:center;margin:0 0 8px 0;">${s.linkFallback}</p>
       <p style="color:#84adff;font-size:11px;text-align:center;word-break:break-all;margin:0;">${magicLinkUrl}</p>`;
-  return emailShell(content, s.footer);
+  return emailShell(content, s.footer, s.helpLine);
 }
 
 export function invitationEmail(inviteUrl: string, adminName: string, nativeLang?: string | null): string {
@@ -77,5 +83,5 @@ export function invitationEmail(inviteUrl: string, adminName: string, nativeLang
       </div>
       <p style="color:#6d758c;font-size:12px;text-align:center;margin:0 0 8px 0;">${s.linkFallback}</p>
       <p style="color:#84adff;font-size:11px;text-align:center;word-break:break-all;margin:0;">${inviteUrl}</p>`;
-  return emailShell(content, s.footer);
+  return emailShell(content, s.footer, s.helpLine);
 }

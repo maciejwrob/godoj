@@ -33,90 +33,112 @@ type DashboardData = {
 };
 
 // Flag pattern CSS for hero background
+// SVG-based flag patterns — preserves correct aspect ratios for cross flags
+// (Norway, Sweden, Finland) which were distorted with %-based divs
+function FlagSvg({ lang }: { lang: string }) {
+  const fill: React.CSSProperties = { width: "100%", height: "100%", display: "block" };
+  switch (lang) {
+    case "no": // Norway — 22:16
+      return (
+        <svg viewBox="0 0 22 16" preserveAspectRatio="xMidYMid slice" style={fill}>
+          <rect width="22" height="16" fill="#EF3340"/>
+          <rect x="6" width="4" height="16" fill="#fff"/>
+          <rect y="6" width="22" height="4" fill="#fff"/>
+          <rect x="7" width="2" height="16" fill="#00205B"/>
+          <rect y="7" width="22" height="2" fill="#00205B"/>
+        </svg>
+      );
+    case "sv": // Sweden — 16:10
+      return (
+        <svg viewBox="0 0 16 10" preserveAspectRatio="xMidYMid slice" style={fill}>
+          <rect width="16" height="10" fill="#006AA7"/>
+          <rect x="5" width="2" height="10" fill="#FECC02"/>
+          <rect y="4" width="16" height="2" fill="#FECC02"/>
+        </svg>
+      );
+    case "fi": // Finland — 18:11
+      return (
+        <svg viewBox="0 0 18 11" preserveAspectRatio="xMidYMid slice" style={fill}>
+          <rect width="18" height="11" fill="#fff"/>
+          <rect x="5" width="3" height="11" fill="#003580"/>
+          <rect y="4" width="18" height="3" fill="#003580"/>
+        </svg>
+      );
+    case "fr": // France — 3:2
+      return (
+        <svg viewBox="0 0 3 2" preserveAspectRatio="xMidYMid slice" style={fill}>
+          <rect width="1" height="2" fill="#002395"/>
+          <rect x="1" width="1" height="2" fill="#fff"/>
+          <rect x="2" width="1" height="2" fill="#ED2939"/>
+        </svg>
+      );
+    case "it": // Italy — 3:2
+      return (
+        <svg viewBox="0 0 3 2" preserveAspectRatio="xMidYMid slice" style={fill}>
+          <rect width="1" height="2" fill="#009246"/>
+          <rect x="1" width="1" height="2" fill="#fff"/>
+          <rect x="2" width="1" height="2" fill="#CE2B37"/>
+        </svg>
+      );
+    case "es": // Spain — 3:2
+      return (
+        <svg viewBox="0 0 3 2" preserveAspectRatio="xMidYMid slice" style={fill}>
+          <rect width="3" height="0.5" fill="#AA151B"/>
+          <rect y="0.5" width="3" height="1" fill="#F1BF00"/>
+          <rect y="1.5" width="3" height="0.5" fill="#AA151B"/>
+        </svg>
+      );
+    case "de": // Germany — 5:3
+      return (
+        <svg viewBox="0 0 5 3" preserveAspectRatio="xMidYMid slice" style={fill}>
+          <rect width="5" height="1" fill="#000"/>
+          <rect y="1" width="5" height="1" fill="#DD0000"/>
+          <rect y="2" width="5" height="1" fill="#FFCC00"/>
+        </svg>
+      );
+    case "en": // UK Union Jack — 60:30
+      return (
+        <svg viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" style={fill}>
+          <clipPath id="uk-clip"><rect width="60" height="30"/></clipPath>
+          <g clipPath="url(#uk-clip)">
+            <rect width="60" height="30" fill="#012169"/>
+            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6"/>
+            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="2"/>
+            <rect x="25" width="10" height="30" fill="#fff"/>
+            <rect y="10" width="60" height="10" fill="#fff"/>
+            <rect x="27" width="6" height="30" fill="#C8102E"/>
+            <rect y="12" width="60" height="6" fill="#C8102E"/>
+          </g>
+        </svg>
+      );
+    case "ko": // Korea — 3:2
+      return (
+        <svg viewBox="0 0 3 2" preserveAspectRatio="xMidYMid slice" style={fill}>
+          <rect width="3" height="2" fill="#fff"/>
+          <g transform="translate(1.5, 1)">
+            <clipPath id="ko-circle"><circle r="0.5"/></clipPath>
+            <g clipPath="url(#ko-circle)">
+              <rect x="-0.5" y="-0.5" width="1" height="0.5" fill="#CD2E3A"/>
+              <rect x="-0.5" width="1" height="0.5" fill="#0047A0"/>
+              <circle cx="-0.25" r="0.25" fill="#CD2E3A"/>
+              <circle cx="0.25" r="0.25" fill="#0047A0"/>
+            </g>
+          </g>
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 function FlagPattern({ lang }: { lang: string }) {
-  const patterns: Record<string, React.ReactNode> = {
-    no: (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
-        <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg] flex flex-col">
-          <div className="bg-[#EF3340] flex-1 relative">
-            <div className="absolute top-0 bottom-0 left-[30%] w-[15%] bg-white"><div className="absolute top-0 bottom-0 left-1/4 right-1/4 bg-[#00205B]" /></div>
-            <div className="absolute left-0 right-0 top-[40%] h-[10%] bg-white"><div className="absolute left-0 right-0 top-1/4 bottom-1/4 bg-[#00205B]" /></div>
-          </div>
-        </div>
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
+      <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg]">
+        <FlagSvg lang={lang} />
       </div>
-    ),
-    fr: (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
-        <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg] flex">
-          <div className="flex-1 bg-[#002395]" /><div className="flex-1 bg-white" /><div className="flex-1 bg-[#ED2939]" />
-        </div>
-      </div>
-    ),
-    es: (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
-        <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg] flex flex-col">
-          <div className="flex-1 bg-[#AA151B]" /><div className="flex-[2] bg-[#F1BF00]" /><div className="flex-1 bg-[#AA151B]" />
-        </div>
-      </div>
-    ),
-    en: (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
-        <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg]">
-          <div className="w-full h-full bg-[#012169] relative">
-            <div className="absolute top-[45%] left-0 right-0 h-[10%] bg-white" />
-            <div className="absolute left-[45%] top-0 bottom-0 w-[10%] bg-white" />
-            <div className="absolute top-[47%] left-0 right-0 h-[6%] bg-[#C8102E]" />
-            <div className="absolute left-[47%] top-0 bottom-0 w-[6%] bg-[#C8102E]" />
-          </div>
-        </div>
-      </div>
-    ),
-    it: (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
-        <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg] flex">
-          <div className="flex-1 bg-[#009246]" /><div className="flex-1 bg-white" /><div className="flex-1 bg-[#CE2B37]" />
-        </div>
-      </div>
-    ),
-    sv: (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
-        <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg]">
-          <div className="w-full h-full bg-[#006AA7] relative">
-            <div className="absolute top-0 bottom-0 left-[28%] w-[12%] bg-[#FECC02]" />
-            <div className="absolute left-0 right-0 top-[42%] h-[12%] bg-[#FECC02]" />
-          </div>
-        </div>
-      </div>
-    ),
-    de: (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
-        <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg] flex flex-col">
-          <div className="flex-1 bg-black" /><div className="flex-1 bg-[#DD0000]" /><div className="flex-1 bg-[#FFCC00]" />
-        </div>
-      </div>
-    ),
-    fi: (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
-        <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg]">
-          <div className="w-full h-full bg-white relative">
-            <div className="absolute top-0 bottom-0 left-[28%] w-[12%] bg-[#003580]" />
-            <div className="absolute left-0 right-0 top-[42%] h-[12%] bg-[#003580]" />
-          </div>
-        </div>
-      </div>
-    ),
-    ko: (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
-        <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg]">
-          <div className="w-full h-full bg-white relative">
-            <div className="absolute top-[35%] left-[30%] w-[25%] h-[25%] rounded-full bg-[#CD2E3A]" />
-            <div className="absolute top-[40%] left-[35%] w-[25%] h-[25%] rounded-full bg-[#0047A0]" />
-          </div>
-        </div>
-      </div>
-    ),
-  };
-  return patterns[lang] ?? patterns.no;
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -142,7 +164,7 @@ export default function DashboardPage() {
   );
   if (!data) return null;
 
-  const { displayName, profiles, currentLevel, currentStreak, weeklyGoal, weeklyDone, lessons, achievements, vocabCount, totalMinutes, totalLessonsCount, needsFeedback, feedbackLessonId } = data;
+  const { displayName, profiles, currentLevel, currentStreak, weeklyGoal, weeklyDone, lessons, achievements, vocabCount, totalMinutes, totalLessonsCount, needsFeedback, feedbackLessonId, trialUsage } = data as DashboardData & { trialUsage?: { todayMinutes: number; dailyLimit: number; monthMinutes: number; monthlyLimit: number } };
   const showFeedbackPopup = false; // hidden: totalLessonsCount === 1 && needsFeedback && !feedbackDismissed;
   const showFeedbackBanner = false; // hidden: totalLessonsCount > 1 && needsFeedback && !feedbackDismissed;
   const weeklyPct = weeklyGoal > 0 ? Math.min(100, Math.round((weeklyDone / weeklyGoal) * 100)) : 0;
@@ -201,6 +223,36 @@ export default function DashboardPage() {
           </div>
           {/* Language switching is in sidebar */}
         </section>
+
+        {/* Trial usage limits */}
+        {trialUsage && (
+          <div className="rounded-2xl border border-white/5 bg-surface-container p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="material-symbols-outlined text-sm text-amber-400">timer</span>
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Beta trial</span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-on-surface-variant">Dzisiaj</span>
+                  <span className="text-xs font-bold text-white">{trialUsage.todayMinutes} / {trialUsage.dailyLimit} min</span>
+                </div>
+                <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${trialUsage.todayMinutes >= trialUsage.dailyLimit ? "bg-red-500" : trialUsage.todayMinutes >= trialUsage.dailyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.todayMinutes / trialUsage.dailyLimit) * 100)}%` }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-on-surface-variant">Ten miesiąc</span>
+                  <span className="text-xs font-bold text-white">{trialUsage.monthMinutes} / {trialUsage.monthlyLimit} min</span>
+                </div>
+                <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${trialUsage.monthMinutes >= trialUsage.monthlyLimit ? "bg-red-500" : trialUsage.monthMinutes >= trialUsage.monthlyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.monthMinutes / trialUsage.monthlyLimit) * 100)}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Hero + Stats Bento */}
         <div className="grid grid-cols-12 gap-4 lg:gap-6">

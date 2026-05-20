@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/magic-link-followup",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/daily-stats",
+      "schedule": "0 21 * * *"
+    }
+  ]
+}

@@ -41,7 +41,7 @@ export default function LessonPage() {
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState("A1");
   const [displayName, setDisplayName] = useState("");
-  const [duration, setDuration] = useState(15);
+  const [duration, setDuration] = useState(10);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [signedUrl, setSignedUrl] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
@@ -58,6 +58,9 @@ export default function LessonPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [hintsEnabled, setHintsEnabled] = useState(true); // SOS toggle
   const [micCheckOpen, setMicCheckOpen] = useState(false);
+  const [autoEndCountdown, setAutoEndCountdown] = useState<number | null>(null);
+  const [limitError, setLimitError] = useState<{ type: "daily" | "monthly"; used: number; limit: number } | null>(null);
+  const autoEndTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Hints
   const [hintLevel, setHintLevel] = useState<0 | 1 | 2>(0);
@@ -160,8 +163,35 @@ export default function LessonPage() {
 
       const effectiveDuration = selectedDuration ?? duration;
       setTimeLeft(effectiveDuration * 60);
+      const hardLimitSeconds = 12 * 60; // 12 min absolute max
+      let elapsed = 0;
       lessonTimerRef.current = setInterval(() => {
+        elapsed++;
         setTimeLeft((prev) => { if (prev <= 1) { if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); return 0; } return prev - 1; });
+
+        // At 9-10 min: send contextual update to wrap up
+        if (elapsed === 9 * 60 && lessonActiveRef.current) {
+          try { conversation.sendContextualUpdate("The lesson time is almost up. Start wrapping up the conversation naturally within the next minute."); } catch {}
+        }
+
+        // At 11:30 (30s before hard limit): start countdown
+        if (elapsed === hardLimitSeconds - 30 && lessonActiveRef.current) {
+          setAutoEndCountdown(30);
+          autoEndTimerRef.current = setInterval(() => {
+            setAutoEndCountdown((prev) => {
+              if (prev === null || prev <= 1) {
+                if (autoEndTimerRef.current) clearInterval(autoEndTimerRef.current);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+        }
+
+        // At 12 min: force end
+        if (elapsed >= hardLimitSeconds && lessonActiveRef.current) {
+          handleEndLesson();
+        }
       }, 1000);
 
       // Enrichment timer
@@ -272,7 +302,7 @@ export default function LessonPage() {
   // ---- Lifecycle ----
   useEffect(() => {
     loadLessonData();
-    return () => { clearHintTimers(); if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current); };
+    return () => { clearHintTimers(); if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current); if (autoEndTimerRef.current) clearInterval(autoEndTimerRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -291,7 +321,22 @@ export default function LessonPage() {
     setLessonState("loading"); setError("");
     try {
       const res = await fetch("/api/lessons/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language, agent_id: agId ?? "default" }) });
-      if (!res.ok) { const data = await res.json(); throw new Error(data.error ?? "Blad serwera"); }
+      if (!res.ok) {
+        const data = await res.json();
+        if (res.status === 429) {
+          if (data.error === "DAILY_LIMIT_REACHED") {
+            setLimitError({ type: "daily", used: data.dailyUsed, limit: data.dailyLimit });
+            setLessonState("error");
+            return;
+          }
+          if (data.error === "MONTHLY_LIMIT_REACHED") {
+            setLimitError({ type: "monthly", used: data.monthlyUsed, limit: data.monthlyLimit });
+            setLessonState("error");
+            return;
+          }
+        }
+        throw new Error(data.error ?? "Blad serwera");
+      }
       const data = await res.json();
       setLessonId(data.lesson_id); setTopic(data.topic); setSignedUrl(data.signed_url);
       setSystemPrompt(data.system_prompt_override); setDuration(data.duration);
@@ -392,6 +437,28 @@ export default function LessonPage() {
 
   // ---- RENDER ----
 
+  if (lessonState === "error" && limitError) return (
+    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      <div className="max-w-sm space-y-6 text-center">
+        <div className="text-5xl">{limitError.type === "daily" ? "🎙️" : "📊"}</div>
+        <h1 className="text-xl font-bold">
+          {limitError.type === "daily"
+            ? `Wyczerpałeś dzisiejszy limit (${limitError.limit} min)`
+            : `Wykorzystałeś miesięczny limit beta (${limitError.limit} min)`}
+        </h1>
+        <p className="text-on-surface-variant">
+          {limitError.type === "daily"
+            ? "Wróć jutro — agent czeka! 🎙️"
+            : "Daj mi znać, jak chcesz więcej:"}
+        </p>
+        {limitError.type === "monthly" && (
+          <a href="mailto:maciej@godoj.co" className="text-primary font-medium">maciej@godoj.co — Maciek</a>
+        )}
+        <button onClick={() => router.push("/dashboard")} className="w-full rounded-xl border border-white/10 py-2.5 text-sm text-slate-400">{t("dashboard")}</button>
+      </div>
+    </div>
+  );
+
   if (lessonState === "error") return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="max-w-sm space-y-6 text-center">
@@ -433,7 +500,7 @@ export default function LessonPage() {
         <div>
           <div className="mb-2 text-sm text-on-surface-variant text-center">{t("lessonDuration")}</div>
           <div className="flex justify-center gap-2">
-            {[5, 10, 15].map((d) => (
+            {[5, 10].map((d) => (
               <button key={d} onClick={() => setSelectedDuration(d)}
                 className={`rounded-full px-5 py-2 text-sm font-bold transition-all ${(selectedDuration ?? duration) === d ? "bg-godoj-blue text-white shadow-lg shadow-godoj-blue/30" : "border border-white/10 text-on-surface-variant hover:border-primary/50"}`}>
                 {d} min
@@ -622,12 +689,35 @@ export default function LessonPage() {
                 </div>
               </div>
 
+              {/* Send Now — force end-of-turn */}
+              {!isSpeaking && conversation.status === "connected" && (
+                <button
+                  onClick={() => {
+                    try { conversation.sendUserMessage("..."); } catch {}
+                  }}
+                  className="h-12 w-12 rounded-full bg-godoj-blue/20 flex items-center justify-center text-godoj-blue hover:bg-godoj-blue/30 border border-godoj-blue/20 transition-all"
+                  title="Wyślij teraz"
+                  style={{ marginBottom: "max(0px, env(safe-area-inset-bottom))" }}
+                >
+                  <span className="material-symbols-outlined">send</span>
+                </button>
+              )}
+
               {/* End */}
               <button onClick={handleEndLesson} className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500/20 border border-white/5 transition-all" title="Zakończ">
                 <span className="material-symbols-outlined">call_end</span>
               </button>
             </div>
           </div>
+
+          {/* Auto-end countdown overlay */}
+          {autoEndCountdown !== null && autoEndCountdown > 0 && (
+            <div className="absolute top-16 left-0 right-0 z-40 flex justify-center pointer-events-none">
+              <div className="bg-red-500/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-xl text-center pointer-events-auto">
+                <p className="text-sm font-bold">Lekcja kończy się za {autoEndCountdown}s</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

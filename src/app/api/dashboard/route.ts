@@ -118,6 +118,24 @@ export async function GET(request: Request) {
       feedbackLessonId = lastLesson.id;
     }
 
+    // Trial usage limits
+    const dailyLimitMin = parseInt(process.env.DAILY_MINUTES_PER_USER ?? "10", 10);
+    const monthlyLimitMin = parseInt(process.env.MONTHLY_MINUTES_PER_USER ?? "100", 10);
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const mStart = new Date();
+    mStart.setDate(1);
+    mStart.setHours(0, 0, 0, 0);
+
+    const [{ data: todayUsage }, { data: monthUsage }] = await Promise.all([
+      supabase.from("lessons").select("duration_seconds").eq("user_id", user.id).gte("started_at", todayStart.toISOString()),
+      supabase.from("lessons").select("duration_seconds").eq("user_id", user.id).gte("started_at", mStart.toISOString()),
+    ]);
+
+    const todayMinutesUsed = Math.round((todayUsage ?? []).reduce((s, l) => s + (l.duration_seconds ?? 0), 0) / 60);
+    const monthMinutesUsed = Math.round((monthUsage ?? []).reduce((s, l) => s + (l.duration_seconds ?? 0), 0) / 60);
+
     return NextResponse.json({
       displayName: userData?.display_name ?? "Uzytkownik",
       role: userData?.role ?? "adult",
@@ -135,6 +153,12 @@ export async function GET(request: Request) {
       totalLessonsCount: totalLessonsCount ?? 0,
       needsFeedback,
       feedbackLessonId,
+      trialUsage: {
+        todayMinutes: todayMinutesUsed,
+        dailyLimit: dailyLimitMin,
+        monthMinutes: monthMinutesUsed,
+        monthlyLimit: monthlyLimitMin,
+      },
     });
   } catch (error) {
     console.error("Dashboard API error:", error);

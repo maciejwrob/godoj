@@ -35,8 +35,8 @@ export async function sendMagicLink(email: string, locale?: "pl" | "en") {
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const { error: emailError } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? "maciek@godoj.co",
+  const { data: emailResult, error: emailError } = await resend.emails.send({
+    from: `Maciej z Godoj.co <${process.env.RESEND_FROM_EMAIL ?? "maciej@godoj.co"}>`,
     to: normalizedEmail,
     subject: emailLocale === "pl" ? "Zaloguj się do Godoj.co 🎙" : "Log in to Godoj.co 🎙",
     html: magicLinkEmail(data.properties.action_link, emailLocale),
@@ -48,6 +48,25 @@ export async function sendMagicLink(email: string, locale?: "pl" | "en") {
       success: false as const,
       error: "Failed to send link. Please try again.",
     };
+  }
+
+  // Log magic link event for monitoring
+  try {
+    const { data: userData } = await supabase
+      .from("users")
+      .select("display_name")
+      .eq("id", data.user?.id ?? "")
+      .single();
+
+    await supabase.from("magic_link_events").insert({
+      user_id: data.user?.id ?? null,
+      email: normalizedEmail,
+      name: userData?.display_name ?? null,
+      ui_language: emailLocale,
+      resend_email_id: emailResult?.id ?? null,
+    });
+  } catch (err) {
+    console.error("[sendMagicLink] Failed to log event:", err);
   }
 
   return { success: true as const };
