@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       type: "magiclink",
       email: invitation.email,
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/processing`,
       },
     });
 

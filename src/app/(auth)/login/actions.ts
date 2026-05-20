@@ -12,7 +12,7 @@ export async function sendMagicLink(email: string, locale?: "pl" | "en") {
     type: "magiclink",
     email: normalizedEmail,
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/processing`,
     },
   });
 
