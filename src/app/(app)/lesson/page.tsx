@@ -30,12 +30,20 @@ function isFiller(text: string): boolean {
   return words.length > 0 && words.every((w) => FILLER_RE.test(w));
 }
 
+type WordTranslation = {
+  word: string;
+  translation: string;
+  note: string;
+  msgId: number;
+  wordIdx: number;
+};
+
 let msgIdCounter = 0;
 
 export default function LessonPage() {
   const router = useRouter();
   const langCtx = useLanguage();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [lessonState, setLessonState] = useState<LessonState>("loading");
   const [lessonId, setLessonId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
@@ -61,6 +69,8 @@ export default function LessonPage() {
   const [autoEndCountdown, setAutoEndCountdown] = useState<number | null>(null);
   const [limitError, setLimitError] = useState<{ type: "daily" | "monthly"; used: number; limit: number } | null>(null);
   const [isUnlimited, setIsUnlimited] = useState(false);
+  const [wordTranslations, setWordTranslations] = useState<Map<string, WordTranslation>>(new Map());
+  const [translatingKey, setTranslatingKey] = useState<string | null>(null);
   const autoEndTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Hints
@@ -442,6 +452,37 @@ export default function LessonPage() {
   const refreshTopic = () => prepareLesson(profileRef.current.language, profileRef.current.agentId);
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
+  // ---- Word translation ----
+  const translateWord = async (word: string, msgId: number, wordIdx: number, fullSentence: string) => {
+    const key = `${msgId}-${wordIdx}`;
+    // If already translated, just toggle visibility
+    if (wordTranslations.has(key)) {
+      setWordTranslations((prev) => { const next = new Map(prev); next.delete(key); return next; });
+      return;
+    }
+    setTranslatingKey(key);
+    try {
+      const res = await fetch("/api/lessons/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          word: word.replace(/[.,!?;:"""''()[\]{}]/g, ""),
+          context: fullSentence,
+          source_language: languageName,
+          ui_language: locale,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setWordTranslations((prev) => {
+          const next = new Map(prev);
+          next.set(key, { word, translation: data.translation, note: data.note || "", msgId, wordIdx });
+          return next;
+        });
+      }
+    } catch {} finally { setTranslatingKey(null); }
+  };
+
   // ---- RENDER ----
 
   if (lessonState === "error" && limitError) return (
@@ -625,7 +666,28 @@ export default function LessonPage() {
                     <div className="w-1 h-1 rounded-full bg-primary" />
                   </div>
                   <div className="max-w-lg rounded-[1.5rem] rounded-tl-none bg-surface-container border border-white/5 px-5 py-4 shadow-xl">
-                    <p className="text-base lg:text-lg font-medium leading-relaxed">{msg.message}</p>
+                    <p className="text-base lg:text-lg font-medium leading-relaxed">
+                      {msg.message.split(/(\s+)/).map((token, i) => {
+                        if (/^\s+$/.test(token)) return token;
+                        const key = `${msg.id}-${i}`;
+                        const tr = wordTranslations.get(key);
+                        const isLoading = translatingKey === key;
+                        return (
+                          <span key={i} className="relative inline">
+                            <span
+                              onClick={() => translateWord(token, msg.id, i, msg.message)}
+                              className={`cursor-pointer rounded-sm transition-colors hover:bg-primary/20 ${tr ? "bg-primary/15 text-primary" : ""} ${isLoading ? "animate-pulse" : ""}`}
+                            >{token}</span>
+                            {tr && (
+                              <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-30 whitespace-nowrap rounded-lg bg-slate-800 border border-white/10 px-2.5 py-1.5 shadow-xl pointer-events-none">
+                                <span className="text-xs font-bold text-primary">{tr.translation}</span>
+                                {tr.note && <span className="text-[10px] text-slate-400 ml-1.5">{tr.note}</span>}
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
+                    </p>
                   </div>
                   <span className="pl-2 text-[10px] text-slate-600">{new Date(msg.ts).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
