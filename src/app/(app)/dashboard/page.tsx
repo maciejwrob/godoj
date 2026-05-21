@@ -9,6 +9,7 @@ import { useLanguage } from "@/lib/language-context";
 import { useTranslation } from "@/lib/i18n";
 import { getLangFlag, getLangName } from "@/lib/languages";
 import { TutorAvatar } from "@/components/tutor-avatars";
+import { FlagPattern } from "@/components/flags";
 
 type Profile = { target_language: string; current_level: string; language_variant: string | null; selected_agent_id: string | null };
 type Lesson = { id: string; started_at: string; duration_seconds: number | null; topic: string | null; fluency_score: number | null; language?: string };
@@ -32,141 +33,7 @@ type DashboardData = {
   feedbackLessonId: string | null;
 };
 
-// Flag pattern CSS for hero background
-// SVG-based flag patterns — preserves correct aspect ratios for cross flags
-// (Norway, Sweden, Finland) which were distorted with %-based divs
-function FlagSvg({ lang, variant }: { lang: string; variant?: string | null }) {
-  const fill: React.CSSProperties = { width: "100%", height: "100%", display: "block" };
-  switch (lang) {
-    case "no": // Norway — 22:16
-      return (
-        <svg viewBox="0 0 22 16" preserveAspectRatio="xMidYMid slice" style={fill}>
-          <rect width="22" height="16" fill="#EF3340"/>
-          <rect x="6" width="4" height="16" fill="#fff"/>
-          <rect y="6" width="22" height="4" fill="#fff"/>
-          <rect x="7" width="2" height="16" fill="#00205B"/>
-          <rect y="7" width="22" height="2" fill="#00205B"/>
-        </svg>
-      );
-    case "sv": // Sweden — 16:10
-      return (
-        <svg viewBox="0 0 16 10" preserveAspectRatio="xMidYMid slice" style={fill}>
-          <rect width="16" height="10" fill="#006AA7"/>
-          <rect x="5" width="2" height="10" fill="#FECC02"/>
-          <rect y="4" width="16" height="2" fill="#FECC02"/>
-        </svg>
-      );
-    case "fi": // Finland — 18:11
-      return (
-        <svg viewBox="0 0 18 11" preserveAspectRatio="xMidYMid slice" style={fill}>
-          <rect width="18" height="11" fill="#fff"/>
-          <rect x="5" width="3" height="11" fill="#003580"/>
-          <rect y="4" width="18" height="3" fill="#003580"/>
-        </svg>
-      );
-    case "fr": // France — 3:2
-      return (
-        <svg viewBox="0 0 3 2" preserveAspectRatio="xMidYMid slice" style={fill}>
-          <rect width="1" height="2" fill="#002395"/>
-          <rect x="1" width="1" height="2" fill="#fff"/>
-          <rect x="2" width="1" height="2" fill="#ED2939"/>
-        </svg>
-      );
-    case "it": // Italy — 3:2
-      return (
-        <svg viewBox="0 0 3 2" preserveAspectRatio="xMidYMid slice" style={fill}>
-          <rect width="1" height="2" fill="#009246"/>
-          <rect x="1" width="1" height="2" fill="#fff"/>
-          <rect x="2" width="1" height="2" fill="#CE2B37"/>
-        </svg>
-      );
-    case "es": // Spain — 3:2
-      return (
-        <svg viewBox="0 0 3 2" preserveAspectRatio="xMidYMid slice" style={fill}>
-          <rect width="3" height="0.5" fill="#AA151B"/>
-          <rect y="0.5" width="3" height="1" fill="#F1BF00"/>
-          <rect y="1.5" width="3" height="0.5" fill="#AA151B"/>
-        </svg>
-      );
-    case "de": // Germany — 5:3
-      return (
-        <svg viewBox="0 0 5 3" preserveAspectRatio="xMidYMid slice" style={fill}>
-          <rect width="5" height="1" fill="#000"/>
-          <rect y="1" width="5" height="1" fill="#DD0000"/>
-          <rect y="2" width="5" height="1" fill="#FFCC00"/>
-        </svg>
-      );
-    case "en":
-      if (variant === "american") {
-        // US Flag — simplified, recognizable at low opacity
-        const stripeH = 10 / 13;
-        return (
-          <svg viewBox="0 0 19 10" preserveAspectRatio="xMidYMid slice" style={fill}>
-            {/* 13 alternating stripes */}
-            {Array.from({ length: 13 }, (_, i) => (
-              <rect key={i} y={i * stripeH} width="19" height={stripeH} fill={i % 2 === 0 ? "#B22234" : "#fff"} />
-            ))}
-            {/* Blue canton */}
-            <rect width="7.6" height={7 * stripeH} fill="#3C3B6E" />
-            {/* Simplified stars as white dots — 5 rows */}
-            {[
-              [0.95, 0.55], [2.2, 0.55], [3.45, 0.55], [4.7, 0.55], [5.95, 0.55],
-              [1.58, 1.15], [2.83, 1.15], [4.08, 1.15], [5.33, 1.15],
-              [0.95, 1.75], [2.2, 1.75], [3.45, 1.75], [4.7, 1.75], [5.95, 1.75],
-              [1.58, 2.35], [2.83, 2.35], [4.08, 2.35], [5.33, 2.35],
-              [0.95, 2.95], [2.2, 2.95], [3.45, 2.95], [4.7, 2.95], [5.95, 2.95],
-              [1.58, 3.55], [2.83, 3.55], [4.08, 3.55], [5.33, 3.55],
-              [0.95, 4.15], [2.2, 4.15], [3.45, 4.15], [4.7, 4.15], [5.95, 4.15],
-            ].map(([cx, cy], i) => (
-              <circle key={`s${i}`} cx={cx} cy={cy} r="0.2" fill="#fff" />
-            ))}
-          </svg>
-        );
-      }
-      // UK Union Jack — 60:30
-      return (
-        <svg viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" style={fill}>
-          <clipPath id="uk-clip"><rect width="60" height="30"/></clipPath>
-          <g clipPath="url(#uk-clip)">
-            <rect width="60" height="30" fill="#012169"/>
-            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6"/>
-            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="2"/>
-            <rect x="25" width="10" height="30" fill="#fff"/>
-            <rect y="10" width="60" height="10" fill="#fff"/>
-            <rect x="27" width="6" height="30" fill="#C8102E"/>
-            <rect y="12" width="60" height="6" fill="#C8102E"/>
-          </g>
-        </svg>
-      );
-    case "ko": // Korea — 3:2
-      return (
-        <svg viewBox="0 0 3 2" preserveAspectRatio="xMidYMid slice" style={fill}>
-          <rect width="3" height="2" fill="#fff"/>
-          <g transform="translate(1.5, 1)">
-            <clipPath id="ko-circle"><circle r="0.5"/></clipPath>
-            <g clipPath="url(#ko-circle)">
-              <rect x="-0.5" y="-0.5" width="1" height="0.5" fill="#CD2E3A"/>
-              <rect x="-0.5" width="1" height="0.5" fill="#0047A0"/>
-              <circle cx="-0.25" r="0.25" fill="#CD2E3A"/>
-              <circle cx="0.25" r="0.25" fill="#0047A0"/>
-            </g>
-          </g>
-        </svg>
-      );
-    default:
-      return null;
-  }
-}
-
-function FlagPattern({ lang, variant }: { lang: string; variant?: string | null }) {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 select-none z-0">
-      <div className="absolute w-[150%] h-[150%] -top-1/4 -left-1/4 rotate-[-12deg]">
-        <FlagSvg lang={lang} variant={variant} />
-      </div>
-    </div>
-  );
-}
+// Flags moved to @/components/flags — imported above
 
 export default function DashboardPage() {
   const { language: activeLang, ready } = useLanguage();
