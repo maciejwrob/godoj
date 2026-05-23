@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import crypto from "crypto";
+import { Webhook } from "svix";
 
-// Verify Resend webhook signature
-function verifySignature(payload: string, signature: string, secret: string): boolean {
-  const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
-}
+type ResendEvent = {
+  type: string;
+  data?: { email_id?: string };
+};
 
 export async function POST(request: Request) {
   const secret = process.env.RESEND_WEBHOOK_SECRET;
@@ -16,17 +15,19 @@ export async function POST(request: Request) {
   }
 
   const body = await request.text();
-  const signature = request.headers.get("svix-signature") ?? "";
+  const svixHeaders = {
+    "svix-id": request.headers.get("svix-id") ?? "",
+    "svix-timestamp": request.headers.get("svix-timestamp") ?? "",
+    "svix-signature": request.headers.get("svix-signature") ?? "",
+  };
 
-  // Resend uses Svix for webhooks — simplified verification
-  // In production, use the svix package for full verification
-  // For now, we accept and process
-
-  let event;
+  let event: ResendEvent;
   try {
-    event = JSON.parse(body);
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    const wh = new Webhook(secret);
+    event = wh.verify(body, svixHeaders) as ResendEvent;
+  } catch (err) {
+    console.error("[webhook/resend] Signature verification failed:", err);
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   const db = createAdminClient();
