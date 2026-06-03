@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     // Get all profiles
     const { data: profiles } = await supabase
       .from("user_profiles")
-      .select("target_language, language_variant, current_level, selected_agent_id")
+      .select("target_language, language_variant, current_level, selected_agent_id, xp_current, xp_total")
       .eq("user_id", user.id)
       .order("created_at");
 
@@ -31,14 +31,14 @@ export async function GET(request: Request) {
       .eq("id", user.id)
       .single();
 
-    // Streak — global row (for weekly goal setting)
+    // Streak — global row (has current_streak, weekly goal, weekly done)
     const { data: streakRow } = await supabase
       .from("streaks")
-      .select("weekly_minutes_goal")
+      .select("current_streak, weekly_minutes_goal, weekly_minutes_done, week_start")
       .eq("user_id", user.id)
       .single();
 
-    // Lessons filtered by language
+    // Recent lessons for display (limited to 5)
     const { data: lessons } = await supabase
       .from("lessons")
       .select("id, started_at, duration_seconds, topic, fluency_score, language")
@@ -47,6 +47,14 @@ export async function GET(request: Request) {
       .not("ended_at", "is", null)
       .order("started_at", { ascending: false })
       .limit(5);
+
+    // Aggregate: total minutes for this language (all time, no limit)
+    const { data: allLangLessons } = await supabase
+      .from("lessons")
+      .select("duration_seconds")
+      .eq("user_id", user.id)
+      .eq("language", activeLang)
+      .not("ended_at", "is", null);
 
     // Achievements
     const { data: achievements } = await supabase
@@ -63,43 +71,31 @@ export async function GET(request: Request) {
       .eq("user_id", user.id)
       .eq("language", activeLang);
 
-    const totalMinutes = (lessons ?? []).reduce(
+    // Total minutes from ALL lessons for this language (not limited to 5)
+    const totalMinutes = (allLangLessons ?? []).reduce(
       (sum: number, l: { duration_seconds: number | null }) => sum + Math.round((l.duration_seconds ?? 0) / 60), 0
     );
 
-    // Calculate streak and weekly minutes FROM lessons for this language
+    // Weekly minutes: query lessons from this week for this language
     const now = new Date();
     const mondayOffset = now.getDay() === 0 ? 6 : now.getDay() - 1;
     const monday = new Date(now); monday.setDate(monday.getDate() - mondayOffset);
-    const weekStartStr = monday.toISOString().split("T")[0];
+    monday.setHours(0, 0, 0, 0);
 
-    // Weekly minutes for this language
-    const weeklyMinutesLang = (lessons ?? [])
-      .filter((l: { started_at: string }) => l.started_at.split("T")[0] >= weekStartStr)
-      .reduce((sum: number, l: { duration_seconds: number | null }) => sum + Math.round((l.duration_seconds ?? 0) / 60), 0);
+    const { data: weekLessons } = await supabase
+      .from("lessons")
+      .select("duration_seconds")
+      .eq("user_id", user.id)
+      .eq("language", activeLang)
+      .not("ended_at", "is", null)
+      .gte("started_at", monday.toISOString());
 
-    // Streak for this language: count consecutive days with lessons
-    const lessonDates = [...new Set((lessons ?? []).map((l: { started_at: string }) => l.started_at.split("T")[0]))].sort().reverse();
-    let langStreak = 0;
-    const today = now.toISOString().split("T")[0];
-    const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
+    const weeklyMinutesLang = (weekLessons ?? []).reduce(
+      (sum: number, l: { duration_seconds: number | null }) => sum + Math.round((l.duration_seconds ?? 0) / 60), 0
+    );
 
-    // Start from today; if no lesson today, start from yesterday (streak still valid)
-    let checkDate = today;
-    if (lessonDates.length > 0 && lessonDates[0] !== today && lessonDates[0] === yesterdayStr) {
-      checkDate = yesterdayStr;
-    }
-    for (const d of lessonDates) {
-      if (d === checkDate) {
-        langStreak++;
-        const prev = new Date(checkDate);
-        prev.setDate(prev.getDate() - 1);
-        checkDate = prev.toISOString().split("T")[0];
-      } else if (d < checkDate) {
-        break;
-      }
-    }
+    // Streak from streaks table (maintained by lesson end logic)
+    const langStreak = streakRow?.current_streak ?? 0;
 
     // Check if first lesson ever (for feedback popup)
     const { count: totalLessonsCount } = await supabase
@@ -145,6 +141,8 @@ export async function GET(request: Request) {
       activeProfile: activeProfile ?? null,
       activeLang,
       currentLevel: activeProfile?.current_level ?? "A1",
+      xpCurrent: activeProfile?.xp_current ?? 0,
+      xpTotal: activeProfile?.xp_total ?? 0,
       currentStreak: langStreak,
       weeklyGoal: streakRow?.weekly_minutes_goal ?? 30,
       weeklyDone: weeklyMinutesLang,

@@ -41,3 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# local-only test pages (never deploy)
+src/app/(app)/lab/
+src/app/api/lab/
+src/app/api/dev/
+src/app/dev-login/

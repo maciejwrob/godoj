@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { saveOnboarding, type OnboardingData } from "./actions";
-import { createClient } from "@/lib/supabase/client";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,51 +13,40 @@ import { UILanguageToggle } from "@/components/ui-language-toggle";
 import { getLocalizedLevels, getLocalizedGoals, getLocalizedInterests } from "@/config/onboarding-data";
 import { useTranslation } from "@/lib/i18n";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 4;
 
 // -- Data definitions --
 
 type Language = {
   id: string;
-  name: string;
+  name: { pl: string; en: string };
   flag: string;
   active: boolean;
-  variants?: { id: string; name: string; flag: string }[];
+  variants?: { id: string; name: { pl: string; en: string }; flag: string }[];
 };
 
 const LANGUAGES: Language[] = [
-  { id: "no", name: "Norweski", flag: "\uD83C\uDDF3\uD83C\uDDF4", active: true },
-  { id: "fr", name: "Francuski", flag: "\uD83C\uDDEB\uD83C\uDDF7", active: true },
-  {
-    id: "es",
-    name: "Hiszpański",
-    flag: "\uD83C\uDDEA\uD83C\uDDF8",
-    active: true,
-    variants: [
-      { id: "european", name: "Europejski", flag: "\uD83C\uDDEA\uD83C\uDDF8" },
-      { id: "es-LATAM", name: "Latynoamerykański", flag: "\uD83C\uDDF2\uD83C\uDDFD" },
-    ],
-  },
+  { id: "no", name: { pl: "Norweski", en: "Norwegian" }, flag: "🇳🇴", active: true },
+  { id: "fr", name: { pl: "Francuski", en: "French" }, flag: "🇫🇷", active: true },
+  { id: "es", name: { pl: "Hiszpański", en: "Spanish" }, flag: "🇪🇸", active: true },
   {
     id: "en",
-    name: "Angielski",
-    flag: "\uD83C\uDDEC\uD83C\uDDE7",
+    name: { pl: "Angielski", en: "English" },
+    flag: "🇬🇧",
     active: true,
     variants: [
-      { id: "american", name: "Amerykański", flag: "\uD83C\uDDFA\uD83C\uDDF8" },
-      { id: "british", name: "Brytyjski", flag: "\uD83C\uDDEC\uD83C\uDDE7" },
+      { id: "american", name: { pl: "Amerykański", en: "American" }, flag: "🇺🇸" },
+      { id: "british", name: { pl: "Brytyjski", en: "British" }, flag: "🇬🇧" },
     ],
   },
-  { id: "it", name: "Włoski", flag: "\uD83C\uDDEE\uD83C\uDDF9", active: true },
-  { id: "sv", name: "Szwedzki", flag: "\uD83C\uDDF8\uD83C\uDDEA", active: true },
-  { id: "de", name: "Niemiecki", flag: "\uD83C\uDDE9\uD83C\uDDEA", active: true },
-  { id: "fi", name: "Fiński", flag: "\uD83C\uDDEB\uD83C\uDDEE", active: true },
-  { id: "ko", name: "Koreański 한국어", flag: "🇰🇷", active: true },
-  { id: "pt", name: "Portugalski", flag: "\uD83C\uDDF5\uD83C\uDDF9", active: false },
-  { id: "hu", name: "Węgierski", flag: "\uD83C\uDDED\uD83C\uDDFA", active: false },
+  { id: "it", name: { pl: "Włoski", en: "Italian" }, flag: "🇮🇹", active: true },
+  { id: "sv", name: { pl: "Szwedzki", en: "Swedish" }, flag: "🇸🇪", active: true },
+  { id: "de", name: { pl: "Niemiecki", en: "German" }, flag: "🇩🇪", active: true },
+  { id: "fi", name: { pl: "Fiński", en: "Finnish" }, flag: "🇫🇮", active: true },
+  { id: "ko", name: { pl: "Koreański 한국어", en: "Korean 한국어" }, flag: "🇰🇷", active: true },
+  { id: "pt", name: { pl: "Portugalski", en: "Portuguese" }, flag: "🇵🇹", active: false },
+  { id: "hu", name: { pl: "Węgierski", en: "Hungarian" }, flag: "🇭🇺", active: false },
 ];
-
-type TutorDef = { id: string; name: string; desc: string; lang: string };
 
 export default function OnboardingPage() {
   const { t, locale, setLocale } = useTranslation();
@@ -81,39 +69,8 @@ export default function OnboardingPage() {
   const [level, setLevel] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
-  const [tutor, setTutor] = useState<string | null>(null);
-  const [availableTutors, setAvailableTutors] = useState<TutorDef[]>([]);
 
   const selectedLanguage = LANGUAGES.find((l) => l.id === selectedLang);
-
-  // Load available tutors from agents_config when language/variant changes
-  useEffect(() => {
-    if (!selectedLang) return;
-    setTutor(null);
-    const supabase = createClient();
-    let query = supabase
-      .from("agents_config")
-      .select("id, voice_name, voice_description, language, variant")
-      .eq("language", selectedLang)
-      .eq("audience", "adult")
-      .eq("is_active", true);
-
-    // Filter by variant if one is selected (e.g. american, british)
-    if (selectedVariant) {
-      query = query.eq("variant", selectedVariant);
-    }
-
-    query.then(({ data }) => {
-      setAvailableTutors(
-        (data ?? []).map((a) => ({
-          id: a.id,
-          name: a.voice_name,
-          desc: a.voice_description ?? "",
-          lang: a.language,
-        }))
-      );
-    });
-  }, [selectedLang, selectedVariant]);
 
   const canProceed = () => {
     switch (step) {
@@ -127,8 +84,6 @@ export default function OnboardingPage() {
         return !!level;
       case 4: // Goals + Interests
         return goals.length >= 1 && interests.length >= 1;
-      case 5: // Tutor
-        return !!tutor;
       default:
         return false;
     }
@@ -188,7 +143,7 @@ export default function OnboardingPage() {
         preferredFrequency: "3-4x",
         preferredTime: "any",
         remindersEnabled: false,
-        selectedAgentId: tutor,
+        selectedAgentId: null,
         uiLanguage: locale,
       };
 
@@ -206,14 +161,12 @@ export default function OnboardingPage() {
     });
   };
 
-  const filteredTutors = availableTutors;
-
   if (waitlisted) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-md text-center space-y-6">
           <LogoFull size={40} />
-          <div className="text-5xl">🙏</div>
+          <div className="text-5xl">{"🙏"}</div>
           <h1 className="text-2xl font-bold">
             {locale === "pl" ? "Beta jest tymczasowo pełna" : "Beta is temporarily full"}
           </h1>
@@ -286,13 +239,6 @@ export default function OnboardingPage() {
               selectedInterests={interests}
               onToggleGoal={(id) => toggleMulti(id, goals, setGoals)}
               onToggleInterest={(id) => toggleMulti(id, interests, setInterests)}
-            />
-          )}
-          {step === 5 && (
-            <StepTutor
-              tutors={filteredTutors}
-              selected={tutor}
-              onSelect={setTutor}
             />
           )}
         </div>
@@ -383,7 +329,7 @@ function StepLanguage({
   onSelect: (l: Language) => void;
   onVariant: (v: string) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   return (
     <div>
       <h2 className="mb-2 text-2xl font-bold">{t("targetLangQuestion")}</h2>
@@ -404,7 +350,7 @@ function StepLanguage({
             }`}
           >
             <span className="text-2xl">{lang.flag}</span>
-            <span className="font-medium">{lang.name}</span>
+            <span className="font-medium">{lang.name[locale]}</span>
             {!lang.active && (
               <span className="absolute right-2 top-2 rounded-full bg-bg-card-hover px-2 py-0.5 text-[10px] text-text-secondary">
                 {t("comingSoon")}
@@ -429,7 +375,7 @@ function StepLanguage({
                 }`}
               >
                 <span className="text-xl">{v.flag}</span>
-                <span className="font-medium">{v.name}</span>
+                <span className="font-medium">{v.name[locale]}</span>
               </button>
             ))}
           </div>
@@ -448,7 +394,7 @@ function StepLevel({
   selected: string;
   onSelect: (id: string) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   return (
     <div>
       <h2 className="mb-2 text-2xl font-bold">{t("levelQuestion")}</h2>
@@ -477,7 +423,7 @@ function StepLevel({
       </div>
 
       <p className="mt-4 text-center text-xs text-text-secondary">
-        Nie martw się — AI dostosuje poziom automatycznie w trakcie rozmów
+        {locale === "pl" ? "Nie martw się — AI dostosuje poziom automatycznie w trakcie rozmów" : "Don't worry — AI will adjust the level automatically during conversations"}
       </p>
     </div>
   );
@@ -544,61 +490,6 @@ function StepGoalsAndInterests({
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-function StepTutor({
-  tutors,
-  selected,
-  onSelect,
-}: {
-  tutors: TutorDef[];
-  selected: string | null;
-  onSelect: (id: string) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div>
-      <h2 className="mb-2 text-2xl font-bold">{t("chooseTutor")}</h2>
-      <p className="mb-6 text-text-secondary">
-        {t("chooseTutorHint")}
-      </p>
-
-      <div className="space-y-3">
-        {tutors.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => onSelect(t.id)}
-            className={`flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-all ${
-              selected === t.id
-                ? "border-primary bg-primary/10"
-                : "border-border bg-bg-card hover:border-primary/50"
-            }`}
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/20 text-lg font-bold text-primary">
-              {t.name[0]}
-            </div>
-            <div className="flex-1">
-              <div className="font-medium">{t.name}</div>
-              <div className="text-sm text-text-secondary">{t.desc}</div>
-            </div>
-            {selected === t.id && (
-              <Check className="h-5 w-5 text-primary" />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {tutors.length === 0 && (
-        <div className="rounded-xl border border-border bg-bg-card p-6 text-center text-text-secondary">
-          {t("tutorsComingSoon")}
-        </div>
-      )}
-
-      <p className="mt-4 text-center text-xs text-text-secondary">
-        {t("changeTutorLater")}
-      </p>
     </div>
   );
 }

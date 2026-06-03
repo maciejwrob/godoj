@@ -96,7 +96,7 @@ function WordCard({
   word: VocabularyWord;
   language: string;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   return (
     <div className="rounded-xl border border-border bg-bg-card p-4 transition-colors hover:bg-bg-card-hover">
       <div className="flex items-start justify-between gap-3">
@@ -132,7 +132,7 @@ function WordCard({
         {word.last_seen_at && (
           <span className="text-xs text-text-secondary">
             {t("lastSeen")}:{" "}
-            {new Date(word.last_seen_at).toLocaleDateString("pl-PL")}
+            {new Date(word.last_seen_at).toLocaleDateString(locale === "pl" ? "pl-PL" : "en-US")}
           </span>
         )}
       </div>
@@ -156,7 +156,7 @@ function MasteryGroupHeader({ level, count }: { level: number; count: number }) 
     <h3 className="mb-3 mt-6 flex items-center gap-2 text-sm font-semibold text-text-secondary first:mt-0">
       <MasteryBar level={level} />
       <span>
-        {labels[level] ?? `Poziom ${level}`} ({count})
+        {labels[level] ?? `${t("level")} ${level}`} ({count})
       </span>
     </h3>
   );
@@ -198,7 +198,7 @@ export default function VocabularyClient({
         w.translation.toLowerCase().includes(q) ||
         (w.context_sentence?.toLowerCase().includes(q) ?? false)
     );
-  }, [words, search]);
+  }, [langWords, search]);
 
   // Sort
   const sorted = useMemo(() => {

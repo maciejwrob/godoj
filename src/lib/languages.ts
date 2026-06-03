@@ -12,18 +12,18 @@ export const LANG_FLAGS: Record<string, string> = {
   ko: "\uD83C\uDDF0\uD83C\uDDF7",
 };
 
-export const LANG_NAMES: Record<string, string> = {
-  no: "Norweski",
-  fr: "Francuski",
-  es: "Hiszpański",
-  en: "Angielski",
-  it: "Włoski",
-  sv: "Szwedzki",
-  de: "Niemiecki",
-  fi: "Fiński",
-  pt: "Portugalski",
-  hu: "Węgierski",
-  ko: "Koreański",
+export const LANG_NAMES: Record<string, Record<string, string>> = {
+  no: { pl: "Norweski", en: "Norwegian" },
+  fr: { pl: "Francuski", en: "French" },
+  es: { pl: "Hiszpański", en: "Spanish" },
+  en: { pl: "Angielski", en: "English" },
+  it: { pl: "Włoski", en: "Italian" },
+  sv: { pl: "Szwedzki", en: "Swedish" },
+  de: { pl: "Niemiecki", en: "German" },
+  fi: { pl: "Fiński", en: "Finnish" },
+  pt: { pl: "Portugalski", en: "Portuguese" },
+  hu: { pl: "Węgierski", en: "Hungarian" },
+  ko: { pl: "Koreański", en: "Korean" },
 };
 
 export const VARIANT_FLAGS: Record<string, string> = {
@@ -42,6 +42,8 @@ export function getLangFlag(lang: string, variant?: string | null): string {
   return LANG_FLAGS[lang] ?? "";
 }
 
-export function getLangName(lang: string): string {
-  return LANG_NAMES[lang] ?? lang;
+export function getLangName(lang: string, locale?: string): string {
+  const names = LANG_NAMES[lang];
+  if (!names) return lang;
+  return names[locale ?? "pl"] ?? names.pl ?? lang;
 }

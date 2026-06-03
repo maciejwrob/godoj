@@ -55,7 +55,17 @@ export async function POST(request: Request) {
     };
     const langName = langNames[lesson.language] ?? lesson.language;
 
+    // Count user messages in transcript for quality assessment
+    const userMsgCount = (transcript || "").split('\n').filter((line: string) => line.match(/^(User|Student|Uczeń|You):/i)).length;
+    const durationMin = Math.round(duration_seconds / 60);
+    const isTooShort = duration_seconds < 60 || userMsgCount < 2;
+
     // Analyze transcript via Claude
+    const CEFR_ORDER = ["A1", "A2", "B1", "B2", "C1"];
+    const currentIdx = CEFR_ORDER.indexOf(lesson.level_at_start);
+    const nextLevel = currentIdx < CEFR_ORDER.length - 1 ? CEFR_ORDER[currentIdx + 1] : lesson.level_at_start;
+    const prevLevel = currentIdx > 0 ? CEFR_ORDER[currentIdx - 1] : lesson.level_at_start;
+
     const analysisResponse = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1000,
@@ -68,13 +78,32 @@ ${isPolish ? 'Write ALL text outputs (summary, reasoning, translations) in Polis
 
 Language studied: ${langName}
 Student level: ${lesson.level_at_start}
-Duration: ${Math.round(duration_seconds / 60)} minutes
+Duration: ${durationMin} minutes
+Number of student utterances: ${userMsgCount}
 Transcript:
 ${transcript || "No transcript"}
 
+${isTooShort ? `IMPORTANT: This lesson was very short (${durationMin} min, ${userMsgCount} student messages). Set fluency_score to null — there is not enough data to assess fluency. In summary, encourage the student to try a longer conversation next time.` : ''}
+
+FLUENCY SCORING RUBRIC (be strict and consistent):
+- 1.0-1.5: Cannot form basic sentences, mostly unintelligible
+- 2.0-2.5: Fragments only, major grammar errors, very limited vocabulary
+- 3.0-3.5: Can form basic sentences with errors, limited but functional vocabulary for the level
+- 4.0-4.5: Good sentence structure, minor errors, vocabulary appropriate for level, natural flow
+- 5.0: Near-native fluency for the level, complex structures, natural conversation flow
+
+IMPORTANT: Score relative to the student's CURRENT level (${lesson.level_at_start}). An A1 student using basic phrases correctly = 3.5-4.0. Don't inflate scores — a score of 4.5+ means truly exceptional performance for their level.
+
+LEVEL ASSESSMENT RULES:
+- You can ONLY recommend: "${lesson.level_at_start}" (stay), "${nextLevel}" (up one), or "${prevLevel}" (down one)
+- Recommend UP only if: student consistently uses structures ABOVE their current level, vocabulary is rich, and they show comfort with complexity beyond ${lesson.level_at_start}
+- Recommend DOWN only if: student clearly struggles with basics of ${lesson.level_at_start}
+- When in doubt, recommend staying at "${lesson.level_at_start}" — this is the safe default
+- A single good lesson is NOT enough to recommend promotion. Be conservative.
+
 Prepare the analysis in JSON format (no markdown, raw JSON only):
 {
-  "fluency_score": (1.0-5.0, based on fluency and complexity of utterances),
+  "fluency_score": ${isTooShort ? 'null' : '(1.0-5.0, following the rubric above strictly)'},
   "topics_covered": ["topic1", "topic2"],
   "new_vocabulary": [
     {"word": "word in target language", "translation": "translation in ${isPolish ? 'Polish' : 'English'}", "context": "sentence from conversation"}
@@ -82,7 +111,7 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
   "struggled_phrases": ["Specific structure/word with CORRECT form + translation in ${isPolish ? 'Polish' : 'English'}. Do NOT copy raw transcript. E.g.: 'It makes it difficult — make + object + adjective structure'"],
   "level_assessment": {
     "current": "${lesson.level_at_start}",
-    "recommended": "${lesson.level_at_start}" or higher/lower if justified,
+    "recommended": "${lesson.level_at_start}" or "${nextLevel}" or "${prevLevel}",
     "reasoning": "brief explanation in ${isPolish ? 'Polish' : 'English'}"
   },
   "summary_pl": "2-3 sentences in ${isPolish ? 'Polish' : 'English'}: what the user did well and what to work on",
@@ -117,6 +146,37 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
       };
     }
 
+    // ── XP Calculation ──
+    const XP_THRESHOLDS: Record<string, number> = {
+      A1: 500,   // A1 → A2
+      A2: 1000,  // A2 → B1
+      B1: 1500,  // B1 → B2
+      B2: 2000,  // B2 → C1
+      C1: 9999,  // max level
+    };
+
+    const fluencyForXP = summary.fluency_score ?? 0;
+    const newWordsCount = summary.new_vocabulary?.length ?? 0;
+    const currentStrk = (await supabase.from("streaks").select("current_streak").eq("user_id", user.id).single()).data?.current_streak ?? 0;
+
+    const xpBase = Math.max(1, durationMin) * 5;          // 5 XP per minute
+    const xpFluency = Math.round(fluencyForXP * 10);      // up to 50 XP
+    const xpVocab = newWordsCount * 5;                     // 5 XP per new word
+    const xpStreak = currentStrk >= 3 ? 10 : 0;           // streak bonus
+    const xpEarned = xpBase + xpFluency + xpVocab + xpStreak;
+
+    // ── Level progression logic ──
+    const recommendedLevel = summary.level_assessment?.recommended;
+    // Clamp recommendation to ±1 level (safety net)
+    const CEFR_MAP: Record<string, number> = { A1: 0, A2: 1, B1: 2, B2: 3, C1: 4 };
+    const CEFR_REVERSE = ["A1", "A2", "B1", "B2", "C1"];
+    let clampedRecommendation = lesson.level_at_start;
+    if (recommendedLevel && CEFR_MAP[recommendedLevel] !== undefined) {
+      const diff = CEFR_MAP[recommendedLevel] - CEFR_MAP[lesson.level_at_start];
+      const clampedIdx = CEFR_MAP[lesson.level_at_start] + Math.max(-1, Math.min(1, diff));
+      clampedRecommendation = CEFR_REVERSE[Math.max(0, Math.min(4, clampedIdx))];
+    }
+
     // Update lesson record
     await supabase
       .from("lessons")
@@ -126,18 +186,69 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
         fluency_score: summary.fluency_score,
         summary_json: summary,
         transcript: transcript || null,
-        level_at_end: summary.level_assessment?.recommended ?? lesson.level_at_start,
+        level_at_end: lesson.level_at_start, // stays same until XP-gated promotion
+        level_recommended: clampedRecommendation,
+        xp_earned: xpEarned,
       })
       .eq("id", lesson_id);
 
-    // Update level if changed
-    const recommendedLevel = summary.level_assessment?.recommended;
-    if (recommendedLevel && recommendedLevel !== lesson.level_at_start) {
-      await supabase
-        .from("user_profiles")
-        .update({ current_level: recommendedLevel })
+    // ── Check if level should change (XP threshold + consistent recommendations) ──
+    const { data: currentProfile } = await supabase
+      .from("user_profiles")
+      .select("current_level, xp_current, xp_total")
+      .eq("user_id", user.id)
+      .eq("target_language", lesson.language)
+      .single();
+
+    const profileXP = (currentProfile?.xp_current ?? 0) + xpEarned;
+    const profileXPTotal = (currentProfile?.xp_total ?? 0) + xpEarned;
+    const xpThreshold = XP_THRESHOLDS[lesson.level_at_start] ?? 9999;
+
+    let newLevel = lesson.level_at_start;
+    let resetXP = false;
+
+    if (clampedRecommendation !== lesson.level_at_start && profileXP >= xpThreshold) {
+      // Check last 3 lessons for consistent recommendations
+      const { data: recentLessons } = await supabase
+        .from("lessons")
+        .select("level_recommended")
         .eq("user_id", user.id)
-        .eq("target_language", lesson.language);
+        .eq("language", lesson.language)
+        .order("started_at", { ascending: false })
+        .limit(3);
+
+      const recommendations = (recentLessons ?? []).map(l => l.level_recommended).filter(Boolean);
+      const upVotes = recommendations.filter(r => r === clampedRecommendation).length;
+
+      // Promotion: need 2 of last 3 lessons recommending higher level + XP threshold met
+      if (clampedRecommendation > lesson.level_at_start && upVotes >= 2) {
+        newLevel = clampedRecommendation;
+        resetXP = true;
+        console.log(`[XP] Level UP: ${lesson.level_at_start} → ${newLevel} (XP: ${profileXP}/${xpThreshold}, votes: ${upVotes}/3)`);
+      }
+      // Demotion: need 3 of last 3 lessons recommending lower level (stricter)
+      else if (clampedRecommendation < lesson.level_at_start && upVotes >= 3) {
+        newLevel = clampedRecommendation;
+        resetXP = true;
+        console.log(`[XP] Level DOWN: ${lesson.level_at_start} → ${newLevel} (votes: ${upVotes}/3)`);
+      }
+    }
+
+    // Update profile XP and level
+    await supabase
+      .from("user_profiles")
+      .update({
+        current_level: newLevel,
+        xp_current: resetXP ? 0 : profileXP,
+        xp_total: profileXPTotal,
+        ...(resetXP ? { level_confirmed_at: new Date().toISOString() } : {}),
+      })
+      .eq("user_id", user.id)
+      .eq("target_language", lesson.language);
+
+    // Update lesson's level_at_end if level actually changed
+    if (newLevel !== lesson.level_at_start) {
+      await supabase.from("lessons").update({ level_at_end: newLevel }).eq("id", lesson_id);
     }
 
     // Add vocabulary (deduplicate — increment times_used if exists)
@@ -242,7 +353,17 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
       });
     }
 
-    return NextResponse.json({ summary });
+    return NextResponse.json({
+      summary,
+      xp: {
+        earned: xpEarned,
+        current: resetXP ? 0 : profileXP,
+        total: profileXPTotal,
+        threshold: xpThreshold,
+        levelChanged: newLevel !== lesson.level_at_start,
+        newLevel,
+      },
+    });
   } catch (error) {
     console.error("End lesson error:", error);
     return NextResponse.json(

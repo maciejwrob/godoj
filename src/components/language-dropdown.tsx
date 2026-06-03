@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { useLanguage, type LangProfile } from "@/lib/language-context";
 import { getLangFlag, getLangName } from "@/lib/languages";
 import { AddLanguageModal } from "./add-language-modal";
+import { useTranslation } from "@/lib/i18n";
 
 export function LanguageDropdown({ languages }: { languages: LangProfile[] }) {
   const { language, switchLanguage } = useLanguage();
+  const { t, locale } = useTranslation();
   const [open, setOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -25,8 +27,8 @@ export function LanguageDropdown({ languages }: { languages: LangProfile[] }) {
         <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-2.5 rounded-xl px-4 py-2.5 text-left hover:bg-white/5 transition-colors">
           <span className="text-lg">{getLangFlag(current?.target_language ?? "", current?.language_variant)}</span>
           <div className="flex-1 min-w-0">
-            <span className="text-sm font-bold text-white truncate block">{getLangName(current?.target_language ?? "")}</span>
-            <span className="text-[10px] text-slate-500">Poziom {current?.current_level ?? "A1"}</span>
+            <span className="text-sm font-bold text-white truncate block">{getLangName(current?.target_language ?? "", locale)}</span>
+            <span className="text-[10px] text-slate-500">{t("level")} {current?.current_level ?? "A1"}</span>
           </div>
           <span className="material-symbols-outlined text-sm text-slate-500">{open ? "expand_less" : "expand_more"}</span>
         </button>
@@ -39,14 +41,14 @@ export function LanguageDropdown({ languages }: { languages: LangProfile[] }) {
                   l.target_language === language ? "bg-godoj-blue/10 text-godoj-blue" : "text-slate-300 hover:bg-white/5"
                 }`}>
                 <span>{getLangFlag(l.target_language, l.language_variant)}</span>
-                <span className="font-medium">{getLangName(l.target_language)}</span>
+                <span className="font-medium">{getLangName(l.target_language, locale)}</span>
                 <span className="ml-auto text-[10px] text-slate-500">{l.current_level}</span>
               </button>
             ))}
             <div className="mt-1 border-t border-white/5 pt-1">
               <button onClick={() => { setOpen(false); setModalOpen(true); }}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-primary hover:bg-primary/5">
-                <span className="material-symbols-outlined text-sm">add</span>Dodaj język
+                <span className="material-symbols-outlined text-sm">add</span>{t("addLanguage")}
               </button>
             </div>
           </div>

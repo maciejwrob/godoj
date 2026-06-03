@@ -37,7 +37,7 @@ type DashboardData = {
 
 export default function DashboardPage() {
   const { language: activeLang, ready } = useLanguage();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDuration, setSelectedDuration] = useState(5);
@@ -112,12 +112,12 @@ export default function DashboardPage() {
             <h2 className="text-3xl font-extrabold tracking-tight text-white lg:text-4xl">{t("greeting")}, {displayName}!</h2>
             <p className="mt-1 flex items-center gap-2 text-on-surface-variant">
               <span>{getLangFlag(activeLang, activeVariant)}</span>
-              {getLangName(activeLang)} · Poziom {currentLevel}
+              {getLangName(activeLang, locale)} · {t("level")} {currentLevel}
             </p>
           </div>
           {/* Compact usage limits — top right */}
           {trialUsage && (
-            <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-surface-container px-3 py-2">
+            <Link href="/settings/limits" className="group/limits flex items-center gap-3 rounded-xl border border-white/5 bg-surface-container px-3 py-2 hover:border-primary/30 transition-colors">
               {trialUsage.unlimited ? (
                 <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
                   <span className="material-symbols-outlined text-sm">diamond</span>
@@ -126,23 +126,24 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-on-surface-variant">Dziś</span>
+                    <span className="text-[11px] text-on-surface-variant">{t("today")}</span>
                     <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
                       <div className={`h-full rounded-full ${trialUsage.todayMinutes >= trialUsage.dailyLimit ? "bg-red-500" : trialUsage.todayMinutes >= trialUsage.dailyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.todayMinutes / trialUsage.dailyLimit) * 100)}%` }} />
                     </div>
-                    <span className="text-[11px] font-medium text-white tabular-nums">{trialUsage.todayMinutes}/{trialUsage.dailyLimit}</span>
+                    <span className="text-[11px] font-medium text-white tabular-nums">{trialUsage.todayMinutes}/{trialUsage.dailyLimit} min</span>
                   </div>
                   <div className="w-px h-4 bg-white/10" />
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-on-surface-variant">Mies.</span>
+                    <span className="text-[11px] text-on-surface-variant">{t("month")}</span>
                     <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
                       <div className={`h-full rounded-full ${trialUsage.monthMinutes >= trialUsage.monthlyLimit ? "bg-red-500" : trialUsage.monthMinutes >= trialUsage.monthlyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.monthMinutes / trialUsage.monthlyLimit) * 100)}%` }} />
                     </div>
-                    <span className="text-[11px] font-medium text-white tabular-nums">{trialUsage.monthMinutes}/{trialUsage.monthlyLimit}</span>
+                    <span className="text-[11px] font-medium text-white tabular-nums">{trialUsage.monthMinutes}/{trialUsage.monthlyLimit} min</span>
                   </div>
+                  <span className="text-[10px] text-slate-600 group-hover/limits:text-primary transition-colors">ⓘ</span>
                 </>
               )}
-            </div>
+            </Link>
           )}
         </section>
 
@@ -155,7 +156,7 @@ export default function DashboardPage() {
             <div className="relative z-10 w-full lg:w-3/5 p-8 lg:p-10 flex flex-col justify-between">
               <div>
                 <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-lg text-xs font-bold text-white mb-4 lg:mb-6 uppercase tracking-wider">
-                  {getLangFlag(activeLang, activeVariant)} {getLangName(activeLang)}
+                  {getLangFlag(activeLang, activeVariant)} {getLangName(activeLang, locale)}
                 </span>
                 <h3 className="text-3xl lg:text-5xl font-black text-white mb-3 leading-tight">{t("startLesson")}</h3>
                 <p className="text-white/80 max-w-sm lg:text-lg">{t("talkToAI")}</p>
@@ -191,7 +192,7 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined text-tertiary" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
               </div>
               <div>
-                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">{t("streak")}</p>
+                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider truncate">{t("streak")}</p>
                 <h4 className="text-2xl lg:text-3xl font-black text-white">{currentStreak} <span className="text-sm font-medium text-slate-500">{t("days")}</span></h4>
               </div>
             </div>
@@ -200,7 +201,7 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined text-secondary">timer</span>
               </div>
               <div>
-                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">{t("week")}</p>
+                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider truncate">{t("week")}</p>
                 <h4 className="text-2xl lg:text-3xl font-black text-white">{weeklyDone}/{weeklyGoal} <span className="text-sm font-medium text-slate-500">{t("min")}</span></h4>
                 <div className="w-full h-1.5 bg-surface-variant rounded-full mt-2 overflow-hidden">
                   <div className="bg-secondary h-full transition-all" style={{ width: `${weeklyPct}%` }} />
@@ -212,8 +213,15 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined text-primary">school</span>
               </div>
               <div>
-                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">{t("levelLabel")}</p>
+                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider truncate">{t("levelLabel")}</p>
                 <h4 className="text-2xl lg:text-3xl font-black text-white">{currentLevel}</h4>
+                {currentLevel !== "C1" && (data as DashboardData & { xpCurrent?: number; xpTotal?: number }).xpCurrent !== undefined && (
+                  <div className="mt-2 w-full">
+                    <div className="h-1.5 w-full rounded-full bg-white/10">
+                      <div className="h-1.5 rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, Math.round(((data as DashboardData & { xpCurrent?: number }).xpCurrent ?? 0) / ({ A1: 500, A2: 1000, B1: 1500, B2: 2000, C1: 9999 }[currentLevel] ?? 9999) * 100))}%` }} />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="card-hover rounded-[2rem] border border-white/5 bg-surface-container-high p-5 lg:p-6 flex flex-col justify-between">
@@ -221,7 +229,7 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined text-purple-400">menu_book</span>
               </div>
               <div>
-                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">{t("vocabularyLabel")}</p>
+                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider truncate">{t("vocabularyLabel")}</p>
                 <h4 className="text-2xl lg:text-3xl font-black text-white">{vocabCount}</h4>
               </div>
             </div>
@@ -257,8 +265,8 @@ export default function DashboardPage() {
                       <div key={ua.achievement_id} className="flex items-center gap-4 rounded-2xl border border-white/5 bg-surface-container-high p-4">
                         <BadgeIcon achievementId={ua.achievement_id} emoji={ach?.icon ?? ""} size={48} earned={true} />
                         <div>
-                          <p className="font-bold text-white">{ach?.name_pl}</p>
-                          <p className="text-xs text-slate-500">{new Date(ua.earned_at).toLocaleDateString("pl-PL")}</p>
+                          <p className="font-bold text-white">{locale === "en" && ach?.name_en ? ach.name_en : ach?.name_pl}</p>
+                          <p className="text-xs text-slate-500">{new Date(ua.earned_at).toLocaleDateString(locale === "pl" ? "pl-PL" : "en-US")}</p>
                         </div>
                       </div>
                     );
@@ -270,9 +278,9 @@ export default function DashboardPage() {
 
           {/* Lessons */}
           <section className="col-span-12 lg:col-span-7 space-y-4">
-            <div className="flex justify-between items-center px-2">
-              <h3 className="text-xl font-bold text-white">{t("recentLessons")}</h3>
-              <Link href="/progress" className="text-sm text-primary font-medium hover:underline">{t("lessonHistory")}</Link>
+            <div className="flex justify-between items-center gap-2 px-2">
+              <h3 className="text-xl font-bold text-white truncate">{t("recentLessons")}</h3>
+              <Link href="/progress" className="shrink-0 text-sm text-primary font-medium hover:underline">{t("lessonHistory")}</Link>
             </div>
             <div className="bg-surface-container-low rounded-[2rem] overflow-hidden border border-white/5">
               {lessons.length === 0 ? (
@@ -291,8 +299,8 @@ export default function DashboardPage() {
                             <span className="material-symbols-outlined">chat_bubble</span>
                           </div>
                           <div>
-                            <h5 className="text-white font-bold">{lesson.language ? getLangFlag(lesson.language) + " " : ""}{lesson.topic ?? "Rozmowa"}</h5>
-                            <p className="text-slate-500 text-xs">{new Date(lesson.started_at).toLocaleDateString("pl-PL")} · {lesson.duration_seconds ? `${Math.round(lesson.duration_seconds / 60)} min` : "--"}</p>
+                            <h5 className="text-white font-bold">{lesson.language ? getLangFlag(lesson.language) + " " : ""}{lesson.topic ?? t("conversation")}</h5>
+                            <p className="text-slate-500 text-xs">{new Date(lesson.started_at).toLocaleDateString(locale === "pl" ? "pl-PL" : "en-US")} · {lesson.duration_seconds ? `${Math.round(lesson.duration_seconds / 60)} min` : "--"}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -309,7 +317,7 @@ export default function DashboardPage() {
                     ))}
                   </div>
                   <div className="p-4 bg-surface-container-highest/30 flex justify-center">
-                    <Link href="/progress" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-white transition-colors">ZALADUJ WIECEJ</Link>
+                    <Link href="/progress" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-white transition-colors">{t("loadMore")}</Link>
                   </div>
                 </>
               )}

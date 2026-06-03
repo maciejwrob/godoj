@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { User, BookOpen, Target, LogOut, Save, Loader2 } from "lucide-react";
+import { User, BookOpen, LogOut, Save, Loader2 } from "lucide-react";
 import { ChildrenSection } from "@/components/kids/children-section";
 import { clearActiveChild } from "@/lib/kids";
 import { useTranslation } from "@/lib/i18n";
@@ -17,19 +17,6 @@ const NATIVE_LANGUAGES = [
 
 const DURATIONS = [5, 10];
 
-const FREQUENCIES = [
-  { id: "daily", label: "Codziennie" },
-  { id: "3-4x", label: "3-4x w tygodniu" },
-  { id: "2-3x", label: "2-3x w tygodniu" },
-  { id: "1x", label: "Raz w tygodniu" },
-];
-
-const TIMES = [
-  { id: "morning", label: "Rano" },
-  { id: "day", label: "W ciagu dnia" },
-  { id: "evening", label: "Wieczorem" },
-  { id: "any", label: "Bez preferencji" },
-];
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -52,12 +39,7 @@ export default function SettingsPage() {
   // Learning
   const [currentLevel, setCurrentLevel] = useState("A1");
   const [preferredDuration, setPreferredDuration] = useState(10);
-  const [preferredFrequency, setPreferredFrequency] = useState("3-4x");
-  const [preferredTime, setPreferredTime] = useState("any");
   const [reminders, setReminders] = useState(false);
-
-  // Weekly goal
-  const [weeklyMinutesGoal, setWeeklyMinutesGoal] = useState(30);
 
   useEffect(() => {
     async function fetchData() {
@@ -84,22 +66,12 @@ export default function SettingsPage() {
           .eq("id", user.id)
           .single();
 
-        // Fetch streak data
-        const { data: streak } = await supabase
-          .from("streaks")
-          .select("weekly_minutes_goal")
-          .eq("user_id", user.id)
-          .single();
-
         setDisplayName(userData?.display_name ?? "");
         setNativeLanguage(userData?.native_language ?? "pl");
         setUiLanguage(userData?.ui_language ?? "en");
         setCurrentLevel(profile?.current_level ?? "A1");
         setPreferredDuration(profile?.preferred_duration_min ?? 10);
-        setPreferredFrequency(profile?.preferred_frequency ?? "3-4x");
-        setPreferredTime(profile?.preferred_time ?? "any");
         setReminders(profile?.reminders_enabled ?? false);
-        setWeeklyMinutesGoal(streak?.weekly_minutes_goal ?? 30);
       } catch (err) {
         console.error("Settings fetch error:", err);
         setError("Nie udało się załadować ustawień");
@@ -126,10 +98,7 @@ export default function SettingsPage() {
           native_language: nativeLanguage,
           ui_language: uiLanguage,
           preferred_duration_min: preferredDuration,
-          preferred_frequency: preferredFrequency,
-          preferred_time: preferredTime,
           reminders_enabled: reminders,
-          weekly_minutes_goal: weeklyMinutesGoal,
         }),
       });
 
@@ -248,7 +217,7 @@ export default function SettingsPage() {
               {t("currentLevel")}
             </label>
             <div className="rounded-lg border border-border bg-bg-dark px-3 py-2 text-text-secondary opacity-60">
-              {currentLevel} — zmienia sie automatycznie
+              {currentLevel} — {t("levelAutoAdjusts")}
             </div>
           </div>
 
@@ -270,42 +239,6 @@ export default function SettingsPage() {
             </select>
           </div>
 
-          {/* Czestotliwosc */}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-text-secondary">
-              {t("frequency")}
-            </label>
-            <select
-              value={preferredFrequency}
-              onChange={(e) => setPreferredFrequency(e.target.value)}
-              className="w-full rounded-lg border border-border bg-bg-dark px-3 py-2 text-text-primary outline-none transition-colors focus:border-primary"
-            >
-              {FREQUENCIES.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Pora dnia */}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-text-secondary">
-              {t("timeOfDay")}
-            </label>
-            <select
-              value={preferredTime}
-              onChange={(e) => setPreferredTime(e.target.value)}
-              className="w-full rounded-lg border border-border bg-bg-dark px-3 py-2 text-text-primary outline-none transition-colors focus:border-primary"
-            >
-              {TIMES.map((timeOpt) => (
-                <option key={timeOpt.id} value={timeOpt.id}>
-                  {timeOpt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Przypomnienia */}
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-text-secondary">
@@ -313,45 +246,16 @@ export default function SettingsPage() {
             </label>
             <button
               onClick={() => setReminders(!reminders)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${
+              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${
                 reminders ? "bg-primary" : "bg-bg-card-hover"
               }`}
             >
               <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                  reminders ? "translate-x-5.5" : "translate-x-0.5"
-                }`}
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  reminders ? "translate-x-[22px]" : "translate-x-[2px]"
+                } mt-[2px]`}
               />
             </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Cel tygodniowy */}
-      <section className="mb-6 rounded-2xl border border-border bg-bg-card p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <Target className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-text-primary">
-            {t("weeklyGoalSetting")}
-          </h2>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-secondary">
-            {weeklyMinutesGoal} minut / tydzien
-          </label>
-          <input
-            type="range"
-            min={10}
-            max={120}
-            step={5}
-            value={weeklyMinutesGoal}
-            onChange={(e) => setWeeklyMinutesGoal(Number(e.target.value))}
-            className="w-full accent-primary"
-          />
-          <div className="mt-1 flex justify-between text-xs text-text-secondary">
-            <span>10 min</span>
-            <span>120 min</span>
           </div>
         </div>
       </section>
@@ -382,7 +286,7 @@ export default function SettingsPage() {
       )}
       {success && (
         <div className="mb-4 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400">
-          Ustawienia zapisane
+          {t("settingsSaved")}
         </div>
       )}
 

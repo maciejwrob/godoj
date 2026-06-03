@@ -256,7 +256,7 @@ export default function LessonPage() {
     onStatusChange: (prop: { status: string }) => { dbg(`Status: ${prop.status}`); },
     onError: (message: string) => {
       console.error("Conversation error:", message);
-      if (lessonState !== "ending") { setError("Utracono polaczenie. " + message); setLessonState("error"); logError("/lesson", "Conversation error: " + message, { step: "onError", agentId: profileRef.current.agentId }); }
+      if (lessonState !== "ending") { setError(t("connectionLost") + " " + message); setLessonState("error"); logError("/lesson", "Conversation error: " + message, { step: "onError", agentId: profileRef.current.agentId }); }
     },
   });
 
@@ -491,13 +491,13 @@ export default function LessonPage() {
         <div className="text-5xl">{limitError.type === "daily" ? "🎙️" : "📊"}</div>
         <h1 className="text-xl font-bold">
           {limitError.type === "daily"
-            ? `Wyczerpałeś dzisiejszy limit (${limitError.limit} min)`
-            : `Wykorzystałeś miesięczny limit beta (${limitError.limit} min)`}
+            ? `${t("dailyLimitTitle")} (${limitError.limit} min)`
+            : `${t("monthlyLimitTitle")} (${limitError.limit} min)`}
         </h1>
         <p className="text-on-surface-variant">
           {limitError.type === "daily"
-            ? "Wróć jutro — agent czeka! 🎙️"
-            : "Daj mi znać, jak chcesz więcej:"}
+            ? t("comeBackTomorrow")
+            : t("wantMoreContact")}
         </p>
         {limitError.type === "monthly" && (
           <a href="mailto:maciej@godoj.co" className="text-primary font-medium">maciej@godoj.co — Maciek</a>
@@ -536,14 +536,14 @@ export default function LessonPage() {
         <div className="hidden sm:block"><TutorAvatar agentId={agentId} size={160} /></div>
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold">{agentName}</h1>
-          <p className="mt-1 text-sm sm:text-base text-on-surface-variant">{languageName} · Poziom {level}</p>
+          <p className="mt-1 text-sm sm:text-base text-on-surface-variant">{langCtx.languageName || languageName} · {t("level")} {level}</p>
         </div>
         <div className="rounded-2xl border border-white/5 bg-surface-container-high p-4 sm:p-6 text-left">
           <div className="text-sm text-on-surface-variant">{t("topicOfDay")}</div>
           <div className="mt-2 text-base sm:text-lg font-bold leading-snug">{topic}</div>
           <button onClick={refreshTopic} className="mt-3 inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-primary transition-colors">
             <RefreshCw className="h-3 w-3" />
-            Inny temat
+            {t("otherTopic")}
           </button>
         </div>
         <div>
@@ -604,7 +604,7 @@ export default function LessonPage() {
           </button>
           <div className="hidden sm:block">
             <h2 className="text-sm font-extrabold text-white leading-tight">{topic}</h2>
-            <p className="text-[10px] text-on-surface-variant">{agentName} · {languageName}</p>
+            <p className="text-[10px] text-on-surface-variant">{agentName} · {langCtx.languageName || languageName}</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -689,7 +689,7 @@ export default function LessonPage() {
                       })}
                     </p>
                   </div>
-                  <span className="pl-2 text-[10px] text-slate-600">{new Date(msg.ts).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className="pl-2 text-[10px] text-slate-600">{new Date(msg.ts).toLocaleTimeString(locale === "pl" ? "pl-PL" : "en-US", { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
               );
 
@@ -702,7 +702,7 @@ export default function LessonPage() {
                   <div className="max-w-lg rounded-[1.5rem] rounded-tr-none bg-godoj-blue px-5 py-4 shadow-[0_10px_30px_rgba(26,115,232,0.2)]">
                     <p className="text-base lg:text-lg font-semibold leading-relaxed text-white">{msg.message}</p>
                   </div>
-                  <span className="pr-2 text-[10px] text-slate-600">{new Date(msg.ts).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className="pr-2 text-[10px] text-slate-600">{new Date(msg.ts).toLocaleTimeString(locale === "pl" ? "pl-PL" : "en-US", { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
               );
 
@@ -738,7 +738,7 @@ export default function LessonPage() {
             {/* SOS + Mic + End */}
             <div className="flex items-end gap-6 pointer-events-auto">
               {/* SOS */}
-              <button onClick={handleHintToggle} className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${hintsEnabled ? "bg-tertiary/10 text-tertiary border border-tertiary/20" : "bg-surface-container-high text-slate-500 border border-white/5"}`} title={hintsEnabled ? "Wyłącz podpowiedzi" : "Włącz podpowiedzi"}>
+              <button onClick={handleHintToggle} className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${hintsEnabled ? "bg-tertiary/10 text-tertiary border border-tertiary/20" : "bg-surface-container-high text-slate-500 border border-white/5"}`} title={hintsEnabled ? t("disableHints") : t("enableHints")}>
                 <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: hintsEnabled ? "'FILL' 1" : undefined }}>lightbulb</span>
                 <span className="hidden sm:inline">{hintsEnabled ? t("hintsOn") : t("hintsOff")}</span>
               </button>
@@ -769,7 +769,7 @@ export default function LessonPage() {
                     try { conversation.sendUserMessage("..."); } catch {}
                   }}
                   className="h-12 w-12 rounded-full bg-godoj-blue/20 flex items-center justify-center text-godoj-blue hover:bg-godoj-blue/30 border border-godoj-blue/20 transition-all"
-                  title="Wyślij teraz"
+                  title={t("sendNow")}
                   style={{ marginBottom: "max(0px, env(safe-area-inset-bottom))" }}
                 >
                   <span className="material-symbols-outlined">send</span>
@@ -777,7 +777,7 @@ export default function LessonPage() {
               )}
 
               {/* End */}
-              <button onClick={handleEndLesson} className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500/20 border border-white/5 transition-all" title="Zakończ">
+              <button onClick={handleEndLesson} className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500/20 border border-white/5 transition-all" title={t("endCall")}>
                 <span className="material-symbols-outlined">call_end</span>
               </button>
             </div>
@@ -787,7 +787,7 @@ export default function LessonPage() {
           {autoEndCountdown !== null && autoEndCountdown > 0 && (
             <div className="absolute top-16 left-0 right-0 z-40 flex justify-center pointer-events-none">
               <div className="bg-red-500/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-xl text-center pointer-events-auto">
-                <p className="text-sm font-bold">Lekcja kończy się za {autoEndCountdown}s</p>
+                <p className="text-sm font-bold">{t("lessonEndsIn")} {autoEndCountdown}s</p>
               </div>
             </div>
           )}

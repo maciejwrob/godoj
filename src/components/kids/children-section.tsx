@@ -668,7 +668,6 @@ function SuccessToast({ childName, onSwitch, onDismiss }: { childName: string; o
 // --- main component ---
 
 export function ChildrenSection() {
-  if (!KIDS_MODE_ENABLED) return null;
   const router = useRouter();
   const [children, setChildren] = useState<ChildProfileWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -690,8 +689,14 @@ export function ChildrenSection() {
   }, []);
 
   useEffect(() => {
+    if (!KIDS_MODE_ENABLED) {
+      setLoading(false);
+      return;
+    }
     fetchChildren();
   }, [fetchChildren]);
+
+  if (!KIDS_MODE_ENABLED) return null;
 
   function handleSwitch(child: ChildProfileWithMeta) {
     setSwitchingChild(child);

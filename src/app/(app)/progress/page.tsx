@@ -17,13 +17,7 @@ type Summary = {
   new_vocabulary: { word: string; translation: string }[];
 };
 
-const CEFR_LABELS: Record<string, string> = {
-  A1: "Początkujący",
-  A2: "Elementarny",
-  B1: "Średnio zaawansowany",
-  B2: "Zaawansowany",
-  C1: "Biegły",
-};
+// CEFR labels resolved dynamically with translations below
 
 const CEFR_ORDER = ["A1", "A2", "B1", "B2", "C1"];
 
@@ -74,7 +68,7 @@ export default async function ProgressPage() {
       .single(),
     supabase
       .from("user_profiles")
-      .select("current_level")
+      .select("current_level, xp_current, xp_total")
       .eq("user_id", user.id)
       .single(),
     // All lessons in calendar range (for contribution grid + level timeline)
@@ -104,20 +98,34 @@ export default async function ProgressPage() {
       .from("vocabulary")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .eq("mastered", true),
+      .gte("mastery_level", 4),
     supabase
       .from("users")
-      .select("native_language")
+      .select("ui_language, native_language")
       .eq("id", user.id)
       .single(),
   ]);
 
-  const t = getTranslations(resolveLocale(userData?.native_language));
+  const locale = resolveLocale(userData?.ui_language ?? userData?.native_language);
+  const t = getTranslations(locale);
+  const CEFR_LABELS: Record<string, string> = {
+    A1: t.cefrBeginner,
+    A2: t.cefrElementary,
+    B1: t.cefrIntermediate,
+    B2: t.cefrUpperIntermediate,
+    C1: t.cefrAdvanced,
+  };
+  const dateLocale = locale === "pl" ? "pl-PL" : "en-US";
   const currentStreak = streak?.current_streak ?? 0;
   const longestStreak = streak?.longest_streak ?? 0;
   const weeklyGoal = streak?.weekly_minutes_goal ?? 30;
   const weeklyDone = streak?.weekly_minutes_done ?? 0;
   const currentLevel = profile?.current_level ?? "A1";
+  const xpCurrent = profile?.xp_current ?? 0;
+  const xpTotal = profile?.xp_total ?? 0;
+  const XP_THRESHOLDS: Record<string, number> = { A1: 500, A2: 1000, B1: 1500, B2: 2000, C1: 9999 };
+  const xpThreshold = XP_THRESHOLDS[currentLevel] ?? 9999;
+  const xpPercent = xpThreshold < 9999 ? Math.min(100, Math.round((xpCurrent / xpThreshold) * 100)) : 100;
 
   // ── Contribution calendar ──
   // Build a map: dateString -> total seconds
@@ -163,7 +171,7 @@ export default async function ProgressPage() {
       }
     }
     const totalMin = Math.round(totalSec / 60);
-    const label = weekStart.toLocaleDateString("pl-PL", {
+    const label = weekStart.toLocaleDateString(dateLocale, {
       day: "numeric",
       month: "short",
     });
@@ -179,7 +187,7 @@ export default async function ProgressPage() {
       lesson.level_at_start !== lesson.level_at_end
     ) {
       levelChanges.push({
-        date: new Date(lesson.started_at).toLocaleDateString("pl-PL"),
+        date: new Date(lesson.started_at).toLocaleDateString(dateLocale),
         from: lesson.level_at_start,
         to: lesson.level_at_end,
       });
@@ -247,7 +255,7 @@ export default async function ProgressPage() {
                   <div
                     key={day.dateStr}
                     className={`h-4 w-4 rounded-sm ${getDayColor(day.seconds)}`}
-                    title={`${day.date.toLocaleDateString("pl-PL")} — ${getDayLabel(day.seconds, t.noLessonsDay)}`}
+                    title={`${day.date.toLocaleDateString(dateLocale)} — ${getDayLabel(day.seconds, t.noLessonsDay)}`}
                   />
                 ))}
               </div>
@@ -258,7 +266,7 @@ export default async function ProgressPage() {
           <div className="mt-3 flex items-center gap-3 text-[10px] text-text-secondary">
             <span>{t.less}</span>
             <div className="flex gap-1">
-              <div className="h-3 w-3 rounded-sm bg-bg-card-hover" title="Brak lekcji" />
+              <div className="h-3 w-3 rounded-sm bg-bg-card-hover" title={t.noLessonsDay} />
               <div className="h-3 w-3 rounded-sm bg-primary/20" title="<5 min" />
               <div className="h-3 w-3 rounded-sm bg-primary/40" title="5-15 min" />
               <div className="h-3 w-3 rounded-sm bg-primary/70" title="15-30 min" />
@@ -352,6 +360,27 @@ export default async function ProgressPage() {
           </div>
         </div>
 
+        {/* XP Progress bar */}
+        {currentLevel !== "C1" && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between text-sm mb-2">
+              <span className="font-medium">{t.progressToNext}</span>
+              <span className="text-text-secondary">{xpCurrent}/{xpThreshold} XP</span>
+            </div>
+            <div className="h-3 w-full rounded-full bg-bg-card-hover">
+              <div
+                className="h-3 rounded-full bg-gradient-to-r from-green-500 to-green-400 transition-all"
+                style={{ width: `${xpPercent}%` }}
+              />
+            </div>
+            <div className="mt-2 flex justify-between text-xs text-text-secondary">
+              <span>{currentLevel}</span>
+              <span>{xpTotal} XP {t.xpTotal}</span>
+              <span>{CEFR_ORDER[CEFR_ORDER.indexOf(currentLevel) + 1]}</span>
+            </div>
+          </div>
+        )}
+
         {/* Level change timeline */}
         {levelChanges.length > 0 && (
           <div>
@@ -425,7 +454,7 @@ export default async function ProgressPage() {
                     <div className="mt-1 flex items-center gap-3 text-sm text-text-secondary">
                       <span>
                         {new Date(lesson.started_at).toLocaleDateString(
-                          "pl-PL",
+                          dateLocale,
                           { day: "numeric", month: "short", year: "numeric" }
                         )}
                       </span>

@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { getLangFlag, getLangName } from "@/lib/languages";
-import { createClient } from "@/lib/supabase/client";
+import { useTranslation } from "@/lib/i18n";
 
 const LANGUAGES = [
   { id: "no", active: true, variants: null },
   { id: "fr", active: true, variants: null },
-  { id: "es", active: true, variants: [{ id: "european", name: "Europejski" }, { id: "es-LATAM", name: "Latynoamerykański" }] },
+  { id: "es", active: true, variants: null },
   { id: "en", active: true, variants: [{ id: "american", name: "Amerykański" }, { id: "british", name: "Brytyjski" }] },
   { id: "it", active: true, variants: null },
   { id: "sv", active: true, variants: null },
@@ -19,40 +19,17 @@ const LANGUAGES = [
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
 
-type Agent = { id: string; voice_name: string; voice_description: string | null; language: string };
-
 export function AddLanguageModal({ open, onClose, existingLangs }: { open: boolean; onClose: () => void; existingLangs: string[] }) {
   const [step, setStep] = useState(1);
   const [lang, setLang] = useState("");
   const [variant, setVariant] = useState<string | null>(null);
   const [level, setLevel] = useState("A1");
-  const [agentId, setAgentId] = useState("");
-  const [agents, setAgents] = useState<Agent[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { t, locale } = useTranslation();
 
   const selectedLang = LANGUAGES.find((l) => l.id === lang);
   const availableLangs = LANGUAGES.filter((l) => !existingLangs.includes(l.id));
-
-  // Fetch agents when language/variant is selected
-  useEffect(() => {
-    if (!lang) return;
-    const supabase = createClient();
-    let query = supabase
-      .from("agents_config")
-      .select("id, voice_name, voice_description, language, variant")
-      .eq("language", lang)
-      .eq("audience", "adult")
-      .eq("is_active", true);
-
-    if (variant) query = query.eq("variant", variant);
-
-    query.then(({ data }) => {
-      const rows = (data ?? []) as Agent[];
-      setAgents(rows);
-      setAgentId(rows.length > 0 ? rows[0].id : "");
-    });
-  }, [lang, variant]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -61,16 +38,16 @@ export function AddLanguageModal({ open, onClose, existingLangs }: { open: boole
       const res = await fetch("/api/user/add-language", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target_language: lang, language_variant: variant, current_level: level, selected_agent_id: agentId }),
+        body: JSON.stringify({ target_language: lang, language_variant: variant, current_level: level, selected_agent_id: null }),
       });
       if (res.ok) {
         onClose();
         window.location.reload();
       } else {
         const data = await res.json();
-        setError(data.error ?? "Blad");
+        setError(data.error ?? t("error"));
       }
-    } catch { setError("Blad polaczenia"); }
+    } catch { setError(t("error")); }
     setSaving(false);
   };
 
@@ -80,31 +57,31 @@ export function AddLanguageModal({ open, onClose, existingLangs }: { open: boole
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-3xl border border-white/5 bg-surface-container p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-extrabold text-white">Dodaj język</h2>
+          <h2 className="text-lg font-extrabold text-white">{t("addLanguage")}</h2>
           <button onClick={onClose} className="text-slate-500 hover:text-white"><X className="h-5 w-5" /></button>
         </div>
 
         {/* Step 1: Choose language */}
         {step === 1 && (
           <div>
-            <p className="mb-4 text-sm text-on-surface-variant">Wybierz język do nauki</p>
+            <p className="mb-4 text-sm text-on-surface-variant">{t("targetLangHint")}</p>
             <div className="grid grid-cols-2 gap-2">
               {availableLangs.map((l) => (
                 <button key={l.id} onClick={() => { setLang(l.id); setVariant(null); setStep(l.variants ? 2 : 3); }}
                   className="flex items-center gap-2 rounded-xl border border-white/5 bg-surface-container-high p-3 text-left hover:border-primary/50 transition-all">
                   <span className="text-xl">{getLangFlag(l.id)}</span>
-                  <span className="text-sm font-medium">{getLangName(l.id)}</span>
+                  <span className="text-sm font-medium">{getLangName(l.id, locale)}</span>
                 </button>
               ))}
             </div>
-            {availableLangs.length === 0 && <p className="text-center text-on-surface-variant py-4">Uczysz się już wszystkich dostępnych języków!</p>}
+            {availableLangs.length === 0 && <p className="text-center text-on-surface-variant py-4">{t("allLanguagesLearned")}</p>}
           </div>
         )}
 
         {/* Step 2: Variant */}
         {step === 2 && selectedLang?.variants && (
           <div>
-            <p className="mb-4 text-sm text-on-surface-variant">Wybierz wariant</p>
+            <p className="mb-4 text-sm text-on-surface-variant">{t("chooseVariant")}</p>
             <div className="space-y-2">
               {selectedLang.variants.map((v) => (
                 <button key={v.id} onClick={() => { setVariant(v.id); setStep(3); }}
@@ -119,7 +96,7 @@ export function AddLanguageModal({ open, onClose, existingLangs }: { open: boole
         {/* Step 3: Level */}
         {step === 3 && (
           <div>
-            <p className="mb-4 text-sm text-on-surface-variant">{getLangFlag(lang)} {getLangName(lang)} — Twoj poziom?</p>
+            <p className="mb-4 text-sm text-on-surface-variant">{getLangFlag(lang)} {getLangName(lang, locale)} — {t("levelQuestion")}</p>
             <div className="flex flex-wrap gap-2">
               {LEVELS.map((l) => (
                 <button key={l} onClick={() => setLevel(l)}
@@ -128,34 +105,11 @@ export function AddLanguageModal({ open, onClose, existingLangs }: { open: boole
                 </button>
               ))}
             </div>
-            <button onClick={() => setStep(4)} className="mt-6 w-full rounded-xl bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90">Dalej</button>
-          </div>
-        )}
-
-        {/* Step 4: Tutor */}
-        {step === 4 && (
-          <div>
-            <p className="mb-4 text-sm text-on-surface-variant">Wybierz tutora</p>
-            {agents.length === 0 ? (
-              <p className="text-center text-on-surface-variant py-4">Brak tutorow dla tego jezyka</p>
-            ) : (
-              <div className="space-y-2">
-                {agents.map((a) => (
-                  <button key={a.id} onClick={() => setAgentId(a.id)}
-                    className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all ${agentId === a.id ? "border-primary bg-primary/10" : "border-white/5 bg-surface-container-high hover:border-primary/50"}`}>
-                    <div>
-                      <div className="font-bold text-white">{a.voice_name}</div>
-                      {a.voice_description && <div className="text-xs text-on-surface-variant">{a.voice_description}</div>}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
             {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-            <button onClick={handleSave} disabled={saving || !agentId}
+            <button onClick={handleSave} disabled={saving}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-50">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Dodaj język
+              {t("addLanguage")}
             </button>
           </div>
         )}

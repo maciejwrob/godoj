@@ -4,18 +4,20 @@ import { useState } from "react";
 import { useActiveLanguage } from "@/lib/language-context";
 import { getLangFlag, getLangName } from "@/lib/languages";
 import { AddLanguageModal } from "./add-language-modal";
+import { useTranslation } from "@/lib/i18n";
 
 type LangProfile = { target_language: string; language_variant: string | null; current_level: string };
 
 export function LanguageSwitcher({ languages }: { languages: LangProfile[] }) {
   const { activeLanguage, setActiveLanguage } = useActiveLanguage();
+  const { t, locale } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
 
   if (languages.length <= 1 && !modalOpen) {
     return (
       <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 rounded-full border border-white/5 bg-surface-container-high px-4 py-2 text-sm hover:border-primary/50 transition-all">
         <span className="material-symbols-outlined text-sm text-primary">add</span>
-        <span className="text-on-surface-variant">Dodaj język</span>
+        <span className="text-on-surface-variant">{t("addLanguage")}</span>
         <AddLanguageModal open={modalOpen} onClose={() => setModalOpen(false)} existingLangs={languages.map((l) => l.target_language)} />
       </button>
     );
@@ -33,7 +35,7 @@ export function LanguageSwitcher({ languages }: { languages: LangProfile[] }) {
             }`}
           >
             <span>{getLangFlag(l.target_language, l.language_variant)}</span>
-            <span className="hidden sm:inline">{getLangName(l.target_language)}</span>
+            <span className="hidden sm:inline">{getLangName(l.target_language, locale)}</span>
           </button>
         ))}
         <button onClick={() => setModalOpen(true)} className="flex items-center gap-1 rounded-xl px-2 py-1.5 text-on-surface-variant hover:text-primary transition-all">

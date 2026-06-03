@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { getLangFlag, getLangName } from "./languages";
+import { detectBrowserLocale } from "./i18n-data";
 
 export type LangProfile = {
   id: string;
@@ -75,7 +76,7 @@ export function LanguageProvider({
     profiles: serverProfiles,
     active: activeProfile,
     language: activeProfile?.target_language ?? fallbackLang,
-    languageName: getLangName(activeProfile?.target_language ?? fallbackLang),
+    languageName: getLangName(activeProfile?.target_language ?? fallbackLang, detectBrowserLocale()),
     flag: getLangFlag(activeProfile?.target_language ?? fallbackLang, activeProfile?.language_variant),
     level: activeProfile?.current_level ?? "A1",
     agentId: activeProfile?.selected_agent_id ?? "",

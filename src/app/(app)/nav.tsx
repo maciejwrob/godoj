@@ -11,7 +11,7 @@ import { useLanguage } from "@/lib/language-context";
 import { LanguageDropdown } from "@/components/language-dropdown";
 import { UILanguageToggle } from "@/components/ui-language-toggle";
 import { useTranslation } from "@/lib/i18n";
-import { FEEDBACK_ENABLED } from "@/lib/feature-flags";
+import { FEEDBACK_ENABLED, EXERCISES_ENABLED } from "@/lib/feature-flags";
 
 function MaterialIcon({ name, filled, className }: { name: string; filled?: boolean; className?: string }) {
   return (
@@ -32,7 +32,7 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
     { href: "/dashboard", label: t("dashboard"), icon: "dashboard" },
     { href: "/lesson", label: t("lesson"), icon: "menu_book" },
     { href: "/vocabulary", label: t("vocabulary"), icon: "translate" },
-    { href: "/exercises", label: t("exercises"), icon: "fitness_center" },
+    ...(EXERCISES_ENABLED ? [{ href: "/exercises", label: t("exercises"), icon: "fitness_center" }] : []),
     { href: "/progress", label: t("progress"), icon: "leaderboard" },
     { href: "/achievements", label: t("achievements"), icon: "military_tech" },
   ];

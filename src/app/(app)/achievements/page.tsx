@@ -47,10 +47,10 @@ export default async function AchievementsPage() {
     supabase.from("achievements").select("*").order("category").order("requirement_value"),
     supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id),
     supabase.from("user_profiles").select("is_kids_mode").eq("user_id", user.id).limit(1).single(),
-    supabase.from("users").select("native_language").eq("id", user.id).single(),
+    supabase.from("users").select("ui_language, native_language").eq("id", user.id).single(),
   ]);
 
-  const locale = resolveLocale(userData?.native_language);
+  const locale = resolveLocale(userData?.ui_language ?? userData?.native_language);
   const t = getTranslations(locale);
   const useEn = locale === "en";
   const isKids = profileData?.is_kids_mode ?? false;
@@ -121,7 +121,7 @@ export default async function AchievementsPage() {
                         <div className="text-sm text-text-secondary">{useEn && a.description_en ? a.description_en : a.description_pl}</div>
                         {isEarned && earnedAt && (
                           <div className="mt-1 text-xs text-primary">
-                            {t.earnedAt} {new Date(earnedAt).toLocaleDateString("pl-PL")}
+                            {t.earnedAt} {new Date(earnedAt).toLocaleDateString(locale === "pl" ? "pl-PL" : "en-US")}
                           </div>
                         )}
                       </div>
