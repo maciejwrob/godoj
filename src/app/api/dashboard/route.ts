@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getUserSubscription } from "@/lib/subscription";
 
 export async function GET(request: Request) {
   try {
@@ -102,13 +103,8 @@ export async function GET(request: Request) {
       feedbackLessonId = lastLesson.id;
     }
 
-    // Trial usage limits
-    const unlimitedEmails = (process.env.UNLIMITED_USERS ?? "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
-    const isUnlimited = unlimitedEmails.includes(user.email?.toLowerCase() ?? "");
-    const dailyLimitMin = parseInt(process.env.DAILY_MINUTES_PER_USER ?? "10", 10);
-    const monthlyLimitMin = parseInt(process.env.MONTHLY_MINUTES_PER_USER ?? "100", 10);
-    const todayMinutesUsed = Math.round((todayUsage ?? []).reduce((s, l) => s + (l.duration_seconds ?? 0), 0) / 60);
-    const monthMinutesUsed = Math.round((monthUsage ?? []).reduce((s, l) => s + (l.duration_seconds ?? 0), 0) / 60);
+    // Subscription-based usage limits
+    const subscription = await getUserSubscription(user.id, user.email ?? undefined);
 
     return NextResponse.json({
       displayName: userData?.display_name ?? "Uzytkownik",
@@ -129,13 +125,15 @@ export async function GET(request: Request) {
       totalLessonsCount: totalLessonsCount ?? 0,
       needsFeedback,
       feedbackLessonId,
-      trialUsage: {
-        todayMinutes: todayMinutesUsed,
-        dailyLimit: dailyLimitMin,
-        monthMinutes: monthMinutesUsed,
-        monthlyLimit: monthlyLimitMin,
-        unlimited: isUnlimited,
-        tier: isUnlimited ? "friends_family" : "beta",
+      subscription: {
+        tier: subscription.tier,
+        tierNamePl: subscription.tierNamePl,
+        minutesUsed: subscription.minutesUsed,
+        minutesLimit: subscription.minutesLimit,
+        minutesRemaining: subscription.minutesRemaining,
+        unlimited: subscription.isUnlimited,
+        periodEnd: subscription.periodEnd,
+        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
       },
     });
   } catch (error) {

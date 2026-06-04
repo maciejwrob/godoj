@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { User, BookOpen, LogOut, Save, Loader2 } from "lucide-react";
+import { User, BookOpen, LogOut, Save, Loader2, CreditCard } from "lucide-react";
+import Link from "next/link";
 import { ChildrenSection } from "@/components/kids/children-section";
 import { clearActiveChild } from "@/lib/kids";
 import { useTranslation } from "@/lib/i18n";
@@ -262,6 +263,21 @@ export default function SettingsPage() {
 
       {/* Konta dzieci */}
       <ChildrenSection />
+
+      {/* Plan i rozliczenia */}
+      <section className="mb-6 rounded-2xl border border-border bg-bg-card p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <CreditCard className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-semibold text-text-primary">Plan i rozliczenia</h2>
+        </div>
+        <p className="mb-3 text-sm text-text-secondary">Zarządzaj swoim planem, sprawdź wykorzystanie minut i historię płatności.</p>
+        <Link
+          href="/settings/billing"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+        >
+          Zarządzaj planem
+        </Link>
+      </section>
 
       {/* Konto */}
       <section className="mb-8 rounded-2xl border border-border bg-bg-card p-6">

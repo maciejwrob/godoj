@@ -76,7 +76,7 @@ export default function LessonPage() {
     return false;
   });
   const [autoEndCountdown, setAutoEndCountdown] = useState<number | null>(null);
-  const [limitError, setLimitError] = useState<{ type: "daily" | "monthly"; used: number; limit: number } | null>(null);
+  const [limitError, setLimitError] = useState<{ type: "daily" | "monthly" | "minutes"; used: number; limit: number; tier?: string } | null>(null);
   const [isUnlimited, setIsUnlimited] = useState(false);
   const [wordTranslations, setWordTranslations] = useState<Map<string, WordTranslation>>(new Map());
   const [translatingKey, setTranslatingKey] = useState<string | null>(null);
@@ -353,6 +353,11 @@ export default function LessonPage() {
       const res = await fetch("/api/lessons/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language, agent_id: agId ?? "default" }) });
       if (!res.ok) {
         const data = await res.json();
+        if (data.error === "MINUTES_EXHAUSTED" || res.status === 403) {
+          setLimitError({ type: "minutes", used: data.minutesUsed ?? 0, limit: data.minutesLimit ?? 0, tier: data.tier });
+          setLessonState("error");
+          return;
+        }
         if (res.status === 429) {
           if (data.error === "DAILY_LIMIT_REACHED") {
             setLimitError({ type: "daily", used: data.dailyUsed, limit: data.dailyLimit });
@@ -524,19 +529,25 @@ export default function LessonPage() {
   if (lessonState === "error" && limitError) return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="max-w-sm space-y-6 text-center">
-        <div className="text-5xl">{limitError.type === "daily" ? "🎙️" : "📊"}</div>
+        <div className="text-5xl">{limitError.type === "minutes" ? "⏱️" : limitError.type === "daily" ? "🎙️" : "📊"}</div>
         <h1 className="text-xl font-bold">
-          {limitError.type === "daily"
-            ? `${t("dailyLimitTitle")} (${limitError.limit} min)`
-            : `${t("monthlyLimitTitle")} (${limitError.limit} min)`}
+          {limitError.type === "minutes"
+            ? "Wykorzystano limit minut"
+            : limitError.type === "daily"
+              ? `${t("dailyLimitTitle")} (${limitError.limit} min)`
+              : `${t("monthlyLimitTitle")} (${limitError.limit} min)`}
         </h1>
         <p className="text-on-surface-variant">
-          {limitError.type === "daily"
-            ? t("comeBackTomorrow")
-            : t("wantMoreContact")}
+          {limitError.type === "minutes"
+            ? `Wykorzystano ${Math.round(limitError.used)} z ${limitError.limit} minut w tym okresie. Przejdź na wyższy plan, żeby kontynuować naukę.`
+            : limitError.type === "daily"
+              ? t("comeBackTomorrow")
+              : t("wantMoreContact")}
         </p>
-        {limitError.type === "monthly" && (
-          <a href="mailto:maciej@godoj.co" className="text-primary font-medium">maciej@godoj.co — Maciek</a>
+        {limitError.type === "minutes" && (
+          <button onClick={() => router.push("/pricing")} className="w-full rounded-xl bg-godoj-blue py-3 text-sm font-bold text-white hover:bg-godoj-blue/90 transition-colors">
+            Zobacz plany
+          </button>
         )}
         <button onClick={() => router.push("/dashboard")} className="w-full rounded-xl border border-white/10 py-2.5 text-sm text-slate-400">{t("dashboard")}</button>
       </div>

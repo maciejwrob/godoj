@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getUserSubscription } from "@/lib/subscription";
 
 export async function GET() {
   try {
@@ -7,32 +8,16 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const unlimitedEmails = (process.env.UNLIMITED_USERS ?? "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
-    const isUnlimited = unlimitedEmails.includes(user.email?.toLowerCase() ?? "");
-    const dailyLimitMin = parseInt(process.env.DAILY_MINUTES_PER_USER ?? "10", 10);
-    const monthlyLimitMin = parseInt(process.env.MONTHLY_MINUTES_PER_USER ?? "100", 10);
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const mStart = new Date();
-    mStart.setDate(1);
-    mStart.setHours(0, 0, 0, 0);
-
-    const [{ data: todayUsage }, { data: monthUsage }] = await Promise.all([
-      supabase.from("lessons").select("duration_seconds").eq("user_id", user.id).gte("started_at", todayStart.toISOString()),
-      supabase.from("lessons").select("duration_seconds").eq("user_id", user.id).gte("started_at", mStart.toISOString()),
-    ]);
-
-    const todayMinutes = Math.round((todayUsage ?? []).reduce((s, l) => s + (l.duration_seconds ?? 0), 0) / 60);
-    const monthMinutes = Math.round((monthUsage ?? []).reduce((s, l) => s + (l.duration_seconds ?? 0), 0) / 60);
+    const subscription = await getUserSubscription(user.id, user.email ?? undefined);
 
     return NextResponse.json({
-      todayMinutes,
-      dailyLimit: dailyLimitMin,
-      monthMinutes,
-      monthlyLimit: monthlyLimitMin,
-      unlimited: isUnlimited,
-      tier: isUnlimited ? "friends_family" : "beta",
+      minutesUsed: subscription.minutesUsed,
+      minutesLimit: subscription.minutesLimit,
+      minutesRemaining: subscription.minutesRemaining,
+      unlimited: subscription.isUnlimited,
+      tier: subscription.tier,
+      tierNamePl: subscription.tierNamePl,
+      periodEnd: subscription.periodEnd,
     });
   } catch (error) {
     console.error("Usage API error:", error);

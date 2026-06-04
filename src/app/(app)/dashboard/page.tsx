@@ -58,7 +58,7 @@ export default function DashboardPage() {
   );
   if (!data) return null;
 
-  const { displayName, profiles, currentLevel, currentStreak, weeklyGoal, weeklyDone, lessons, achievements, vocabCount, totalMinutes, totalLessonsCount, needsFeedback, feedbackLessonId, trialUsage } = data as DashboardData & { trialUsage?: { todayMinutes: number; dailyLimit: number; monthMinutes: number; monthlyLimit: number; unlimited?: boolean; tier?: string } };
+  const { displayName, profiles, currentLevel, currentStreak, weeklyGoal, weeklyDone, lessons, achievements, vocabCount, totalMinutes, totalLessonsCount, needsFeedback, feedbackLessonId, subscription } = data as DashboardData & { subscription?: { tier: string; tierNamePl: string; minutesUsed: number; minutesLimit: number; minutesRemaining: number; unlimited: boolean; periodEnd: string | null; cancelAtPeriodEnd: boolean } };
   const showFeedbackPopup = false; // hidden: totalLessonsCount === 1 && needsFeedback && !feedbackDismissed;
   const showFeedbackBanner = false; // hidden: totalLessonsCount > 1 && needsFeedback && !feedbackDismissed;
   const weeklyPct = weeklyGoal > 0 ? Math.min(100, Math.round((weeklyDone / weeklyGoal) * 100)) : 0;
@@ -116,9 +116,9 @@ export default function DashboardPage() {
             </p>
           </div>
           {/* Compact usage limits — top right */}
-          {trialUsage && (
-            <Link href="/settings/limits" className="group/limits flex items-center gap-3 rounded-xl border border-white/5 bg-surface-container px-3 py-2 hover:border-primary/30 transition-colors">
-              {trialUsage.unlimited ? (
+          {subscription && (
+            <Link href="/settings/billing" className="group/limits flex items-center gap-3 rounded-xl border border-white/5 bg-surface-container px-3 py-2 hover:border-primary/30 transition-colors">
+              {subscription.unlimited ? (
                 <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
                   <span className="material-symbols-outlined text-sm">diamond</span>
                   Unlimited
@@ -126,21 +126,18 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-on-surface-variant">{t("today")}</span>
-                    <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                      <div className={`h-full rounded-full ${trialUsage.todayMinutes >= trialUsage.dailyLimit ? "bg-red-500" : trialUsage.todayMinutes >= trialUsage.dailyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.todayMinutes / trialUsage.dailyLimit) * 100)}%` }} />
+                    <span className="text-[11px] text-on-surface-variant">{subscription.tierNamePl}</span>
+                    <div className="w-20 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                      <div className={`h-full rounded-full ${subscription.minutesRemaining <= 0 ? "bg-red-500" : subscription.minutesUsed >= subscription.minutesLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (subscription.minutesUsed / subscription.minutesLimit) * 100)}%` }} />
                     </div>
-                    <span className="text-[11px] font-medium text-white tabular-nums">{trialUsage.todayMinutes}/{trialUsage.dailyLimit} min</span>
+                    <span className="text-[11px] font-medium text-white tabular-nums">{Math.round(subscription.minutesUsed)}/{subscription.minutesLimit} min</span>
                   </div>
-                  <div className="w-px h-4 bg-white/10" />
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-on-surface-variant">{t("month")}</span>
-                    <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                      <div className={`h-full rounded-full ${trialUsage.monthMinutes >= trialUsage.monthlyLimit ? "bg-red-500" : trialUsage.monthMinutes >= trialUsage.monthlyLimit * 0.8 ? "bg-amber-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (trialUsage.monthMinutes / trialUsage.monthlyLimit) * 100)}%` }} />
-                    </div>
-                    <span className="text-[11px] font-medium text-white tabular-nums">{trialUsage.monthMinutes}/{trialUsage.monthlyLimit} min</span>
-                  </div>
-                  <span className="text-[10px] text-slate-600 group-hover/limits:text-primary transition-colors">ⓘ</span>
+                  {subscription.tier === "free" && (
+                    <>
+                      <div className="w-px h-4 bg-white/10" />
+                      <span className="text-[10px] font-bold text-godoj-blue">Upgrade</span>
+                    </>
+                  )}
                 </>
               )}
             </Link>
@@ -164,7 +161,7 @@ export default function DashboardPage() {
               <div className="flex flex-wrap items-center gap-3 mt-6 lg:mt-8">
                 {/* Duration picker */}
                 <div className="flex gap-1.5">
-                  {(trialUsage?.unlimited ? [5, 10, 15, 20, 30] : [5, 10]).map((d) => (
+                  {(subscription?.unlimited || (subscription?.tier && subscription.tier !== "free") ? [5, 10, 15, 20, 30] : [5, 10]).map((d) => (
                     <button key={d} onClick={() => setSelectedDuration(d)}
                       className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${selectedDuration === d ? "bg-white text-surface" : "bg-white/20 text-white hover:bg-white/30"}`}>
                       {d} min

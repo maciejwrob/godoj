@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import Anthropic from "@anthropic-ai/sdk";
+import { recordUsage } from "@/lib/subscription";
 
 const anthropic = new Anthropic();
 
@@ -408,6 +409,14 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
         weekly_minutes_done: lessonMinutes,
         week_start: weekStart,
       });
+    }
+
+    // Record subscription usage (minutes consumed this billing period)
+    try {
+      await recordUsage(user.id, duration_seconds);
+    } catch (usageErr) {
+      console.error("Subscription usage recording error:", usageErr);
+      // Non-fatal — don't block lesson completion
     }
 
     return NextResponse.json({
