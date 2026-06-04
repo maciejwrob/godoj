@@ -19,7 +19,7 @@ type Summary = {
 
 // CEFR labels resolved dynamically with translations below
 
-const CEFR_ORDER = ["A1", "A2", "B1", "B2", "C1"];
+const CEFR_ORDER = ["A1", "A1+", "A2", "A2+", "B1", "B1+", "B2", "B2+", "C1"];
 
 // Map total seconds in a day to a color class
 function getDayColor(seconds: number): string {
@@ -109,11 +109,15 @@ export default async function ProgressPage() {
   const locale = resolveLocale(userData?.ui_language ?? userData?.native_language);
   const t = getTranslations(locale);
   const CEFR_LABELS: Record<string, string> = {
-    A1: t.cefrBeginner,
-    A2: t.cefrElementary,
-    B1: t.cefrIntermediate,
-    B2: t.cefrUpperIntermediate,
-    C1: t.cefrAdvanced,
+    "A1": t.cefrBeginner,
+    "A1+": t.cefrBeginner + " +",
+    "A2": t.cefrElementary,
+    "A2+": t.cefrElementary + " +",
+    "B1": t.cefrIntermediate,
+    "B1+": t.cefrIntermediate + " +",
+    "B2": t.cefrUpperIntermediate,
+    "B2+": t.cefrUpperIntermediate + " +",
+    "C1": t.cefrAdvanced,
   };
   const dateLocale = locale === "pl" ? "pl-PL" : "en-US";
   const currentStreak = streak?.current_streak ?? 0;
@@ -123,9 +127,12 @@ export default async function ProgressPage() {
   const currentLevel = profile?.current_level ?? "A1";
   const xpCurrent = profile?.xp_current ?? 0;
   const xpTotal = profile?.xp_total ?? 0;
-  const XP_THRESHOLDS: Record<string, number> = { A1: 500, A2: 1000, B1: 1500, B2: 2000, C1: 9999 };
-  const xpThreshold = XP_THRESHOLDS[currentLevel] ?? 9999;
-  const xpPercent = xpThreshold < 9999 ? Math.min(100, Math.round((xpCurrent / xpThreshold) * 100)) : 100;
+  const XP_THRESHOLDS: Record<string, number> = {
+    "A1": 500, "A1+": 800, "A2": 1000, "A2+": 1200,
+    "B1": 1500, "B1+": 2000, "B2": 2500, "B2+": 3000, "C1": 99999,
+  };
+  const xpThreshold = XP_THRESHOLDS[currentLevel] ?? 99999;
+  const xpPercent = xpThreshold < 99999 ? Math.min(100, Math.round((xpCurrent / xpThreshold) * 100)) : 100;
 
   // ── Contribution calendar ──
   // Build a map: dateString -> total seconds
@@ -343,19 +350,25 @@ export default async function ProgressPage() {
               {CEFR_LABELS[currentLevel] ?? currentLevel}
             </div>
             {/* Level scale */}
-            <div className="mt-2 flex gap-1">
-              {CEFR_ORDER.map((level) => (
-                <div
-                  key={level}
-                  className={`rounded px-2 py-0.5 text-xs font-medium ${
-                    level === currentLevel
-                      ? "bg-primary text-white"
-                      : "bg-bg-card-hover text-text-secondary"
-                  }`}
-                >
-                  {level}
-                </div>
-              ))}
+            <div className="mt-2 flex gap-0.5 flex-wrap">
+              {CEFR_ORDER.map((level) => {
+                const isActive = level === currentLevel;
+                const isPassed = CEFR_ORDER.indexOf(level) < CEFR_ORDER.indexOf(currentLevel);
+                return (
+                  <div
+                    key={level}
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                      isActive
+                        ? "bg-primary text-white"
+                        : isPassed
+                          ? "bg-primary/20 text-primary"
+                          : "bg-bg-card-hover text-text-secondary"
+                    }`}
+                  >
+                    {level}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

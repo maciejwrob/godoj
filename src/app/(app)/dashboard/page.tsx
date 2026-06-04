@@ -218,7 +218,7 @@ export default function DashboardPage() {
                 {currentLevel !== "C1" && (data as DashboardData & { xpCurrent?: number; xpTotal?: number }).xpCurrent !== undefined && (
                   <div className="mt-2 w-full">
                     <div className="h-1.5 w-full rounded-full bg-white/10">
-                      <div className="h-1.5 rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, Math.round(((data as DashboardData & { xpCurrent?: number }).xpCurrent ?? 0) / ({ A1: 500, A2: 1000, B1: 1500, B2: 2000, C1: 9999 }[currentLevel] ?? 9999) * 100))}%` }} />
+                      <div className="h-1.5 rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, Math.round(((data as DashboardData & { xpCurrent?: number }).xpCurrent ?? 0) / ({ "A1": 500, "A1+": 800, "A2": 1000, "A2+": 1200, "B1": 1500, "B1+": 2000, "B2": 2500, "B2+": 3000, "C1": 99999 }[currentLevel] ?? 99999) * 100))}%` }} />
                     </div>
                   </div>
                 )}

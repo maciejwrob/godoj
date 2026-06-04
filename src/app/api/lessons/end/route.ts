@@ -60,11 +60,17 @@ export async function POST(request: Request) {
     const durationMin = Math.round(duration_seconds / 60);
     const isTooShort = duration_seconds < 60 || userMsgCount < 2;
 
-    // Analyze transcript via Claude
-    const CEFR_ORDER = ["A1", "A2", "B1", "B2", "C1"];
-    const currentIdx = CEFR_ORDER.indexOf(lesson.level_at_start);
-    const nextLevel = currentIdx < CEFR_ORDER.length - 1 ? CEFR_ORDER[currentIdx + 1] : lesson.level_at_start;
-    const prevLevel = currentIdx > 0 ? CEFR_ORDER[currentIdx - 1] : lesson.level_at_start;
+    // Sub-level system: A1 → A1+ → A2 → A2+ → B1 → B1+ → B2 → B2+ → C1
+    // Claude recommends base CEFR levels (A1, A2, B1, B2, C1)
+    // Sub-level "+" transitions are purely XP-based
+    // CEFR transitions (A1+→A2, etc.) require XP + Claude recommendation
+    const baseCEFR = (level: string) => level.replace("+", "");
+    const teachingLevel = baseCEFR(lesson.level_at_start); // A1+ → A1 for prompts
+
+    const CEFR_BASE = ["A1", "A2", "B1", "B2", "C1"];
+    const currentBaseIdx = CEFR_BASE.indexOf(teachingLevel);
+    const nextBase = currentBaseIdx < CEFR_BASE.length - 1 ? CEFR_BASE[currentBaseIdx + 1] : teachingLevel;
+    const prevBase = currentBaseIdx > 0 ? CEFR_BASE[currentBaseIdx - 1] : teachingLevel;
 
     const analysisResponse = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -77,7 +83,7 @@ Address the user directly by name (${userName}). Be warm and motivating.
 ${isPolish ? 'Write ALL text outputs (summary, reasoning, translations) in Polish.' : 'Write ALL text outputs (summary, reasoning, translations) in English.'}
 
 Language studied: ${langName}
-Student level: ${lesson.level_at_start}
+Student level: ${teachingLevel}
 Duration: ${durationMin} minutes
 Number of student utterances: ${userMsgCount}
 Transcript:
@@ -85,33 +91,35 @@ ${transcript || "No transcript"}
 
 ${isTooShort ? `IMPORTANT: This lesson was very short (${durationMin} min, ${userMsgCount} student messages). Set fluency_score to null — there is not enough data to assess fluency. In summary, encourage the student to try a longer conversation next time.` : ''}
 
-FLUENCY SCORING RUBRIC (be strict and consistent):
-- 1.0-1.5: Cannot form basic sentences, mostly unintelligible
-- 2.0-2.5: Fragments only, major grammar errors, very limited vocabulary
-- 3.0-3.5: Can form basic sentences with errors, limited but functional vocabulary for the level
-- 4.0-4.5: Good sentence structure, minor errors, vocabulary appropriate for level, natural flow
-- 5.0: Near-native fluency for the level, complex structures, natural conversation flow
+FLUENCY SCORING RUBRIC — score relative to the student's CURRENT level (${teachingLevel}):
+- 1.0-1.5: Cannot form basic sentences expected at ${teachingLevel}, mostly unintelligible
+- 2.0-2.5: Below expectations for ${teachingLevel}, frequent errors in basic structures
+- 3.0-3.5: Meets basic expectations for ${teachingLevel}, functional but noticeable errors
+- 4.0-4.5: Strong performance for ${teachingLevel}, good accuracy, appropriate vocabulary, natural flow
+- 5.0: Excellent — clearly masters ${teachingLevel} content, natural conversation, minimal errors
 
-IMPORTANT: Score relative to the student's CURRENT level (${lesson.level_at_start}). An A1 student using basic phrases correctly = 3.5-4.0. Don't inflate scores — a score of 4.5+ means truly exceptional performance for their level.
+IMPORTANT: A student correctly using structures appropriate for their level IS a good performance.
+An ${teachingLevel} student using ${teachingLevel}-appropriate phrases correctly and naturally = 4.0-5.0.
+Reserve scores below 3.0 for genuine struggles. Do NOT penalize for simplicity — judge correctness and naturalness at THIS level.
 
 LEVEL ASSESSMENT RULES:
-- You can ONLY recommend: "${lesson.level_at_start}" (stay), "${nextLevel}" (up one), or "${prevLevel}" (down one)
-- Recommend UP only if: student consistently uses structures ABOVE their current level, vocabulary is rich, and they show comfort with complexity beyond ${lesson.level_at_start}
-- Recommend DOWN only if: student clearly struggles with basics of ${lesson.level_at_start}
-- When in doubt, recommend staying at "${lesson.level_at_start}" — this is the safe default
+- You can ONLY recommend: "${teachingLevel}" (stay), "${nextBase}" (up one), or "${prevBase}" (down one)
+- Recommend UP only if: student consistently uses structures ABOVE ${teachingLevel}, vocabulary is rich, and they show comfort with complexity beyond ${teachingLevel}
+- Recommend DOWN only if: student clearly struggles with basics of ${teachingLevel}
+- When in doubt, recommend staying at "${teachingLevel}" — this is the safe default
 - A single good lesson is NOT enough to recommend promotion. Be conservative.
 
 Prepare the analysis in JSON format (no markdown, raw JSON only):
 {
-  "fluency_score": ${isTooShort ? 'null' : '(1.0-5.0, following the rubric above strictly)'},
+  "fluency_score": ${isTooShort ? 'null' : `(1.0-5.0, following the rubric above — remember: correct ${teachingLevel} performance = 4.0+)`},
   "topics_covered": ["topic1", "topic2"],
   "new_vocabulary": [
     {"word": "word in target language", "translation": "translation in ${isPolish ? 'Polish' : 'English'}", "context": "sentence from conversation"}
   ],
   "struggled_phrases": ["Specific structure/word with CORRECT form + translation in ${isPolish ? 'Polish' : 'English'}. Do NOT copy raw transcript. E.g.: 'It makes it difficult — make + object + adjective structure'"],
   "level_assessment": {
-    "current": "${lesson.level_at_start}",
-    "recommended": "${lesson.level_at_start}" or "${nextLevel}" or "${prevLevel}",
+    "current": "${teachingLevel}",
+    "recommended": "${teachingLevel}" or "${nextBase}" or "${prevBase}",
     "reasoning": "brief explanation in ${isPolish ? 'Polish' : 'English'}"
   },
   "summary_pl": "2-3 sentences in ${isPolish ? 'Polish' : 'English'}: what the user did well and what to work on",
@@ -147,34 +155,50 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
     }
 
     // ── XP Calculation ──
+    // Sub-level thresholds: XP needed to advance FROM each level
     const XP_THRESHOLDS: Record<string, number> = {
-      A1: 500,   // A1 → A2
-      A2: 1000,  // A2 → B1
-      B1: 1500,  // B1 → B2
-      B2: 2000,  // B2 → C1
-      C1: 9999,  // max level
+      "A1":  500,   // A1  → A1+
+      "A1+": 800,   // A1+ → A2  (requires Claude recommendation)
+      "A2":  1000,  // A2  → A2+
+      "A2+": 1200,  // A2+ → B1  (requires Claude recommendation)
+      "B1":  1500,  // B1  → B1+
+      "B1+": 2000,  // B1+ → B2  (requires Claude recommendation)
+      "B2":  2500,  // B2  → B2+
+      "B2+": 3000,  // B2+ → C1  (requires Claude recommendation)
+      "C1":  99999, // max level
     };
+
+    // Full sub-level order
+    const LEVEL_ORDER = ["A1", "A1+", "A2", "A2+", "B1", "B1+", "B2", "B2+", "C1"];
+    const nextSubLevel = (level: string): string | null => {
+      const idx = LEVEL_ORDER.indexOf(level);
+      return idx >= 0 && idx < LEVEL_ORDER.length - 1 ? LEVEL_ORDER[idx + 1] : null;
+    };
+    // "+" levels are pure XP milestones; CEFR transitions need Claude's recommendation
+    const isCEFRTransition = (from: string, to: string) =>
+      baseCEFR(from) !== baseCEFR(to); // e.g. A1+→A2 changes base CEFR
 
     const fluencyForXP = summary.fluency_score ?? 0;
     const newWordsCount = summary.new_vocabulary?.length ?? 0;
     const currentStrk = (await supabase.from("streaks").select("current_streak").eq("user_id", user.id).single()).data?.current_streak ?? 0;
 
-    const xpBase = Math.max(1, durationMin) * 5;          // 5 XP per minute
-    const xpFluency = Math.round(fluencyForXP * 10);      // up to 50 XP
-    const xpVocab = newWordsCount * 5;                     // 5 XP per new word
-    const xpStreak = currentStrk >= 3 ? 10 : 0;           // streak bonus
+    // New XP formula: fluency is the PRIMARY driver
+    const xpBase = Math.min(Math.max(1, durationMin) * 5, 50);   // 5 XP/min, cap 50 (10 min)
+    const xpFluency = Math.round(fluencyForXP * 20);              // up to 100 XP (main driver!)
+    const xpVocab = Math.min(newWordsCount * 3, 30);              // 3 XP/word, cap 30
+    const xpStreak = Math.min(currentStrk * 5, 25);               // 5 XP/streak day, cap 25
     const xpEarned = xpBase + xpFluency + xpVocab + xpStreak;
+    // Range: ~30 (short weak) to ~205 (long perfect)
 
     // ── Level progression logic ──
+    // Claude recommends base CEFR levels — clamp to ±1
     const recommendedLevel = summary.level_assessment?.recommended;
-    // Clamp recommendation to ±1 level (safety net)
     const CEFR_MAP: Record<string, number> = { A1: 0, A2: 1, B1: 2, B2: 3, C1: 4 };
-    const CEFR_REVERSE = ["A1", "A2", "B1", "B2", "C1"];
-    let clampedRecommendation = lesson.level_at_start;
+    let clampedRecommendation = teachingLevel;
     if (recommendedLevel && CEFR_MAP[recommendedLevel] !== undefined) {
-      const diff = CEFR_MAP[recommendedLevel] - CEFR_MAP[lesson.level_at_start];
-      const clampedIdx = CEFR_MAP[lesson.level_at_start] + Math.max(-1, Math.min(1, diff));
-      clampedRecommendation = CEFR_REVERSE[Math.max(0, Math.min(4, clampedIdx))];
+      const diff = CEFR_MAP[recommendedLevel] - CEFR_MAP[teachingLevel];
+      const clampedIdx = CEFR_MAP[teachingLevel] + Math.max(-1, Math.min(1, diff));
+      clampedRecommendation = CEFR_BASE[Math.max(0, Math.min(4, clampedIdx))];
     }
 
     // Update lesson record
@@ -186,13 +210,13 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
         fluency_score: summary.fluency_score,
         summary_json: summary,
         transcript: transcript || null,
-        level_at_end: lesson.level_at_start, // stays same until XP-gated promotion
+        level_at_end: lesson.level_at_start, // stays same until promotion
         level_recommended: clampedRecommendation,
         xp_earned: xpEarned,
       })
       .eq("id", lesson_id);
 
-    // ── Check if level should change (XP threshold + consistent recommendations) ──
+    // ── Check if level should change ──
     const { data: currentProfile } = await supabase
       .from("user_profiles")
       .select("current_level, xp_current, xp_total")
@@ -200,15 +224,47 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
       .eq("target_language", lesson.language)
       .single();
 
+    const currentLevel = currentProfile?.current_level ?? lesson.level_at_start;
     const profileXP = (currentProfile?.xp_current ?? 0) + xpEarned;
     const profileXPTotal = (currentProfile?.xp_total ?? 0) + xpEarned;
-    const xpThreshold = XP_THRESHOLDS[lesson.level_at_start] ?? 9999;
+    const xpThreshold = XP_THRESHOLDS[currentLevel] ?? 99999;
 
-    let newLevel = lesson.level_at_start;
+    let newLevel = currentLevel;
     let resetXP = false;
+    const candidate = nextSubLevel(currentLevel);
 
-    if (clampedRecommendation !== lesson.level_at_start && profileXP >= xpThreshold) {
-      // Check last 3 lessons for consistent recommendations
+    if (candidate && profileXP >= xpThreshold) {
+      if (isCEFRTransition(currentLevel, candidate)) {
+        // CEFR boundary (A1+→A2, A2+→B1, etc.) — needs Claude recommendation
+        const targetBase = baseCEFR(candidate); // "A2", "B1", etc.
+
+        // Check last 3 lessons for consistent recommendations
+        const { data: recentLessons } = await supabase
+          .from("lessons")
+          .select("level_recommended")
+          .eq("user_id", user.id)
+          .eq("language", lesson.language)
+          .order("started_at", { ascending: false })
+          .limit(3);
+
+        const recommendations = (recentLessons ?? []).map(l => l.level_recommended).filter(Boolean);
+        const upVotes = recommendations.filter(r => r === targetBase).length;
+
+        if (upVotes >= 2) {
+          newLevel = candidate;
+          resetXP = true;
+          console.log(`[XP] CEFR UP: ${currentLevel} → ${newLevel} (XP: ${profileXP}/${xpThreshold}, votes: ${upVotes}/3)`);
+        }
+      } else {
+        // Sub-level transition (A1→A1+, A2→A2+, etc.) — pure XP, automatic!
+        newLevel = candidate;
+        resetXP = true;
+        console.log(`[XP] Sub-level UP: ${currentLevel} → ${newLevel} (XP: ${profileXP}/${xpThreshold})`);
+      }
+    }
+
+    // Check for demotion (only at CEFR boundaries, very conservative)
+    if (newLevel === currentLevel && clampedRecommendation < teachingLevel) {
       const { data: recentLessons } = await supabase
         .from("lessons")
         .select("level_recommended")
@@ -216,21 +272,16 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
         .eq("language", lesson.language)
         .order("started_at", { ascending: false })
         .limit(3);
-
       const recommendations = (recentLessons ?? []).map(l => l.level_recommended).filter(Boolean);
-      const upVotes = recommendations.filter(r => r === clampedRecommendation).length;
-
-      // Promotion: need 2 of last 3 lessons recommending higher level + XP threshold met
-      if (clampedRecommendation > lesson.level_at_start && upVotes >= 2) {
-        newLevel = clampedRecommendation;
-        resetXP = true;
-        console.log(`[XP] Level UP: ${lesson.level_at_start} → ${newLevel} (XP: ${profileXP}/${xpThreshold}, votes: ${upVotes}/3)`);
-      }
-      // Demotion: need 3 of last 3 lessons recommending lower level (stricter)
-      else if (clampedRecommendation < lesson.level_at_start && upVotes >= 3) {
-        newLevel = clampedRecommendation;
-        resetXP = true;
-        console.log(`[XP] Level DOWN: ${lesson.level_at_start} → ${newLevel} (votes: ${upVotes}/3)`);
+      const downVotes = recommendations.filter(r => r === clampedRecommendation).length;
+      if (downVotes >= 3) {
+        // Demote to the "+" of the lower CEFR level (e.g. A2→A1+, not A1)
+        const prevIdx = LEVEL_ORDER.indexOf(currentLevel);
+        if (prevIdx > 0) {
+          newLevel = LEVEL_ORDER[prevIdx - 1];
+          resetXP = true;
+          console.log(`[XP] Level DOWN: ${currentLevel} → ${newLevel} (votes: ${downVotes}/3)`);
+        }
       }
     }
 
@@ -247,7 +298,7 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
       .eq("target_language", lesson.language);
 
     // Update lesson's level_at_end if level actually changed
-    if (newLevel !== lesson.level_at_start) {
+    if (newLevel !== currentLevel) {
       await supabase.from("lessons").update({ level_at_end: newLevel }).eq("id", lesson_id);
     }
 
@@ -359,8 +410,9 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
         earned: xpEarned,
         current: resetXP ? 0 : profileXP,
         total: profileXPTotal,
-        threshold: xpThreshold,
-        levelChanged: newLevel !== lesson.level_at_start,
+        threshold: XP_THRESHOLDS[newLevel] ?? 99999,
+        levelChanged: newLevel !== currentLevel,
+        previousLevel: currentLevel,
         newLevel,
       },
     });

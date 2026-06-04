@@ -78,16 +78,21 @@ export default async function LessonSummaryPage({
     ? Math.round(lesson.duration_seconds / 60)
     : 0;
   const fluencyScore: number | null = summary?.fluency_score ?? null;
-  const levelChanged =
-    summary?.level_assessment?.recommended !== summary?.level_assessment?.current;
+  // Level change detection: use ACTUAL level change from DB, not Claude's recommendation
+  const levelChanged = lesson.level_at_end && lesson.level_at_start !== lesson.level_at_end;
+  const previousLevel = lesson.level_at_start;
+  const newLevelAfter = lesson.level_at_end ?? lesson.level_at_start;
 
-  // XP progress
-  const XP_THRESHOLDS: Record<string, number> = { A1: 500, A2: 1000, B1: 1500, B2: 2000, C1: 9999 };
+  // XP progress — sub-level thresholds
+  const XP_THRESHOLDS: Record<string, number> = {
+    "A1": 500, "A1+": 800, "A2": 1000, "A2+": 1200,
+    "B1": 1500, "B1+": 2000, "B2": 2500, "B2+": 3000, "C1": 99999,
+  };
   const xpEarned = lesson.xp_earned ?? 0;
   const xpCurrent = profileData?.xp_current ?? 0;
   const currentLevel = profileData?.current_level ?? lesson.level_at_start;
-  const xpThreshold = XP_THRESHOLDS[currentLevel] ?? 9999;
-  const xpPercent = xpThreshold < 9999 ? Math.min(100, Math.round((xpCurrent / xpThreshold) * 100)) : 100;
+  const xpThreshold = XP_THRESHOLDS[currentLevel] ?? 99999;
+  const xpPercent = xpThreshold < 99999 ? Math.min(100, Math.round((xpCurrent / xpThreshold) * 100)) : 100;
 
   return (
     <main className="mx-auto max-w-lg px-4 py-8">
@@ -126,18 +131,20 @@ export default async function LessonSummaryPage({
         </div>
       )}
 
-      {/* Level change banner */}
-      {levelChanged && summary?.level_assessment && (
+      {/* Level change banner — based on actual DB change, not Claude's recommendation */}
+      {levelChanged && (
         <div className="mb-6 rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-center">
           <TrendingUp className="mx-auto h-6 w-6 text-green-400" />
           <div className="mt-2 font-bold text-green-400">
-            {summary.level_assessment.recommended > summary.level_assessment.current
-              ? `${t.levelUp} ${summary.level_assessment.recommended}!`
-              : `${t.levelAdjusted} ${summary.level_assessment.recommended}`}
+            {newLevelAfter > previousLevel
+              ? `${t.levelUp} ${newLevelAfter}!`
+              : `${t.levelAdjusted} ${newLevelAfter}`}
           </div>
-          <div className="mt-1 text-sm text-text-secondary">
-            {summary.level_assessment.reasoning}
-          </div>
+          {summary?.level_assessment?.reasoning && (
+            <div className="mt-1 text-sm text-text-secondary">
+              {summary.level_assessment.reasoning}
+            </div>
+          )}
         </div>
       )}
 

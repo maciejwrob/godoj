@@ -62,7 +62,9 @@ export async function POST(request: Request) {
     // Level ups
     const levelUps = completedLessons.filter((l: { level_at_start: string | null; level_at_end: string | null }) => l.level_at_end && l.level_at_start && l.level_at_end !== l.level_at_start && l.level_at_end > l.level_at_start).length;
 
-    const levelMap: Record<string, number> = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5 };
+    const levelMap: Record<string, number> = {
+      "A1": 1, "A1+": 2, "A2": 3, "A2+": 4, "B1": 5, "B1+": 6, "B2": 7, "B2+": 8, "C1": 9,
+    };
     const currentLevel = completedLessons[0]?.level_at_end ?? "A1";
     const currentLevelNum = levelMap[currentLevel] ?? 1;
 
