@@ -171,7 +171,7 @@ export default function DashboardPage() {
                     </button>
                   ))}
                 </div>
-                <Link href="/lesson" className="flex items-center gap-3 rounded-2xl bg-surface px-6 py-3 lg:px-8 lg:py-4 font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
+                <Link href={`/lesson?duration=${selectedDuration}`} className="flex items-center gap-3 rounded-2xl bg-surface px-6 py-3 lg:px-8 lg:py-4 font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
                   <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
                   {t("startLessonBtn")}
                 </Link>

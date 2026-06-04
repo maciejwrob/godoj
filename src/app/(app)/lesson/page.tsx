@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useConversation } from "@11labs/react";
 import { Loader2, Play, ArrowLeft, RefreshCw, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { TutorAvatar } from "@/components/tutor-avatars";
 import { MicCheckModal } from "@/components/mic-check-modal";
 import { useLanguage } from "@/lib/language-context";
@@ -42,6 +42,7 @@ let msgIdCounter = 0;
 
 export default function LessonPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const langCtx = useLanguage();
   const { t, locale } = useTranslation();
   const [lessonState, setLessonState] = useState<LessonState>("loading");
@@ -50,7 +51,11 @@ export default function LessonPage() {
   const [level, setLevel] = useState("A1");
   const [displayName, setDisplayName] = useState("");
   const [duration, setDuration] = useState(10);
-  const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+  // Read duration from URL query param (passed from dashboard)
+  const urlDuration = searchParams.get("duration");
+  const [selectedDuration, setSelectedDuration] = useState<number | null>(
+    urlDuration ? parseInt(urlDuration, 10) : null
+  );
   const [signedUrl, setSignedUrl] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [nativeLanguage, setNativeLanguage] = useState("pl");
@@ -66,6 +71,10 @@ export default function LessonPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [hintsEnabled, setHintsEnabled] = useState(true); // SOS toggle
   const [micCheckOpen, setMicCheckOpen] = useState(false);
+  const [micCheckPassed, setMicCheckPassed] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("godoj_mic_checked") === "1";
+    return false;
+  });
   const [autoEndCountdown, setAutoEndCountdown] = useState<number | null>(null);
   const [limitError, setLimitError] = useState<{ type: "daily" | "monthly"; used: number; limit: number } | null>(null);
   const [isUnlimited, setIsUnlimited] = useState(false);
@@ -175,7 +184,9 @@ export default function LessonPage() {
       const effectiveDuration = selectedDuration ?? duration;
       setTimeLeft(effectiveDuration * 60);
       const hardLimitSeconds = 12 * 60; // 12 min absolute max for beta users
-      const wrapUpSeconds = (effectiveDuration - 1) * 60; // 1 min before selected duration
+      // Wrap-up timing: 30s for short lessons (≤5min), 60s for longer ones
+      const wrapUpBuffer = effectiveDuration <= 5 ? 30 : 60;
+      const wrapUpSeconds = effectiveDuration * 60 - wrapUpBuffer;
       let elapsed = 0;
       lessonTimerRef.current = setInterval(() => {
         elapsed++;
@@ -184,7 +195,10 @@ export default function LessonPage() {
 
         // Wrap-up reminder: 1 min before selected duration
         if (elapsed === wrapUpSeconds && lessonActiveRef.current) {
-          try { conversation.sendContextualUpdate("The lesson time is almost up. Start wrapping up the conversation naturally within the next minute."); } catch {}
+          const wrapMsg = wrapUpBuffer <= 30
+            ? "The lesson time is up. Say a brief goodbye in 1-2 sentences."
+            : "The lesson time is almost up. Start wrapping up the conversation naturally within the next minute.";
+          try { conversation.sendContextualUpdate(wrapMsg); } catch {}
         }
 
         // Hard limit only for beta (non-unlimited) users
@@ -449,7 +463,27 @@ export default function LessonPage() {
     } catch {}
   };
 
-  const refreshTopic = () => prepareLesson(profileRef.current.language, profileRef.current.agentId);
+  const [refreshingTopic, setRefreshingTopic] = useState(false);
+  const refreshTopic = async () => {
+    setRefreshingTopic(true);
+    try {
+      const res = await fetch("/api/lessons/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language: profileRef.current.language, agent_id: profileRef.current.agentId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLessonId(data.lesson_id);
+        setTopic(data.topic);
+        setSignedUrl(data.signed_url);
+        setSystemPrompt(data.system_prompt_override);
+        setFirstMessage(data.first_message ?? "");
+        setPreviousContext(data.previous_context ?? "To pierwsza rozmowa.");
+        setAgentSystemPrompt(data.agent_system_prompt ?? "");
+      }
+    } catch {} finally { setRefreshingTopic(false); }
+  };
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
   // ---- Word translation ----
@@ -460,6 +494,8 @@ export default function LessonPage() {
       setWordTranslations((prev) => { const next = new Map(prev); next.delete(key); return next; });
       return;
     }
+    // Close all other tooltips before opening a new one
+    setWordTranslations(new Map());
     setTranslatingKey(key);
     try {
       const res = await fetch("/api/lessons/translate", {
@@ -541,8 +577,8 @@ export default function LessonPage() {
         <div className="rounded-2xl border border-white/5 bg-surface-container-high p-4 sm:p-6 text-left">
           <div className="text-sm text-on-surface-variant">{t("topicOfDay")}</div>
           <div className="mt-2 text-base sm:text-lg font-bold leading-snug">{topic}</div>
-          <button onClick={refreshTopic} className="mt-3 inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-primary transition-colors">
-            <RefreshCw className="h-3 w-3" />
+          <button onClick={refreshTopic} disabled={refreshingTopic} className="mt-3 inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-primary transition-colors disabled:opacity-50">
+            <RefreshCw className={`h-3 w-3 ${refreshingTopic ? "animate-spin" : ""}`} />
             {t("otherTopic")}
           </button>
         </div>
@@ -557,7 +593,10 @@ export default function LessonPage() {
             ))}
           </div>
         </div>
-        <button onClick={startConversation} className="flex w-full items-center justify-center gap-3 rounded-2xl bg-godoj-blue px-6 py-4 text-lg font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
+        <button onClick={() => {
+          if (!micCheckPassed) { setMicCheckOpen(true); return; }
+          startConversation();
+        }} className="flex w-full items-center justify-center gap-3 rounded-2xl bg-godoj-blue px-6 py-4 text-lg font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
           {t("startConversation")}
         </button>
@@ -572,7 +611,16 @@ export default function LessonPage() {
           </button>
         </div>
       </div>
-      {micCheckOpen && <MicCheckModal onClose={() => setMicCheckOpen(false)} />}
+      {micCheckOpen && <MicCheckModal
+        mandatory={!micCheckPassed}
+        onClose={() => setMicCheckOpen(false)}
+        onSuccess={() => {
+          localStorage.setItem("godoj_mic_checked", "1");
+          setMicCheckPassed(true);
+          setMicCheckOpen(false);
+          startConversation();
+        }}
+      />}
     </div>
   );
 

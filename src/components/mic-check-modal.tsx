@@ -12,7 +12,7 @@ const HEARD_THRESHOLD = 0.08;
 // How long to keep "heard" state once triggered, so it doesn't flicker off between syllables
 const HEARD_HOLD_MS = 600;
 
-export function MicCheckModal({ onClose }: { onClose: () => void }) {
+export function MicCheckModal({ onClose, onSuccess, mandatory }: { onClose: () => void; onSuccess?: () => void; mandatory?: boolean }) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<Status>("idle");
   const [level, setLevel] = useState(0);
@@ -100,7 +100,7 @@ export function MicCheckModal({ onClose }: { onClose: () => void }) {
       <div className="w-full max-w-md rounded-3xl border border-white/5 bg-surface-container p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-extrabold text-white">{t("micCheckTitle")}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-white"><X className="h-5 w-5" /></button>
+          {!mandatory && <button onClick={onClose} className="text-slate-500 hover:text-white"><X className="h-5 w-5" /></button>}
         </div>
 
         {status === "idle" && (
@@ -141,8 +141,8 @@ export function MicCheckModal({ onClose }: { onClose: () => void }) {
               )}
             </div>
 
-            <button onClick={onClose} className="w-full rounded-xl border border-white/10 py-2.5 text-sm font-bold text-white hover:bg-white/5">
-              {t("close")}
+            <button onClick={() => { if (heard && onSuccess) onSuccess(); onClose(); }} className={`w-full rounded-xl py-2.5 text-sm font-bold text-white ${heard ? "bg-green-500 hover:bg-green-500/90" : "border border-white/10 hover:bg-white/5"}`}>
+              {heard ? t("continueBtn") : t("close")}
             </button>
           </div>
         )}
