@@ -31,29 +31,38 @@ export async function POST(request: Request) {
 
   const db = createAdminClient();
   const emailId = event.data?.email_id;
+  const toEmail = event.data?.to?.[0]?.toLowerCase();
 
   if (!emailId) {
     return NextResponse.json({ ok: true });
   }
 
+  // Match by resend_email_id first, fallback to most recent event for this email
+  // (Supabase may send its own magic link via Resend with a different email_id)
+  const matchById = async (table: string, column: string, value: string) => {
+    const { data } = await db.from(table).update({ [column]: value })
+      .eq("resend_email_id", emailId).select("id");
+    if (data && data.length > 0) return true;
+    // Fallback: match by recipient email, most recent unmatched event
+    if (toEmail) {
+      await db.from(table).update({ [column]: value })
+        .eq("email", toEmail).is(column, null)
+        .order("sent_at", { ascending: false }).limit(1);
+    }
+    return false;
+  };
+
   try {
+    const now = new Date().toISOString();
     switch (event.type) {
       case "email.delivered":
-        await db.from("magic_link_events")
-          .update({ delivered_at: new Date().toISOString() })
-          .eq("resend_email_id", emailId);
+        await matchById("magic_link_events", "delivered_at", now);
         break;
-
       case "email.bounced":
-        await db.from("magic_link_events")
-          .update({ bounced_at: new Date().toISOString() })
-          .eq("resend_email_id", emailId);
+        await matchById("magic_link_events", "bounced_at", now);
         break;
-
       case "email.clicked":
-        await db.from("magic_link_events")
-          .update({ clicked_at: new Date().toISOString() })
-          .eq("resend_email_id", emailId);
+        await matchById("magic_link_events", "clicked_at", now);
         break;
     }
   } catch (err) {
