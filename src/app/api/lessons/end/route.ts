@@ -91,16 +91,22 @@ ${transcript || "No transcript"}
 
 ${isTooShort ? `IMPORTANT: This lesson was very short (${durationMin} min, ${userMsgCount} student messages). Set fluency_score to null — there is not enough data to assess fluency. In summary, encourage the student to try a longer conversation next time.` : ''}
 
-FLUENCY SCORING RUBRIC — score relative to the student's CURRENT level (${teachingLevel}):
+FLUENCY SCORING RUBRIC — score ONLY how well the student communicates at ${teachingLevel}:
 - 1.0-1.5: Cannot form basic sentences expected at ${teachingLevel}, mostly unintelligible
 - 2.0-2.5: Below expectations for ${teachingLevel}, frequent errors in basic structures
-- 3.0-3.5: Meets basic expectations for ${teachingLevel}, functional but noticeable errors
-- 4.0-4.5: Strong performance for ${teachingLevel}, good accuracy, appropriate vocabulary, natural flow
-- 5.0: Excellent — clearly masters ${teachingLevel} content, natural conversation, minimal errors
+- 3.0: Functional at ${teachingLevel} but with noticeable errors and hesitation
+- 3.5: Meets expectations for ${teachingLevel} with some errors
+- 4.0: Good performance — correct structures, appropriate vocabulary, some minor imperfections
+- 4.5: Very good — natural flow, varied vocabulary, only occasional small errors
+- 5.0: Excellent — fluent, natural, error-free or near error-free conversation at ${teachingLevel} or above
 
-IMPORTANT: A student correctly using structures appropriate for their level IS a good performance.
-An ${teachingLevel} student using ${teachingLevel}-appropriate phrases correctly and naturally = 4.0-5.0.
-Reserve scores below 3.0 for genuine struggles. Do NOT penalize for simplicity — judge correctness and naturalness at THIS level.
+CRITICAL SCORING RULES:
+- Fluency score measures ONLY conversation quality. It is SEPARATE from level recommendation.
+- Do NOT lower the score because "the student needs more practice to advance" — that's what level_assessment is for.
+- A conversation with natural flow, correct grammar, and no significant errors = 5.0, period.
+- If the student speaks ABOVE their current level, that's still 5.0 (not lower because "it's beyond ${teachingLevel}").
+- Reserve 4.0-4.5 ONLY when there are actual errors, hesitations, or unnatural phrasing.
+- Reserve scores below 3.0 for genuine struggles.
 
 LEVEL ASSESSMENT RULES:
 - You can ONLY recommend: "${teachingLevel}" (stay), "${nextBase}" (up one), or "${prevBase}" (down one)
