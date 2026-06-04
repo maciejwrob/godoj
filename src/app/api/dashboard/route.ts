@@ -10,101 +10,89 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const lang = searchParams.get("lang");
 
-    // Get all profiles
-    const { data: profiles } = await supabase
-      .from("user_profiles")
-      .select("target_language, language_variant, current_level, selected_agent_id, xp_current, xp_total")
-      .eq("user_id", user.id)
-      .order("created_at");
+    // ── Phase 1: parallel queries that don't need activeLang ──
+    const now = new Date();
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const mStart = new Date(); mStart.setDate(1); mStart.setHours(0, 0, 0, 0);
 
-    // Active profile
+    const [
+      { data: profiles },
+      { data: userData },
+      { data: streakRow },
+      { data: achievements },
+      { count: totalLessonsCount },
+      { data: todayUsage },
+      { data: monthUsage },
+    ] = await Promise.all([
+      supabase.from("user_profiles")
+        .select("target_language, language_variant, current_level, selected_agent_id, xp_current, xp_total")
+        .eq("user_id", user.id).order("created_at"),
+      supabase.from("users")
+        .select("display_name, role")
+        .eq("id", user.id).single(),
+      supabase.from("streaks")
+        .select("current_streak, weekly_minutes_goal, weekly_minutes_done, week_start")
+        .eq("user_id", user.id).single(),
+      supabase.from("user_achievements")
+        .select("achievement_id, earned_at, achievements(name_pl, icon)")
+        .eq("user_id", user.id).order("earned_at", { ascending: false }).limit(3),
+      supabase.from("lessons")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id).not("ended_at", "is", null),
+      supabase.from("lessons")
+        .select("duration_seconds")
+        .eq("user_id", user.id).gte("started_at", todayStart.toISOString()),
+      supabase.from("lessons")
+        .select("duration_seconds")
+        .eq("user_id", user.id).gte("started_at", mStart.toISOString()),
+    ]);
+
+    // Determine active language from profiles
     const activeProfile = lang
       ? (profiles ?? []).find((p: { target_language: string }) => p.target_language === lang)
       : (profiles ?? [])[0];
-
     const activeLang = activeProfile?.target_language ?? (profiles ?? [])[0]?.target_language ?? "";
 
-    // User data
-    const { data: userData } = await supabase
-      .from("users")
-      .select("display_name, role")
-      .eq("id", user.id)
-      .single();
-
-    // Streak — global row (has current_streak, weekly goal, weekly done)
-    const { data: streakRow } = await supabase
-      .from("streaks")
-      .select("current_streak, weekly_minutes_goal, weekly_minutes_done, week_start")
-      .eq("user_id", user.id)
-      .single();
-
-    // Recent lessons for display (limited to 5)
-    const { data: lessons } = await supabase
-      .from("lessons")
-      .select("id, started_at, duration_seconds, topic, fluency_score, language")
-      .eq("user_id", user.id)
-      .eq("language", activeLang)
-      .not("ended_at", "is", null)
-      .order("started_at", { ascending: false })
-      .limit(5);
-
-    // Aggregate: total minutes for this language (all time, no limit)
-    const { data: allLangLessons } = await supabase
-      .from("lessons")
-      .select("duration_seconds")
-      .eq("user_id", user.id)
-      .eq("language", activeLang)
-      .not("ended_at", "is", null);
-
-    // Achievements
-    const { data: achievements } = await supabase
-      .from("user_achievements")
-      .select("achievement_id, earned_at, achievements(name_pl, icon)")
-      .eq("user_id", user.id)
-      .order("earned_at", { ascending: false })
-      .limit(3);
-
-    // Vocab count filtered by language
-    const { count: vocabCount } = await supabase
-      .from("vocabulary")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("language", activeLang);
-
-    // Total minutes from ALL lessons for this language (not limited to 5)
-    const totalMinutes = (allLangLessons ?? []).reduce(
-      (sum: number, l: { duration_seconds: number | null }) => sum + Math.round((l.duration_seconds ?? 0) / 60), 0
-    );
-
-    // Weekly minutes: query lessons from this week for this language
-    const now = new Date();
+    // ── Phase 2: parallel queries that need activeLang ──
     const mondayOffset = now.getDay() === 0 ? 6 : now.getDay() - 1;
     const monday = new Date(now); monday.setDate(monday.getDate() - mondayOffset);
     monday.setHours(0, 0, 0, 0);
 
-    const { data: weekLessons } = await supabase
-      .from("lessons")
-      .select("duration_seconds")
-      .eq("user_id", user.id)
-      .eq("language", activeLang)
-      .not("ended_at", "is", null)
-      .gte("started_at", monday.toISOString());
+    const [
+      { data: lessons },
+      { data: allLangLessons },
+      { data: weekLessons },
+      { count: vocabCount },
+    ] = await Promise.all([
+      supabase.from("lessons")
+        .select("id, started_at, duration_seconds, topic, fluency_score, language")
+        .eq("user_id", user.id).eq("language", activeLang)
+        .not("ended_at", "is", null)
+        .order("started_at", { ascending: false }).limit(5),
+      supabase.from("lessons")
+        .select("duration_seconds")
+        .eq("user_id", user.id).eq("language", activeLang)
+        .not("ended_at", "is", null),
+      supabase.from("lessons")
+        .select("duration_seconds")
+        .eq("user_id", user.id).eq("language", activeLang)
+        .not("ended_at", "is", null)
+        .gte("started_at", monday.toISOString()),
+      supabase.from("vocabulary")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id).eq("language", activeLang),
+    ]);
 
+    // ── Compute aggregates ──
+    const totalMinutes = (allLangLessons ?? []).reduce(
+      (sum: number, l: { duration_seconds: number | null }) => sum + Math.round((l.duration_seconds ?? 0) / 60), 0
+    );
     const weeklyMinutesLang = (weekLessons ?? []).reduce(
       (sum: number, l: { duration_seconds: number | null }) => sum + Math.round((l.duration_seconds ?? 0) / 60), 0
     );
-
-    // Streak from streaks table (maintained by lesson end logic)
     const langStreak = streakRow?.current_streak ?? 0;
 
-    // Check if first lesson ever (for feedback popup)
-    const { count: totalLessonsCount } = await supabase
-      .from("lessons")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .not("ended_at", "is", null);
-
-    // Check if last lesson has feedback
+    // ── Phase 3: feedback check (needs lessons result) ──
     const lastLesson = (lessons ?? [])[0];
     let needsFeedback = false;
     let feedbackLessonId: string | null = null;
@@ -119,18 +107,6 @@ export async function GET(request: Request) {
     const isUnlimited = unlimitedEmails.includes(user.email?.toLowerCase() ?? "");
     const dailyLimitMin = parseInt(process.env.DAILY_MINUTES_PER_USER ?? "10", 10);
     const monthlyLimitMin = parseInt(process.env.MONTHLY_MINUTES_PER_USER ?? "100", 10);
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const mStart = new Date();
-    mStart.setDate(1);
-    mStart.setHours(0, 0, 0, 0);
-
-    const [{ data: todayUsage }, { data: monthUsage }] = await Promise.all([
-      supabase.from("lessons").select("duration_seconds").eq("user_id", user.id).gte("started_at", todayStart.toISOString()),
-      supabase.from("lessons").select("duration_seconds").eq("user_id", user.id).gte("started_at", mStart.toISOString()),
-    ]);
-
     const todayMinutesUsed = Math.round((todayUsage ?? []).reduce((s, l) => s + (l.duration_seconds ?? 0), 0) / 60);
     const monthMinutesUsed = Math.round((monthUsage ?? []).reduce((s, l) => s + (l.duration_seconds ?? 0), 0) / 60);
 

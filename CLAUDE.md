@@ -2,6 +2,9 @@
 
 AI-powered conversational language learning app. Name comes from Silesian dialect meaning "speak/talk".
 
+## Marketing
+- Main tagline: **"Nie ucz się - godoj!"** (or just **"godoj"**)
+
 ## Stack
 - Next.js 16 (App Router) with TypeScript
 - Supabase (PostgreSQL + Auth with magic links)

@@ -112,8 +112,8 @@ export async function POST(request: Request) {
     const elevenlabsAgentId = agentConfig.elevenlabs_agent_id;
     const agentName = agentConfig.voice_name;
 
-    // Get user data
-    const [{ data: userData }, { data: profile }, { data: lastLesson }] =
+    // Get user data + recent topics in parallel
+    const [{ data: userData }, { data: profile }, { data: lastLesson }, { data: recentLessonsData }] =
       await Promise.all([
         supabase
           .from("users")
@@ -136,6 +136,13 @@ export async function POST(request: Request) {
           .order("started_at", { ascending: false })
           .limit(1)
           .single(),
+        supabase
+          .from("lessons")
+          .select("topic")
+          .eq("user_id", user.id)
+          .eq("language", language)
+          .order("started_at", { ascending: false })
+          .limit(10),
       ]);
 
     const level = profile?.current_level ?? "A1";
@@ -159,15 +166,7 @@ export async function POST(request: Request) {
     };
     const languageNameEn = langNamesEn[language] ?? language;
 
-    // Fetch recent topics to avoid repetition
-    const { data: recentLessons } = await supabase
-      .from("lessons")
-      .select("topic")
-      .eq("user_id", user.id)
-      .eq("language", language)
-      .order("started_at", { ascending: false })
-      .limit(10);
-    const recentTopics = (recentLessons ?? []).map(l => l.topic).filter(Boolean);
+    const recentTopics = (recentLessonsData ?? []).map(l => l.topic).filter(Boolean);
 
     // Get topic pool for this level
     const levelKey = level.startsWith("A1") ? "A1" : level.startsWith("A2") ? "A2" : level.startsWith("B1") ? "B1" : level.startsWith("B2") ? "B2" : "C1";
@@ -179,62 +178,43 @@ export async function POST(request: Request) {
     const shuffled = [...poolForPrompt].sort(() => Math.random() - 0.5);
     const sampleTopics = shuffled.slice(0, 8).join(", ");
 
+    // Generate topic + first message in a SINGLE Claude call (saves ~500ms round-trip)
+    const lastLessonSummary = lastLesson?.summary_json
+      ? (lastLesson.summary_json as Record<string, unknown>).next_lesson_context ?? ""
+      : "";
+
     let topic = "";
+    let firstMessage = "";
     try {
-      const topicResponse = await anthropic.messages.create({
+      const combinedResponse = await anthropic.messages.create({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 30,
+        max_tokens: 120,
         messages: [{
           role: "user",
-          content: `Suggest a conversation topic for ${languageNameEn} at level ${level}.
+          content: `You are helping prepare a ${languageNameEn} lesson at level ${level} for ${displayName}.
 ${interests.length > 0 ? "User interests: " + interests.join(", ") + "." : ""}
 ${recentTopics.length > 0 ? "AVOID these recent topics: " + recentTopics.slice(0, 5).join(", ") : ""}
-Get inspired by these but feel free to suggest something different: ${sampleTopics}
-Reply with ONLY the topic, max 8 words. In Polish. No questions. No period.`,
+${lastLessonSummary ? `Previous lesson context: ${lastLessonSummary}` : "This is the user's first lesson."}
+Get inspired by these topic ideas: ${sampleTopics}
+
+Reply in EXACTLY this format (2 lines, nothing else):
+TOPIC: [conversation topic in Polish, max 8 words, no period]
+GREETING: [natural greeting in ${languageNameEn} as ${agentName} the tutor, max 2 short sentences at ${level} level]`,
         }],
       });
-      const raw = topicResponse.content[0].type === "text" ? topicResponse.content[0].text.trim() : "";
-      if (raw.length > 0 && raw.length < 60 && !raw.includes("?") && !raw.includes("Potrzebuj")) {
-        topic = raw;
+      const raw = combinedResponse.content[0].type === "text" ? combinedResponse.content[0].text.trim() : "";
+      const topicMatch = raw.match(/TOPIC:\s*(.+)/i);
+      const greetingMatch = raw.match(/GREETING:\s*(.+)/i);
+      if (topicMatch?.[1]) {
+        const t = topicMatch[1].trim().replace(/\.$/, "");
+        if (t.length > 0 && t.length < 60 && !t.includes("?")) topic = t;
       }
+      if (greetingMatch?.[1]) firstMessage = greetingMatch[1].trim();
     } catch {}
 
     // Fallback: pick random from available pool
     if (!topic) {
       topic = poolForPrompt[Math.floor(Math.random() * poolForPrompt.length)];
-    }
-
-    // Generate dynamic first message
-    const lastLessonDate = lastLesson ? "niedawno" : null;
-    const lastLessonSummary = lastLesson?.summary_json
-      ? (lastLesson.summary_json as Record<string, unknown>).next_lesson_context ?? ""
-      : "";
-
-    let firstMessage = "";
-    try {
-      const firstMsgResponse = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 80,
-        messages: [{
-          role: "user",
-          content: `Jesteś ${agentName}, tutor ${languageNameEn}. Użytkownik to ${displayName}.
-${lastLessonSummary ? `Kontekst z poprzedniej lekcji: ${lastLessonSummary}` : "To pierwsza lekcja tego użytkownika."}
-Dzisiejszy temat: ${topic}.
-
-Wygeneruj naturalne powitanie w ${languageNameEn} (max 2 krótkie zdania) na poziomie ${level}.
-- Jeśli to pierwsza lekcja: przywitaj się i przedstaw krótko
-- Jeśli była poprzednia lekcja: nawiąż do niej naturalnie
-- Bądź naturalny, ciepły, jak przyjaciel
-
-Odpowiedz TYLKO tekstem powitania w ${languageNameEn}, nic więcej.`,
-        }],
-      });
-      firstMessage = firstMsgResponse.content[0].type === "text"
-        ? firstMsgResponse.content[0].text.trim()
-        : "";
-    } catch {
-      // Fallback — let the voice agent generate its own greeting
-      firstMessage = "";
     }
 
     // Build system prompt override
