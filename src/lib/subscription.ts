@@ -5,8 +5,8 @@ const TIER_LIMITS: Record<string, number> = {
   free: 30, // Trial: 30 min one-time
   starter: 90,
   starter_yearly: 90,
-  pro: 200,
-  pro_yearly: 200,
+  pro: 250,
+  pro_yearly: 250,
 };
 
 export interface UserSubscription {
@@ -84,6 +84,21 @@ async function getCurrentUsage(
 }
 
 /**
+ * Get total remaining top-up minutes for a user.
+ */
+async function getTopupMinutes(userId: string): Promise<number> {
+  const db = createAdminClient();
+  const { data: topups } = await db
+    .from("subscription_topups")
+    .select("minutes_remaining")
+    .eq("user_id", userId)
+    .gt("minutes_remaining", 0);
+
+  if (!topups || topups.length === 0) return 0;
+  return topups.reduce((sum, t) => sum + Number(t.minutes_remaining), 0);
+}
+
+/**
  * Get the user's current subscription and usage info.
  */
 export async function getUserSubscription(
@@ -121,10 +136,16 @@ export async function getUserSubscription(
     .single();
 
   const tier = sub?.tier_id ?? "free";
-  const minutesLimit = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
+  const planMinutes = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
 
   // Get usage for current period
   const { minutesUsed } = await getCurrentUsage(userId);
+
+  // Get top-up minutes (don't expire with billing period)
+  const topupMinutes = await getTopupMinutes(userId);
+
+  // Total available = plan minutes + top-up minutes
+  const minutesLimit = planMinutes + topupMinutes;
 
   // Get tier display name
   const { data: tierData } = await db
@@ -189,6 +210,7 @@ export async function checkCanStartLesson(
 /**
  * Record usage after a lesson ends.
  * Upserts into subscription_usage for the current billing period.
+ * When plan minutes are exhausted, consumes from top-up balance (FIFO).
  */
 export async function recordUsage(
   userId: string,
@@ -198,7 +220,48 @@ export async function recordUsage(
   const minutes = durationSeconds / 60;
 
   // Get or determine current period
-  const { periodStart, periodEnd } = await getCurrentUsage(userId);
+  const { periodStart, periodEnd, minutesUsed: currentUsed } =
+    await getCurrentUsage(userId);
+
+  // Get active subscription to check plan limit
+  const { data: sub } = await db
+    .from("subscriptions")
+    .select("tier_id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  const tier = sub?.tier_id ?? "free";
+  const planLimit = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
+
+  // Calculate how many minutes go over the plan limit
+  const newTotal = currentUsed + minutes;
+  const overPlan = Math.max(0, newTotal - planLimit);
+  const wasAlreadyOver = Math.max(0, currentUsed - planLimit);
+  const topupToConsume = Math.max(0, overPlan - wasAlreadyOver);
+
+  // Consume from top-up balance (FIFO — oldest first)
+  if (topupToConsume > 0) {
+    const { data: topups } = await db
+      .from("subscription_topups")
+      .select("id, minutes_remaining")
+      .eq("user_id", userId)
+      .gt("minutes_remaining", 0)
+      .order("purchased_at", { ascending: true });
+
+    let remaining = topupToConsume;
+    for (const topup of topups ?? []) {
+      if (remaining <= 0) break;
+      const consume = Math.min(remaining, Number(topup.minutes_remaining));
+      await db
+        .from("subscription_topups")
+        .update({ minutes_remaining: Number(topup.minutes_remaining) - consume })
+        .eq("id", topup.id);
+      remaining -= consume;
+    }
+  }
 
   // Upsert usage — add minutes to existing record or create new one
   const { data: existing } = await db

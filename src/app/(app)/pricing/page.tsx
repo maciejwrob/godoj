@@ -12,6 +12,13 @@ interface Subscription {
   isUnlimited: boolean;
 }
 
+// Beta discount config
+const BETA_DISCOUNT = 0.5; // 50% off
+const BETA_ACTIVE = true;
+const BETA_DEADLINE = "30.06.2026";
+
+const TOPUP = { minutes: 20, price: 29 };
+
 const TIERS = [
   {
     id: "starter",
@@ -36,10 +43,10 @@ const TIERS = [
     name: "Pro",
     monthlyPrice: 179,
     yearlyPrice: 1717,
-    minutes: 200,
-    weeklyEquiv: "~45 min/tyg",
+    minutes: 250,
+    weeklyEquiv: "~57 min/tyg",
     features: [
-      "200 minut rozmów miesięcznie",
+      "250 minut rozmów miesięcznie",
       "AI tutor głosowy",
       "Szczegółowa analiza lekcji",
       "Śledzenie postępów i XP",
@@ -55,6 +62,7 @@ export default function PricingPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [topupLoading, setTopupLoading] = useState(false);
   const [billingInterval, setBillingInterval] = useState<"month" | "year">("month");
 
   useEffect(() => {
@@ -92,6 +100,24 @@ export default function PricingPage() {
     }
   };
 
+  const handleTopup = async () => {
+    if (topupLoading) return;
+    setTopupLoading(true);
+    try {
+      const res = await fetch("/api/stripe/topup", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Wystąpił błąd");
+        setTopupLoading(false);
+      }
+    } catch {
+      alert("Nie udało się połączyć z systemem płatności");
+      setTopupLoading(false);
+    }
+  };
+
   const currentTier = subscription?.tier ?? "free";
   // Normalize tier for comparison (starter_yearly -> starter)
   const currentTierBase = currentTier.replace("_yearly", "");
@@ -116,6 +142,15 @@ export default function PricingPage() {
               ? `Jesteś na okresie próbnym — pozostało ${trialMinutesLeft} z 30 minut. Wybierz plan, żeby kontynuować naukę po wyczerpaniu limitu.`
               : "Twój okres próbny się skończył. Wybierz plan poniżej, żeby kontynuować naukę."}
           </p>
+        </div>
+      )}
+
+      {/* Beta banner */}
+      {BETA_ACTIVE && (
+        <div className="mb-8 rounded-2xl border border-godoj-blue/20 bg-godoj-blue/5 p-4 text-center">
+          <span className="inline-block rounded-full bg-godoj-blue/20 px-3 py-1 text-xs font-bold text-godoj-blue">
+            -50% BETA przez 3 miesiące · do {BETA_DEADLINE}
+          </span>
         </div>
       )}
 
@@ -149,10 +184,12 @@ export default function PricingPage() {
       <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
         {TIERS.map((tier) => {
           const isYearly = billingInterval === "year";
-          const price = isYearly ? tier.yearlyPrice : tier.monthlyPrice;
+          const hasBetaDiscount = BETA_ACTIVE && !isYearly;
+          const fullPrice = isYearly ? tier.yearlyPrice : tier.monthlyPrice;
+          const price = hasBetaDiscount ? Math.round(fullPrice * (1 - BETA_DISCOUNT)) : fullPrice;
           const monthlyEquiv = isYearly && tier.yearlyPrice > 0
             ? Math.round(tier.yearlyPrice / 12)
-            : tier.monthlyPrice;
+            : price;
           const checkoutTierId = isYearly && tier.yearlyId ? tier.yearlyId : tier.id;
           const isCurrent = currentTierBase === tier.id;
           const isDowngrade =
@@ -176,7 +213,7 @@ export default function PricingPage() {
 
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-white">{tier.name}</h2>
-                <div className="mt-3 flex items-baseline gap-1">
+                <div className="mt-3 flex items-baseline gap-2">
                   {isYearly ? (
                     <>
                       <span className="text-3xl font-bold text-white">
@@ -186,6 +223,11 @@ export default function PricingPage() {
                     </>
                   ) : (
                     <>
+                      {hasBetaDiscount && (
+                        <span className="text-lg text-slate-500 line-through">
+                          {fullPrice}
+                        </span>
+                      )}
                       <span className="text-3xl font-bold text-white">
                         {price} PLN
                       </span>
@@ -260,6 +302,34 @@ export default function PricingPage() {
           );
         })}
       </div>
+
+      {/* Top-up section — only for paid subscribers */}
+      {currentTierBase !== "free" && (
+        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-white/10 bg-surface-container p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-white">Potrzebujesz więcej minut?</h3>
+              <p className="mt-1 text-sm text-slate-400">
+                Dokup {TOPUP.minutes} dodatkowych minut za {TOPUP.price} PLN (jednorazowo)
+              </p>
+            </div>
+            <button
+              onClick={handleTopup}
+              disabled={topupLoading}
+              className="rounded-xl bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/20 transition-colors disabled:opacity-50"
+            >
+              {topupLoading ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Ładuję...
+                </span>
+              ) : (
+                `Dokup ${TOPUP.minutes} min`
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="mt-10 text-center">
         <p className="text-sm text-slate-500">

@@ -24,6 +24,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
   const success = searchParams.get("success") === "true";
+  const topupSuccess = searchParams.get("topup") === "true";
 
   useEffect(() => {
     fetch("/api/subscription")
@@ -93,6 +94,23 @@ export default function BillingPage() {
             </p>
             <p className="text-sm text-green-400/70">
               Twój plan został zaktualizowany.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Top-up success banner */}
+      {topupSuccess && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+          <span className="material-symbols-outlined text-green-400">
+            add_circle
+          </span>
+          <div>
+            <p className="font-medium text-green-300">
+              Doładowanie zakupione!
+            </p>
+            <p className="text-sm text-green-400/70">
+              Dodatkowe minuty zostały dodane do Twojego konta.
             </p>
           </div>
         </div>

@@ -45,6 +45,36 @@ export async function POST(request: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        // Handle one-time top-up payments
+        if (session.mode === "payment" && session.metadata?.type === "topup") {
+          const userId = session.client_reference_id ?? session.metadata?.user_id;
+          if (userId) {
+            // Look up top-up tier for minutes
+            const { data: topupTier } = await db
+              .from("subscription_tiers")
+              .select("monthly_minutes, price_pln")
+              .eq("id", "topup")
+              .single();
+
+            const minutes = topupTier?.monthly_minutes ?? 20;
+            const amount = topupTier?.price_pln ?? 29;
+
+            await db.from("subscription_topups").insert({
+              user_id: userId,
+              stripe_session_id: session.id,
+              minutes_purchased: minutes,
+              minutes_remaining: minutes,
+              amount_pln: amount,
+            });
+
+            console.log(
+              `[webhook/stripe] Top-up purchased: user=${userId} minutes=${minutes}`
+            );
+          }
+          break;
+        }
+
         if (session.mode !== "subscription") break;
 
         const userId = session.client_reference_id;
