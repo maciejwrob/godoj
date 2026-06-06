@@ -141,9 +141,15 @@ export function MicCheckModal({ onClose, onSuccess, mandatory }: { onClose: () =
               )}
             </div>
 
-            <button onClick={() => { if (heard && onSuccess) onSuccess(); onClose(); }} className={`w-full rounded-xl py-2.5 text-sm font-bold text-white ${heard ? "bg-green-500 hover:bg-green-500/90" : "border border-white/10 hover:bg-white/5"}`}>
-              {heard ? t("continueBtn") : t("close")}
-            </button>
+            {heard ? (
+              <button onClick={() => { if (onSuccess) onSuccess(); else onClose(); }} className="w-full rounded-xl bg-green-500 py-2.5 text-sm font-bold text-white hover:bg-green-500/90">
+                {t("continueBtn")}
+              </button>
+            ) : !mandatory ? (
+              <button onClick={onClose} className="w-full rounded-xl border border-white/10 py-2.5 text-sm font-bold text-white hover:bg-white/5">
+                {t("close")}
+              </button>
+            ) : null}
           </div>
         )}
 

@@ -20,6 +20,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
     }
 
+    const isMonthly = !tier.includes("_yearly");
+
     // Look up Stripe price ID from DB
     const db = createAdminClient();
     const { data: tierData } = await db
@@ -66,7 +68,10 @@ export async function POST(request: Request) {
       success_url: `${baseUrl}/settings/billing?success=true`,
       cancel_url: `${baseUrl}/pricing`,
       locale: "pl",
-      allow_promotion_codes: true,
+      // Auto-apply beta -50% coupon for monthly plans (until 30.06.2026)
+      ...(isMonthly && new Date() < new Date("2026-07-01")
+        ? { discounts: [{ coupon: "LZfmj9ya" }] }
+        : { allow_promotion_codes: true }),
       billing_address_collection: "auto",
     });
 
