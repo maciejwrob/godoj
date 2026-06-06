@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     // Look up ElevenLabs agent ID from agents_config
     let { data: agentConfig } = await supabase
       .from("agents_config")
-      .select("elevenlabs_agent_id, voice_name")
+      .select("id, elevenlabs_agent_id, voice_name")
       .eq("id", agent_id)
       .single();
 
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       console.log(`[lessons/start] Agent '${agent_id}' not found, falling back to first active agent for language '${language}'`);
       const { data: fallbackAgent } = await supabase
         .from("agents_config")
-        .select("elevenlabs_agent_id, voice_name")
+        .select("id, elevenlabs_agent_id, voice_name")
         .eq("language", language)
         .eq("is_active", true)
         .limit(1)
@@ -285,6 +285,7 @@ ZASADY:
       native_language: nativeLanguage,
       language_name: languageNameEn,
       agent_name: agentName,
+      resolved_agent_id: agentConfig.id ?? agent_id,
       first_message: firstMessage,
       previous_context: previousCtx,
       agent_system_prompt: builtPrompt,

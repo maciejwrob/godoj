@@ -377,7 +377,9 @@ export default function LessonPage() {
       setSystemPrompt(data.system_prompt_override); setDuration(data.duration);
       setDisplayName(data.display_name); setLevel(data.level);
       setNativeLanguage(data.native_language ?? "pl"); setLanguageName(data.language_name ?? "Norwegian");
-      setAgentName(data.agent_name ?? "Tutor"); setFirstMessage(data.first_message ?? "");
+      setAgentName(data.agent_name ?? "Tutor");
+      if (data.resolved_agent_id) { setAgentId(data.resolved_agent_id); profileRef.current.agentId = data.resolved_agent_id; }
+      setFirstMessage(data.first_message ?? "");
       setPreviousContext(data.previous_context ?? "To pierwsza rozmowa.");
       setAgentSystemPrompt(data.agent_system_prompt ?? "");
       setIsUnlimited(data.unlimited ?? false);
