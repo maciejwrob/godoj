@@ -55,6 +55,15 @@ export async function GET(request: Request) {
     .eq("email", user.email!)
     .is("accepted_at", null);
 
+  // Mark magic link as clicked (prevents follow-up email)
+  await adminDb
+    .from("magic_link_events")
+    .update({ clicked_at: new Date().toISOString() })
+    .eq("email", user.email!.toLowerCase())
+    .is("clicked_at", null)
+    .order("sent_at", { ascending: false })
+    .limit(1);
+
   // Check if onboarding is complete
   const { data: userData } = await adminDb
     .from("users")

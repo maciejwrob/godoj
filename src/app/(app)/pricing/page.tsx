@@ -119,11 +119,12 @@ export default function PricingPage() {
   };
 
   const currentTier = subscription?.tier ?? "free";
-  // Normalize tier for comparison (starter_yearly -> starter)
   const currentTierBase = currentTier.replace("_yearly", "");
 
   const isTrial = currentTierBase === "free";
   const trialMinutesLeft = subscription ? Math.round(subscription.minutesRemaining) : 30;
+  const isYearly = billingInterval === "year";
+  const hasBetaDiscount = BETA_ACTIVE && !isYearly;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 lg:py-12">
@@ -136,7 +137,7 @@ export default function PricingPage() {
 
       {/* Trial banner */}
       {isTrial && (
-        <div className="mb-8 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-5 text-center">
+        <div className="mb-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-5 text-center">
           <p className="text-sm font-medium text-yellow-300">
             {trialMinutesLeft > 0
               ? `Jesteś na okresie próbnym — pozostało ${trialMinutesLeft} z 30 minut. Wybierz plan, żeby kontynuować naukę po wyczerpaniu limitu.`
@@ -145,12 +146,26 @@ export default function PricingPage() {
         </div>
       )}
 
-      {/* Beta banner */}
+      {/* Beta promo banner */}
       {BETA_ACTIVE && (
-        <div className="mb-8 rounded-2xl border border-godoj-blue/20 bg-godoj-blue/5 p-4 text-center">
-          <span className="inline-block rounded-full bg-godoj-blue/20 px-3 py-1 text-xs font-bold text-godoj-blue">
-            -50% BETA przez 3 miesiące · do {BETA_DEADLINE}
-          </span>
+        <div className="relative mb-8 overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/15 via-green-500/10 to-emerald-500/15 p-6 text-center">
+          {/* Decorative dots */}
+          <div className="pointer-events-none absolute -left-4 -top-4 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-4 -right-4 h-24 w-24 rounded-full bg-green-500/10 blur-2xl" />
+
+          <div className="relative">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-1.5 text-sm font-extrabold text-emerald-300">
+              <span className="animate-pulse text-lg">🔥</span>
+              PROMOCJA BETA &minus;50%
+              <span className="animate-pulse text-lg">🔥</span>
+            </div>
+            <p className="mt-2 text-base font-bold text-white">
+              Połowa ceny przez pierwsze 3 miesiące na planach miesięcznych!
+            </p>
+            <p className="mt-1 text-sm text-emerald-300/70">
+              Oferta ważna do {BETA_DEADLINE} — dołącz teraz i zacznij oszczędzać
+            </p>
+          </div>
         </div>
       )}
 
@@ -165,6 +180,11 @@ export default function PricingPage() {
           }`}
         >
           Miesięcznie
+          {BETA_ACTIVE && (
+            <span className="ml-1.5 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-400">
+              -50%
+            </span>
+          )}
         </button>
         <button
           onClick={() => setBillingInterval("year")}
@@ -183,13 +203,12 @@ export default function PricingPage() {
 
       <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
         {TIERS.map((tier) => {
-          const isYearly = billingInterval === "year";
-          const hasBetaDiscount = BETA_ACTIVE && !isYearly;
           const fullPrice = isYearly ? tier.yearlyPrice : tier.monthlyPrice;
           const price = hasBetaDiscount ? Math.round(fullPrice * (1 - BETA_DISCOUNT)) : fullPrice;
           const monthlyEquiv = isYearly && tier.yearlyPrice > 0
             ? Math.round(tier.yearlyPrice / 12)
             : price;
+          const savings = hasBetaDiscount ? fullPrice - price : 0;
           const checkoutTierId = isYearly && tier.yearlyId ? tier.yearlyId : tier.id;
           const isCurrent = currentTierBase === tier.id;
           const isDowngrade =
@@ -212,40 +231,69 @@ export default function PricingPage() {
               )}
 
               <div className="mb-6">
-                <h2 className="text-xl font-bold text-white">{tier.name}</h2>
-                <div className="mt-3 flex items-baseline gap-2">
-                  {isYearly ? (
-                    <>
-                      <span className="text-3xl font-bold text-white">
-                        {monthlyEquiv} PLN
-                      </span>
-                      <span className="text-sm text-slate-400">/mies</span>
-                    </>
-                  ) : (
-                    <>
-                      {hasBetaDiscount && (
-                        <span className="text-lg text-slate-500 line-through">
-                          {fullPrice}
-                        </span>
-                      )}
-                      <span className="text-3xl font-bold text-white">
-                        {price} PLN
-                      </span>
-                      <span className="text-sm text-slate-400">/mies</span>
-                    </>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-bold text-white">{tier.name}</h2>
+                  {hasBetaDiscount && (
+                    <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-xs font-extrabold text-emerald-400">
+                      -50%
+                    </span>
                   )}
                 </div>
-                {isYearly && price > 0 && (
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-sm text-slate-400">
-                      {price} PLN/rok
-                    </span>
-                    <span className="text-xs font-medium text-green-400 line-through decoration-slate-500">
-                      {tier.monthlyPrice * 12} PLN
-                    </span>
-                  </div>
-                )}
-                <p className="mt-1 text-sm text-slate-400">
+
+                {/* Price display */}
+                <div className="mt-3">
+                  {hasBetaDiscount ? (
+                    <>
+                      {/* Original price - strikethrough */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-medium text-slate-500 line-through decoration-red-400/60 decoration-2">
+                          {fullPrice} PLN/mies
+                        </span>
+                      </div>
+                      {/* Discounted price */}
+                      <div className="mt-1 flex items-baseline gap-2">
+                        <span className="text-4xl font-extrabold text-white">
+                          {price}
+                        </span>
+                        <span className="text-lg font-bold text-white">PLN</span>
+                        <span className="text-sm text-slate-400">/mies</span>
+                      </div>
+                      {/* Savings badge */}
+                      <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400">
+                        <span>💰</span>
+                        Oszczędzasz {savings} PLN/mies przez 3 mies.
+                      </div>
+                    </>
+                  ) : isYearly ? (
+                    <>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-extrabold text-white">
+                          {monthlyEquiv}
+                        </span>
+                        <span className="text-lg font-bold text-white">PLN</span>
+                        <span className="text-sm text-slate-400">/mies</span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="text-sm text-slate-400">
+                          {price} PLN/rok
+                        </span>
+                        <span className="text-xs font-medium text-slate-500 line-through">
+                          {tier.monthlyPrice * 12} PLN
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-extrabold text-white">
+                        {price}
+                      </span>
+                      <span className="text-lg font-bold text-white">PLN</span>
+                      <span className="text-sm text-slate-400">/mies</span>
+                    </div>
+                  )}
+                </div>
+
+                <p className="mt-2 text-sm text-slate-400">
                   {tier.minutes} min/mies ({tier.weeklyEquiv})
                 </p>
               </div>
@@ -282,9 +330,9 @@ export default function PricingPage() {
                 <button
                   onClick={() => handleUpgrade(checkoutTierId)}
                   disabled={!!checkoutLoading || loading}
-                  className={`w-full rounded-xl py-3 text-sm font-bold transition-all ${
+                  className={`w-full rounded-xl py-3.5 text-sm font-bold transition-all ${
                     tier.popular
-                      ? "bg-godoj-blue text-white hover:bg-godoj-blue/90"
+                      ? "bg-godoj-blue text-white hover:bg-godoj-blue/90 shadow-lg shadow-godoj-blue/25"
                       : "bg-white/10 text-white hover:bg-white/20"
                   } disabled:opacity-50`}
                 >
@@ -293,6 +341,8 @@ export default function PricingPage() {
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                       Przekierowuję...
                     </span>
+                  ) : hasBetaDiscount ? (
+                    `Wybierz ${tier.name} za ${price} PLN/mies`
                   ) : (
                     `Wybierz ${tier.name}`
                   )}

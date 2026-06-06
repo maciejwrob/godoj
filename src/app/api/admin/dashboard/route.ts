@@ -21,6 +21,11 @@ export async function GET() {
     { data: magicLinkStats },
     { data: perUserUsage },
     { data: unresolvedLinks },
+    { data: allUsers },
+    { data: allSubscriptions },
+    { data: allUsage },
+    { data: allTopups },
+    { data: allTiers },
   ] = await Promise.all([
     supabase.from("lessons").select("user_id", { count: "exact", head: true }).gte("started_at", sevenDaysAgo),
     supabase.from("lessons").select("*", { count: "exact", head: true }).gte("started_at", monthStart),
@@ -33,6 +38,12 @@ export async function GET() {
     supabase.from("magic_link_events").select("email, ui_language, sent_at")
       .is("clicked_at", null).not("follow_up_sent_at", "is", null)
       .gte("sent_at", twentyFourHoursAgo),
+    // Users & subscriptions data
+    supabase.from("users").select("id, display_name, email, stripe_customer_id"),
+    supabase.from("subscriptions").select("user_id, tier_id, status, stripe_subscription_id, current_period_end, cancel_at_period_end").order("created_at", { ascending: false }),
+    supabase.from("subscription_usage").select("user_id, minutes_used, period_start").order("period_start", { ascending: false }),
+    supabase.from("subscription_topups").select("user_id, minutes_remaining").gt("minutes_remaining", 0),
+    supabase.from("subscription_tiers").select("id, name_pl, monthly_minutes"),
   ]);
 
   const minutesThisMonth = Math.round(
@@ -75,6 +86,53 @@ export async function GET() {
   const topUser = [...userMap.entries()].sort((a, b) => b[1].minutes - a[1].minutes)[0];
   const avgPerUser = userMap.size > 0 ? Math.round(minutesThisMonth / userMap.size) : 0;
 
+  // Build per-user subscription data
+  const tierLimitsMap = new Map<string, number>();
+  for (const t of allTiers ?? []) {
+    tierLimitsMap.set(t.id, t.monthly_minutes);
+  }
+
+  // Map: user_id -> most recent subscription
+  const subMap = new Map<string, typeof allSubscriptions extends (infer T)[] | null ? T : never>();
+  for (const s of allSubscriptions ?? []) {
+    // Keep only the first (most recent) subscription per user
+    if (!subMap.has(s.user_id)) {
+      subMap.set(s.user_id, s);
+    }
+  }
+
+  // Map: user_id -> most recent usage record's minutes_used
+  const usageMap = new Map<string, number>();
+  for (const u of allUsage ?? []) {
+    if (!usageMap.has(u.user_id)) {
+      usageMap.set(u.user_id, Number(u.minutes_used));
+    }
+  }
+
+  // Map: user_id -> sum of topup minutes_remaining
+  const topupMap = new Map<string, number>();
+  for (const t of allTopups ?? []) {
+    topupMap.set(t.user_id, (topupMap.get(t.user_id) ?? 0) + Number(t.minutes_remaining));
+  }
+
+  const userSubscriptions = (allUsers ?? []).map((u) => {
+    const sub = subMap.get(u.id);
+    const tierId = sub?.tier_id ?? "free";
+    return {
+      userId: u.id,
+      displayName: u.display_name,
+      email: u.email,
+      tierId,
+      status: sub?.status ?? "active",
+      stripeSubscriptionId: sub?.stripe_subscription_id ?? null,
+      stripeCustomerId: u.stripe_customer_id ?? null,
+      currentPeriodEnd: sub?.current_period_end ?? null,
+      minutesUsed: Math.round((usageMap.get(u.id) ?? 0) * 10) / 10,
+      minutesLimit: tierLimitsMap.get(tierId) ?? 30,
+      topupMinutes: Math.round((topupMap.get(u.id) ?? 0) * 10) / 10,
+    };
+  });
+
   return NextResponse.json({
     activeUsers: activeUsers7d ?? 0,
     lessonsThisMonth: lessonsThisMonth ?? 0,
@@ -101,5 +159,7 @@ export async function GET() {
         sentAt: l.sent_at,
       })),
     },
+    // Users & subscriptions
+    userSubscriptions,
   });
 }

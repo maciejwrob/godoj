@@ -108,6 +108,41 @@ export async function POST(request: Request) {
           .update({ stripe_customer_id: customerId })
           .eq("id", userId);
 
+        // Carry over remaining trial minutes as a bonus topup
+        const { data: oldSub } = await db
+          .from("subscriptions")
+          .select("tier_id")
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .single();
+
+        if (oldSub?.tier_id === "free") {
+          // Check remaining trial minutes
+          const { data: usageRow } = await db
+            .from("subscription_usage")
+            .select("minutes_used")
+            .eq("user_id", userId)
+            .order("period_start", { ascending: false })
+            .limit(1)
+            .single();
+
+          const trialLimit = 30; // free tier limit
+          const used = Number(usageRow?.minutes_used ?? 0);
+          const remaining = Math.max(0, trialLimit - used);
+
+          if (remaining > 0) {
+            await db.from("subscription_topups").insert({
+              user_id: userId,
+              minutes_purchased: Math.round(remaining),
+              minutes_remaining: remaining,
+              amount_pln: 0, // free carry-over
+            });
+            console.log(
+              `[webhook/stripe] Trial carry-over: ${remaining.toFixed(1)} min for user=${userId}`
+            );
+          }
+        }
+
         // Upsert subscription (replace any existing active subscription)
         await db
           .from("subscriptions")
