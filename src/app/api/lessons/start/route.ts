@@ -63,6 +63,15 @@ export async function POST(request: Request) {
         .limit(1)
         .single();
       agentConfig = fallbackAgent;
+
+      // Persist the resolved agent so future dashboard/lesson loads don't need fallback
+      if (fallbackAgent) {
+        await supabase
+          .from("user_profiles")
+          .update({ selected_agent_id: fallbackAgent.id })
+          .eq("user_id", user.id)
+          .eq("target_language", language);
+      }
     }
 
     if (!agentConfig) {

@@ -57,6 +57,19 @@ export async function saveOnboarding(data: OnboardingData) {
     return { success: false, error: "WAITLIST" };
   }
 
+  // Resolve default agent for the target language if not explicitly chosen
+  let agentId = data.selectedAgentId;
+  if (!agentId) {
+    const { data: defaultAgent } = await supabase
+      .from("agents_config")
+      .select("id")
+      .eq("language", data.targetLanguage)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+    agentId = defaultAgent?.id ?? null;
+  }
+
   // Save user profile
   const { error: profileError } = await supabase
     .from("user_profiles")
@@ -72,7 +85,7 @@ export async function saveOnboarding(data: OnboardingData) {
         preferred_frequency: data.preferredFrequency,
         preferred_time: data.preferredTime,
         reminders_enabled: data.remindersEnabled,
-        selected_agent_id: data.selectedAgentId,
+        selected_agent_id: agentId,
       },
       { onConflict: "user_id,target_language" }
     );

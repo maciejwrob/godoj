@@ -22,6 +22,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Masz juz profil dla tego jezyka." }, { status: 400 });
     }
 
+    // Resolve default agent if not provided
+    let agentId = selected_agent_id || null;
+    if (!agentId) {
+      const { data: defaultAgent } = await supabase
+        .from("agents_config")
+        .select("id")
+        .eq("language", target_language)
+        .eq("is_active", true)
+        .limit(1)
+        .single();
+      agentId = defaultAgent?.id ?? null;
+    }
+
     // Create user_profiles row
     const { error } = await supabase
       .from("user_profiles")
@@ -30,7 +43,7 @@ export async function POST(request: Request) {
         target_language,
         language_variant: language_variant || null,
         current_level: current_level || "A1",
-        selected_agent_id: selected_agent_id || null,
+        selected_agent_id: agentId,
         learning_goals: [],
         interests: [],
         preferred_duration_min: 10,
