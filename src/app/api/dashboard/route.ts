@@ -103,14 +103,30 @@ export async function GET(request: Request) {
       feedbackLessonId = lastLesson.id;
     }
 
+    // Resolve agent IDs for profiles where selected_agent_id is null
+    // (same fallback as lessons/start — find first active agent for the language)
+    const resolvedProfiles = await Promise.all(
+      (profiles ?? []).map(async (p: { target_language: string; language_variant: string | null; current_level: string; selected_agent_id: string | null; xp_current: number; xp_total: number }) => {
+        if (p.selected_agent_id) return p;
+        const { data: fallback } = await supabase
+          .from("agents_config")
+          .select("id")
+          .eq("language", p.target_language)
+          .eq("is_active", true)
+          .limit(1)
+          .single();
+        return { ...p, selected_agent_id: fallback?.id ?? null };
+      })
+    );
+
     // Subscription-based usage limits
     const subscription = await getUserSubscription(user.id, user.email ?? undefined);
 
     return NextResponse.json({
       displayName: userData?.display_name ?? "Uzytkownik",
       role: userData?.role ?? "adult",
-      profiles: profiles ?? [],
-      activeProfile: activeProfile ?? null,
+      profiles: resolvedProfiles,
+      activeProfile: resolvedProfiles.find(p => p.target_language === activeLang) ?? activeProfile ?? null,
       activeLang,
       currentLevel: activeProfile?.current_level ?? "A1",
       xpCurrent: activeProfile?.xp_current ?? 0,
