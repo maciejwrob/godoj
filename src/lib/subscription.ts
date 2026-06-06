@@ -2,11 +2,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 // Fallback tier config if DB is unavailable
 const TIER_LIMITS: Record<string, number> = {
-  free: 15,
-  starter: 80,
-  starter_yearly: 80,
-  pro: 150,
-  pro_yearly: 150,
+  free: 30, // Trial: 30 min one-time
+  starter: 90,
+  starter_yearly: 90,
+  pro: 200,
+  pro_yearly: 200,
 };
 
 export interface UserSubscription {
@@ -65,20 +65,6 @@ async function getCurrentUsage(
     .single();
 
   if (usage) {
-    const now = new Date();
-    const periodEnd = new Date(usage.period_end);
-
-    // If current period has expired, return 0 usage (new period)
-    if (now > periodEnd) {
-      return {
-        minutesUsed: 0,
-        periodStart: now.toISOString().split("T")[0],
-        periodEnd: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0],
-      };
-    }
-
     return {
       minutesUsed: Number(usage.minutes_used),
       periodStart: usage.period_start,
@@ -182,12 +168,15 @@ export async function checkCanStartLesson(
   }
 
   const allowed = subscription.minutesRemaining > 0;
+  const isTrial = subscription.tier === "free";
 
   return {
     allowed,
     reason: allowed
       ? undefined
-      : "Wykorzystano limit minut. Przejdź na wyższy plan, żeby kontynuować naukę.",
+      : isTrial
+        ? "Twój okres próbny się skończył. Wybierz plan, żeby kontynuować naukę."
+        : "Wykorzystano limit minut. Przejdź na wyższy plan, żeby kontynuować naukę.",
     minutesUsed: subscription.minutesUsed,
     minutesLimit: subscription.minutesLimit,
     minutesRemaining: subscription.minutesRemaining,

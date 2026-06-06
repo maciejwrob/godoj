@@ -14,30 +14,15 @@ interface Subscription {
 
 const TIERS = [
   {
-    id: "free",
-    name: "Darmowy",
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    minutes: 15,
-    weeklyEquiv: "~4 min/tyg",
-    features: [
-      "15 minut rozmów miesięcznie",
-      "AI tutor głosowy",
-      "Analiza lekcji i feedback",
-      "Śledzenie postępów",
-    ],
-    popular: false,
-  },
-  {
     id: "starter",
     yearlyId: "starter_yearly",
     name: "Starter",
-    monthlyPrice: 79,
-    yearlyPrice: 759,
-    minutes: 80,
-    weeklyEquiv: "~19 min/tyg",
+    monthlyPrice: 89,
+    yearlyPrice: 854,
+    minutes: 90,
+    weeklyEquiv: "~20 min/tyg",
     features: [
-      "80 minut rozmów miesięcznie",
+      "90 minut rozmów miesięcznie",
       "AI tutor głosowy",
       "Szczegółowa analiza lekcji",
       "Śledzenie postępów i XP",
@@ -49,12 +34,12 @@ const TIERS = [
     id: "pro",
     yearlyId: "pro_yearly",
     name: "Pro",
-    monthlyPrice: 149,
-    yearlyPrice: 1429,
-    minutes: 150,
-    weeklyEquiv: "~35 min/tyg",
+    monthlyPrice: 179,
+    yearlyPrice: 1717,
+    minutes: 200,
+    weeklyEquiv: "~45 min/tyg",
     features: [
-      "150 minut rozmów miesięcznie",
+      "200 minut rozmów miesięcznie",
       "AI tutor głosowy",
       "Szczegółowa analiza lekcji",
       "Śledzenie postępów i XP",
@@ -111,6 +96,9 @@ export default function PricingPage() {
   // Normalize tier for comparison (starter_yearly -> starter)
   const currentTierBase = currentTier.replace("_yearly", "");
 
+  const isTrial = currentTierBase === "free";
+  const trialMinutesLeft = subscription ? Math.round(subscription.minutesRemaining) : 30;
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 lg:py-12">
       <div className="mb-8 text-center">
@@ -119,6 +107,17 @@ export default function PricingPage() {
           Rozmawiaj z AI tutorem i ucz się języków w swoim tempie
         </p>
       </div>
+
+      {/* Trial banner */}
+      {isTrial && (
+        <div className="mb-8 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-5 text-center">
+          <p className="text-sm font-medium text-yellow-300">
+            {trialMinutesLeft > 0
+              ? `Jesteś na okresie próbnym — pozostało ${trialMinutesLeft} z 30 minut. Wybierz plan, żeby kontynuować naukę po wyczerpaniu limitu.`
+              : "Twój okres próbny się skończył. Wybierz plan poniżej, żeby kontynuować naukę."}
+          </p>
+        </div>
+      )}
 
       {/* Billing interval toggle */}
       <div className="mb-8 flex items-center justify-center gap-3">
@@ -147,7 +146,7 @@ export default function PricingPage() {
         </button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
         {TIERS.map((tier) => {
           const isYearly = billingInterval === "year";
           const price = isYearly ? tier.yearlyPrice : tier.monthlyPrice;
@@ -178,9 +177,7 @@ export default function PricingPage() {
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-white">{tier.name}</h2>
                 <div className="mt-3 flex items-baseline gap-1">
-                  {price === 0 ? (
-                    <span className="text-3xl font-bold text-white">0 PLN</span>
-                  ) : isYearly ? (
+                  {isYearly ? (
                     <>
                       <span className="text-3xl font-bold text-white">
                         {monthlyEquiv} PLN
@@ -239,8 +236,6 @@ export default function PricingPage() {
                 >
                   —
                 </button>
-              ) : tier.id === "free" ? (
-                <div />
               ) : (
                 <button
                   onClick={() => handleUpgrade(checkoutTierId)}

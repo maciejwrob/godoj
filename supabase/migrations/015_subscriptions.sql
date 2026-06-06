@@ -14,13 +14,14 @@ create table public.subscription_tiers (
 );
 
 -- Seed tier data (monthly + yearly with 20% discount)
+-- 'free' tier = Trial (30 min one-time, no reset)
 insert into public.subscription_tiers (id, name_pl, monthly_minutes, price_pln, sort_order, billing_interval)
 values
-  ('free', 'Darmowy', 15, 0, 0, 'month'),
-  ('starter', 'Starter', 80, 79, 1, 'month'),
-  ('starter_yearly', 'Starter', 80, 759, 1, 'year'),
-  ('pro', 'Pro', 150, 149, 2, 'month'),
-  ('pro_yearly', 'Pro', 150, 1429, 2, 'year');
+  ('free', 'Trial', 30, 0, 0, 'month'),
+  ('starter', 'Starter', 90, 89, 1, 'month'),
+  ('starter_yearly', 'Starter', 90, 854, 1, 'year'),
+  ('pro', 'Pro', 200, 179, 2, 'month'),
+  ('pro_yearly', 'Pro', 200, 1717, 2, 'year');
 
 -- User subscriptions
 create table public.subscriptions (
