@@ -12,11 +12,21 @@ import {
   Home,
 } from "lucide-react";
 import PronunciationButton from "./pronunciation-button";
+import ScoreBreakdown from "./score-breakdown";
 import { EXERCISES_ENABLED } from "@/lib/feature-flags";
 import { getTranslations, resolveLocale } from "@/lib/i18n-data";
 
+type ScoreEntry = { score: number; comment: string };
+
 type Summary = {
   fluency_score: number;
+  score_breakdown?: {
+    grammar: ScoreEntry;
+    vocabulary: ScoreEntry;
+    fluency: ScoreEntry;
+    comprehension: ScoreEntry;
+    courage: ScoreEntry;
+  } | null;
   topics_covered: string[];
   new_vocabulary: { word: string; translation: string; context?: string }[];
   struggled_phrases: string[];
@@ -104,23 +114,41 @@ export default async function LessonSummaryPage({
         </p>
       </div>
 
-      {/* Fluency score — only show stars if we have enough data */}
+      {/* Lesson score — stars + expandable breakdown */}
       {fluencyScore !== null ? (
-        <div className="mb-6 rounded-2xl border border-border bg-bg-card p-6 text-center">
-          <div className="text-sm text-text-secondary">{t.fluency}</div>
-          <div className="mt-2 flex items-center justify-center gap-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={`h-8 w-8 transition-all ${
-                  star <= Math.round(fluencyScore)
-                    ? "fill-yellow-400 text-yellow-400"
-                    : "text-bg-card-hover"
-                }`}
-              />
-            ))}
+        <div className="mb-6 rounded-2xl border border-border bg-bg-card p-6">
+          <div className="text-center">
+            <div className="text-sm text-text-secondary">{t.fluency}</div>
+            <div className="mt-2 flex items-center justify-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`h-8 w-8 transition-all ${
+                    star <= Math.round(fluencyScore)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-bg-card-hover"
+                  }`}
+                />
+              ))}
+            </div>
+            <div className="mt-1 text-2xl font-bold">{fluencyScore.toFixed(1)}</div>
           </div>
-          <div className="mt-1 text-2xl font-bold">{fluencyScore.toFixed(1)}</div>
+
+          {/* Score breakdown — expandable */}
+          {summary?.score_breakdown && (
+            <ScoreBreakdown
+              breakdown={summary.score_breakdown}
+              labels={{
+                grammar: t.scoreGrammar,
+                vocabulary: t.scoreVocabulary,
+                fluency: t.scoreFluency,
+                comprehension: t.scoreComprehension,
+                courage: t.scoreCourage,
+              }}
+              showLabel={t.showBreakdown}
+              hideLabel={t.hideBreakdown}
+            />
+          )}
         </div>
       ) : (
         <div className="mb-6 rounded-2xl border border-border bg-bg-card p-6 text-center">

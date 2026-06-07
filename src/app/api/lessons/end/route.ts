@@ -90,9 +90,9 @@ Number of student utterances: ${userMsgCount}
 Transcript:
 ${transcript || "No transcript"}
 
-${isTooShort ? `IMPORTANT: This lesson was very short (${durationMin} min, ${userMsgCount} student messages). Set fluency_score to null — there is not enough data to assess fluency. In summary, encourage the student to try a longer conversation next time.` : ''}
+${isTooShort ? `IMPORTANT: This lesson was very short (${durationMin} min, ${userMsgCount} student messages). Set fluency_score to null and score_breakdown to null — there is not enough data to assess. In summary, encourage the student to try a longer conversation next time.` : ''}
 
-FLUENCY SCORING RUBRIC — score ONLY how well the student communicates at ${teachingLevel}:
+LESSON SCORING RUBRIC — score how well the student communicates at ${teachingLevel}:
 - 1.0-1.5: Cannot form basic sentences expected at ${teachingLevel}, mostly unintelligible
 - 2.0-2.5: Below expectations for ${teachingLevel}, frequent errors in basic structures
 - 3.0: Functional at ${teachingLevel} but with noticeable errors and hesitation
@@ -102,12 +102,25 @@ FLUENCY SCORING RUBRIC — score ONLY how well the student communicates at ${tea
 - 5.0: Excellent — fluent, natural, error-free or near error-free conversation at ${teachingLevel} or above
 
 CRITICAL SCORING RULES:
-- Fluency score measures ONLY conversation quality. It is SEPARATE from level recommendation.
+- fluency_score is the OVERALL lesson score (weighted average of the 5 sub-scores below). It is SEPARATE from level recommendation.
 - Do NOT lower the score because "the student needs more practice to advance" — that's what level_assessment is for.
 - A conversation with natural flow, correct grammar, and no significant errors = 5.0, period.
 - If the student speaks ABOVE their current level, that's still 5.0 (not lower because "it's beyond ${teachingLevel}").
 - Reserve 4.0-4.5 ONLY when there are actual errors, hesitations, or unnatural phrasing.
 - Reserve scores below 3.0 for genuine struggles.
+
+SCORE BREAKDOWN — provide 5 sub-scores (each 1.0-5.0) with a SHORT encouraging comment:
+- grammar: correctness of structures at ${teachingLevel}
+- vocabulary: richness and appropriateness of words used
+- fluency: natural flow, lack of hesitation, smooth delivery
+- comprehension: how well the student understood the tutor and responded on topic
+- courage: willingness to try complex structures, not falling back to native language, taking risks
+
+COMMENT TONE RULES:
+- Be warm, encouraging, and specific. Address the student by name (${userName}).
+- Always start with what went WELL, then gently suggest what to practice.
+- Frame weaknesses as opportunities, not failures. E.g.: "Świetnie próbujesz budować złożone zdania! Popracuj jeszcze nad czasami przeszłymi — to przyjdzie z praktyką." NOT "Dużo błędów w czasach przeszłych."
+- Keep each comment to 1 sentence maximum.
 
 LEVEL ASSESSMENT RULES:
 - You can ONLY recommend: "${teachingLevel}" (stay), "${nextBase}" (up one), or "${prevBase}" (down one)
@@ -118,7 +131,14 @@ LEVEL ASSESSMENT RULES:
 
 Prepare the analysis in JSON format (no markdown, raw JSON only):
 {
-  "fluency_score": ${isTooShort ? 'null' : `(1.0-5.0, following the rubric above — remember: correct ${teachingLevel} performance = 4.0+)`},
+  "fluency_score": ${isTooShort ? 'null' : `(1.0-5.0, overall weighted average of sub-scores — remember: correct ${teachingLevel} performance = 4.0+)`},
+  "score_breakdown": ${isTooShort ? 'null' : `{
+    "grammar": {"score": 1.0-5.0, "comment": "1 sentence in ${isPolish ? 'Polish' : 'English'}, warm and encouraging"},
+    "vocabulary": {"score": 1.0-5.0, "comment": "..."},
+    "fluency": {"score": 1.0-5.0, "comment": "..."},
+    "comprehension": {"score": 1.0-5.0, "comment": "..."},
+    "courage": {"score": 1.0-5.0, "comment": "..."}
+  }`},
   "topics_covered": ["topic1", "topic2"],
   "new_vocabulary": [
     {"word": "word in target language", "translation": "translation in ${isPolish ? 'Polish' : 'English'}", "context": "sentence from conversation"}
@@ -148,6 +168,7 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
     } catch {
       summary = {
         fluency_score: 3.0,
+        score_breakdown: null,
         topics_covered: [],
         new_vocabulary: [],
         struggled_phrases: [],
