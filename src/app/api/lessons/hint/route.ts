@@ -38,9 +38,14 @@ export async function POST(request: Request) {
     const cefrLevel = lesson?.level_at_start ?? "A1";
 
     const langNamesEn: Record<string, string> = {
-      es: "Spanish", en: "English", no: "Norwegian", fr: "French",
-      it: "Italian", sv: "Swedish", de: "German", fi: "Finnish", ko: "Korean",
-      pt: "Portuguese", hu: "Hungarian", pl: "Polish", uk: "Ukrainian",
+      ar: "Arabic", bg: "Bulgarian", cs: "Czech", da: "Danish", de: "German",
+      el: "Greek", en: "English", es: "Spanish", fi: "Finnish", fr: "French",
+      hi: "Hindi", hr: "Croatian", hu: "Hungarian", id: "Indonesian",
+      it: "Italian", ja: "Japanese", ko: "Korean", lt: "Lithuanian",
+      nl: "Dutch", no: "Norwegian", pl: "Polish", pt: "Portuguese",
+      ro: "Romanian", ru: "Russian", sk: "Slovak", sl: "Slovenian",
+      sv: "Swedish", th: "Thai", tr: "Turkish", uk: "Ukrainian",
+      vi: "Vietnamese", zh: "Chinese",
     };
 
     const targetLangName = langNamesEn[target_language] ?? target_language;

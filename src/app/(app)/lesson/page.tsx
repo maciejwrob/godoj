@@ -78,8 +78,14 @@ export default function LessonPage() {
   const [autoEndCountdown, setAutoEndCountdown] = useState<number | null>(null);
   const [limitError, setLimitError] = useState<{ type: "daily" | "monthly" | "minutes"; used: number; limit: number; tier?: string } | null>(null);
   const [isUnlimited, setIsUnlimited] = useState(false);
+  const [planMinutesRemaining, setPlanMinutesRemaining] = useState<number | null>(null); // minutes left in subscription
+  const [trialWarningShown, setTrialWarningShown] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [pauseReason, setPauseReason] = useState<"manual" | "limit" | null>(null);
+  const pausedAtRef = useRef<number>(0); // total paused ms to subtract from duration
   const [wordTranslations, setWordTranslations] = useState<Map<string, WordTranslation>>(new Map());
   const [translatingKey, setTranslatingKey] = useState<string | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<{ key: string; x: number; y: number } | null>(null);
   const autoEndTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Hints
@@ -183,29 +189,40 @@ export default function LessonPage() {
 
       const effectiveDuration = selectedDuration ?? duration;
       setTimeLeft(effectiveDuration * 60);
-      const hardLimitSeconds = 12 * 60; // 12 min absolute max for beta users
       // Wrap-up timing: 30s for short lessons (≤5min), 60s for longer ones
       const wrapUpBuffer = effectiveDuration <= 5 ? 30 : 60;
       const wrapUpSeconds = effectiveDuration * 60 - wrapUpBuffer;
       let elapsed = 0;
+      let wrapUpSent = false;
+      let trialWarned = false;
+      let graceStarted = false;
+      const planMins = planMinutesRemaining; // capture at connect time
+      // For non-unlimited: hard cutoff = plan minutes + 2 min grace
+      const planLimitSeconds = planMins != null ? planMins * 60 : null;
+      const graceSeconds = 120; // 2 min bonus after plan limit
+
       lessonTimerRef.current = setInterval(() => {
         elapsed++;
-        // For unlimited users: timer counts down to 0 then goes negative (keeps ticking)
         setTimeLeft((prev) => prev - 1);
 
-        // Wrap-up reminder: 1 min before selected duration
-        if (elapsed === wrapUpSeconds && lessonActiveRef.current) {
+        // Wrap-up reminder: tell the AI tutor to start wrapping up
+        if (!wrapUpSent && elapsed === wrapUpSeconds && lessonActiveRef.current) {
+          wrapUpSent = true;
           const wrapMsg = wrapUpBuffer <= 30
-            ? "The lesson time is up. Say a brief goodbye in 1-2 sentences."
-            : "The lesson time is almost up. Start wrapping up the conversation naturally within the next minute.";
+            ? "WRAP UP NOW: The lesson is ending. Do NOT ask any more questions. Briefly summarize what was covered and say a warm goodbye. This is your LAST turn."
+            : "WRAP UP NOW: The lesson ends in about 1 minute. Do NOT ask any new questions. Finish your current thought, give a brief summary, and say goodbye warmly.";
           try { conversation.sendContextualUpdate(wrapMsg); } catch {}
         }
 
-        // Hard limit only for beta (non-unlimited) users
-        if (!isUnlimited) {
-          // At 11:30 (30s before hard limit): start countdown
-          if (elapsed === hardLimitSeconds - 30 && lessonActiveRef.current) {
-            setAutoEndCountdown(30);
+        // For non-unlimited users: plan limit enforcement
+        if (!isUnlimited && planLimitSeconds != null && lessonActiveRef.current) {
+          const secsIntoLimit = elapsed - planLimitSeconds;
+
+          // 2 min before plan limit: show warning
+          if (!trialWarned && secsIntoLimit >= -120) {
+            trialWarned = true;
+            setTrialWarningShown(true);
+            setAutoEndCountdown(Math.max(0, -secsIntoLimit));
             autoEndTimerRef.current = setInterval(() => {
               setAutoEndCountdown((prev) => {
                 if (prev === null || prev <= 1) {
@@ -217,8 +234,25 @@ export default function LessonPage() {
             }, 1000);
           }
 
-          // At 12 min: force end
-          if (elapsed >= hardLimitSeconds && lessonActiveRef.current) {
+          // At plan limit: switch to grace period
+          if (!graceStarted && secsIntoLimit >= 0) {
+            graceStarted = true;
+            setAutoEndCountdown(graceSeconds);
+            if (autoEndTimerRef.current) clearInterval(autoEndTimerRef.current);
+            autoEndTimerRef.current = setInterval(() => {
+              setAutoEndCountdown((prev) => {
+                if (prev === null || prev <= 1) {
+                  if (autoEndTimerRef.current) clearInterval(autoEndTimerRef.current);
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }, 1000);
+            try { conversation.sendContextualUpdate("URGENT: The student's time has completely run out. Say goodbye RIGHT NOW in 1-2 sentences. Do NOT ask any questions or continue the conversation."); } catch {}
+          }
+
+          // After grace period: force end
+          if (secsIntoLimit >= graceSeconds) {
             handleEndLesson();
           }
         }
@@ -246,17 +280,22 @@ export default function LessonPage() {
       transcriptRef.current = [...transcriptRef.current, { source, message: clean }];
 
       if (source === "ai") {
+        const isFirstMsgThisTurn = !agentSpeakingRef.current;
         lastAgentMsgRef.current = clean;
         agentSpeakingRef.current = true;
-        hintShownThisTurnRef.current = false; // reset for new turn
-        clearHintTimers();
 
+        // Only reset on FIRST chunk of a new turn, not every chunk
+        if (isFirstMsgThisTurn) {
+          hintShownThisTurnRef.current = false;
+        }
+
+        // agentDone debounce — restart on every chunk (last chunk + 3s = done)
         if (agentDoneTimerRef.current) clearTimeout(agentDoneTimerRef.current);
         agentDoneTimerRef.current = setTimeout(() => {
           agentSpeakingRef.current = false;
           dbg("Agent done (3s debounce)");
-          scheduleHints("agent finished");
-        }, 3000); // 3s debounce — wait for agent to truly finish
+          if (!hintShownThisTurnRef.current) scheduleHints("agent finished");
+        }, 3000);
       }
 
       if (source === "user") {
@@ -273,6 +312,26 @@ export default function LessonPage() {
       if (lessonState !== "ending") { setError(t("connectionLost") + " " + message); setLessonState("error"); logError("/lesson", "Conversation error: " + message, { step: "onError", agentId: profileRef.current.agentId }); }
     },
   });
+
+  // ---- Pause / Resume ----
+  const pauseLesson = useCallback((reason: "manual" | "limit" = "manual") => {
+    if (isPaused || conversation.status !== "connected") return;
+    setIsPaused(true);
+    setPauseReason(reason);
+    pausedAtRef.current = Date.now();
+    try { conversation.setVolume({ volume: 0 }); } catch {}
+    try { conversation.sendContextualUpdate("PAUSE: The student has paused the lesson. Do NOT say anything. Wait in complete silence until resumed."); } catch {}
+    if (lessonTimerRef.current) { clearInterval(lessonTimerRef.current); lessonTimerRef.current = null; }
+    clearHintTimers();
+  }, [isPaused, conversation]);
+
+  const resumeLesson = useCallback(() => {
+    if (!isPaused || conversation.status !== "connected") return;
+    setIsPaused(false);
+    setPauseReason(null);
+    try { conversation.setVolume({ volume: 1 }); } catch {}
+    try { conversation.sendContextualUpdate("RESUME: The student is back. Continue the conversation naturally from where you left off."); } catch {}
+  }, [isPaused, conversation]);
 
   // ---- Fetch hints (add to chat as hint message) ----
   const fetchHint = async (hintLvl: 1 | 2, isUpgrade = false) => {
@@ -319,7 +378,7 @@ export default function LessonPage() {
         if (data.words?.length > 0) {
           setEnrichmentWords(data.words);
           enrichmentWordsShownRef.current = [...enrichmentWordsShownRef.current, ...data.words.map((w: { word: string }) => w.word)];
-          setTimeout(() => setEnrichmentWords([]), 10000);
+          setTimeout(() => setEnrichmentWords([]), 45000);
         }
       }
     } catch {}
@@ -383,6 +442,7 @@ export default function LessonPage() {
       setPreviousContext(data.previous_context ?? "To pierwsza rozmowa.");
       setAgentSystemPrompt(data.agent_system_prompt ?? "");
       setIsUnlimited(data.unlimited ?? false);
+      setPlanMinutesRemaining(data.minutes_remaining ?? null);
       setLessonState("ready");
     } catch (err) { const msg = err instanceof Error ? err.message : "Blad"; setError(msg); setLessonState("error"); logError("/lesson", msg, { step: "prepareLesson", language, agent_id: agId }); }
   };
@@ -491,7 +551,14 @@ export default function LessonPage() {
       }
     } catch {} finally { setRefreshingTopic(false); }
   };
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+  const formatTime = (s: number) => {
+    if (s < 0) {
+      // Overtime: show as +0:01, +0:02, etc.
+      const abs = Math.abs(s);
+      return `+${Math.floor(abs / 60)}:${(abs % 60).toString().padStart(2, "0")}`;
+    }
+    return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+  };
 
   // ---- Word translation ----
   const translateWord = async (word: string, msgId: number, wordIdx: number, fullSentence: string) => {
@@ -680,7 +747,7 @@ export default function LessonPage() {
           </div>
           {/* Timer */}
           <div className={`rounded-full px-3 py-1 text-xs font-mono font-bold ${
-            timeLeft <= 60 ? "bg-red-500/20 text-red-400" : "bg-surface-container-high text-slate-400"
+            timeLeft < 0 ? "bg-amber-500/20 text-amber-400" : timeLeft <= 60 ? "bg-orange-500/20 text-orange-400" : "bg-surface-container-high text-slate-400"
           }`}>{formatTime(timeLeft)}</div>
         </div>
       </header>
@@ -707,11 +774,12 @@ export default function LessonPage() {
                   <button onClick={() => { addEnrichmentToVocab(w.word, w.translation); setEnrichmentWords((prev) => prev.filter((_, j) => j !== i)); }} className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/20">+</button>
                 </div>
               ))}
+              <button onClick={() => setEnrichmentWords([])} className="text-slate-600 hover:text-slate-400 ml-1 text-xs">✕</button>
             </div>
           )}
 
           {/* Chat messages */}
-          <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-6 pb-48 space-y-6" style={{ scrollbarWidth: "thin", scrollbarColor: "#334155 transparent" }}>
+          <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-6 pb-48 space-y-6" onClick={() => activeTooltip && setActiveTooltip(null)} onScroll={() => activeTooltip && setActiveTooltip(null)} style={{ scrollbarWidth: "thin", scrollbarColor: "#334155 transparent" }}>
             {chatMessages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
                 <TutorAvatar agentId={agentId} size={80} speaking={isSpeaking} />
@@ -736,15 +804,14 @@ export default function LessonPage() {
                         return (
                           <span key={i} className="relative inline">
                             <span
-                              onClick={() => translateWord(token, msg.id, i, msg.message)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const rect = (e.target as HTMLElement).getBoundingClientRect();
+                                setActiveTooltip(prev => prev?.key === key ? null : { key, x: rect.left + rect.width / 2, y: rect.top });
+                                translateWord(token, msg.id, i, msg.message);
+                              }}
                               className={`cursor-pointer rounded-sm transition-colors hover:bg-primary/20 ${tr ? "bg-primary/15 text-primary" : ""} ${isLoading ? "animate-pulse" : ""}`}
                             >{token}</span>
-                            {tr && (
-                              <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-30 whitespace-nowrap rounded-lg bg-slate-800 border border-white/10 px-2.5 py-1.5 shadow-xl pointer-events-none">
-                                <span className="text-xs font-bold text-primary">{tr.translation}</span>
-                                {tr.note && <span className="text-[10px] text-slate-400 ml-1.5">{tr.note}</span>}
-                              </span>
-                            )}
                           </span>
                         );
                       })}
@@ -794,6 +861,17 @@ export default function LessonPage() {
             <div ref={chatEndRef} />
           </div>
 
+          {/* Fixed tooltip for word translations — rendered outside scroll container to avoid clipping */}
+          {activeTooltip && wordTranslations.get(activeTooltip.key) && (
+            <span
+              className="fixed z-50 whitespace-nowrap rounded-lg bg-slate-800 border border-white/10 px-2.5 py-1.5 shadow-xl pointer-events-none"
+              style={{ left: activeTooltip.x, top: activeTooltip.y - 8, transform: "translate(-50%, -100%)" }}
+            >
+              <span className="text-xs font-bold text-primary">{wordTranslations.get(activeTooltip.key)!.translation}</span>
+              {wordTranslations.get(activeTooltip.key)!.note && <span className="text-[10px] text-slate-400 ml-1.5">{wordTranslations.get(activeTooltip.key)!.note}</span>}
+            </span>
+          )}
+
           {/* Bottom controls — floating */}
           <div className="absolute bottom-0 left-0 right-0 z-30 flex flex-col items-center pb-6 pointer-events-none">
             {/* SOS + Mic + End */}
@@ -802,6 +880,17 @@ export default function LessonPage() {
               <button onClick={handleHintToggle} className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${hintsEnabled ? "bg-tertiary/10 text-tertiary border border-tertiary/20" : "bg-surface-container-high text-slate-500 border border-white/5"}`} title={hintsEnabled ? t("disableHints") : t("enableHints")}>
                 <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: hintsEnabled ? "'FILL' 1" : undefined }}>lightbulb</span>
                 <span className="hidden sm:inline">{hintsEnabled ? t("hintsOn") : t("hintsOff")}</span>
+              </button>
+
+              {/* Pause */}
+              <button
+                onClick={() => isPaused ? resumeLesson() : pauseLesson("manual")}
+                className={`h-12 w-12 rounded-full flex items-center justify-center border transition-all ${
+                  isPaused ? "bg-primary/20 text-primary border-primary/30 animate-pulse" : "bg-surface-container-high text-slate-400 border-white/5 hover:text-white"
+                }`}
+                title={isPaused ? (locale === "pl" ? "Wznów" : "Resume") : (locale === "pl" ? "Pauza" : "Pause")}
+              >
+                <span className="material-symbols-outlined text-lg">{isPaused ? "play_arrow" : "pause"}</span>
               </button>
 
               {/* Mic button */}
@@ -818,7 +907,7 @@ export default function LessonPage() {
                 </div>
                 <div className="mt-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
                   <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    {isSpeaking ? `${agentName} ${t("speaking")}` : hintsLoading ? t("searchingHints") : t("listening")}
+                    {isPaused ? (locale === "pl" ? "PAUZA" : "PAUSED") : isSpeaking ? `${agentName} ${t("speaking")}` : hintsLoading ? t("searchingHints") : t("listening")}
                   </p>
                 </div>
               </div>
@@ -844,11 +933,59 @@ export default function LessonPage() {
             </div>
           </div>
 
-          {/* Auto-end countdown overlay */}
-          {autoEndCountdown !== null && autoEndCountdown > 0 && (
+          {/* Pause overlay */}
+          {isPaused && (
+            <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="text-center space-y-4 p-8 max-w-sm">
+                <div className="mx-auto h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-3xl text-primary">pause</span>
+                </div>
+                <h3 className="text-xl font-bold text-white">
+                  {pauseReason === "limit"
+                    ? (locale === "pl" ? "Limit minut wyczerpany" : "Plan minutes exhausted")
+                    : (locale === "pl" ? "Lekcja wstrzymana" : "Lesson paused")
+                  }
+                </h3>
+                {pauseReason === "limit" && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-on-surface-variant">
+                      {locale === "pl" ? "Kup pakiet minut lub zmień plan, żeby kontynuować naukę." : "Buy more minutes or upgrade your plan to continue."}
+                    </p>
+                    <a
+                      href="/pricing"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-all"
+                    >
+                      {locale === "pl" ? "Zobacz plany" : "See plans"}
+                    </a>
+                  </div>
+                )}
+                <button
+                  onClick={resumeLesson}
+                  className={`rounded-xl px-6 py-3 text-sm font-bold transition-all ${
+                    pauseReason === "limit" ? "bg-white/10 text-white hover:bg-white/20 border border-white/10" : "bg-primary text-white hover:bg-primary/90"
+                  }`}
+                >
+                  {locale === "pl" ? "Wznów lekcję" : "Resume lesson"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Trial/plan limit countdown overlay */}
+          {autoEndCountdown !== null && autoEndCountdown > 0 && trialWarningShown && (
             <div className="absolute top-16 left-0 right-0 z-40 flex justify-center pointer-events-none">
-              <div className="bg-red-500/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-xl text-center pointer-events-auto">
-                <p className="text-sm font-bold">{t("lessonEndsIn")} {autoEndCountdown}s</p>
+              <div className="bg-amber-500/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-xl text-center pointer-events-auto">
+                <p className="text-sm font-bold">
+                  {timeLeft > 0
+                    ? `${locale === "pl" ? "Twój limit minut kończy się za" : "Your plan minutes end in"} ${autoEndCountdown}s`
+                    : `${locale === "pl" ? "Bonus od nas! Lekcja kończy się za" : "Bonus time! Lesson ends in"} ${autoEndCountdown}s`
+                  }
+                </p>
+                <p className="text-xs text-white/80 mt-0.5">
+                  {locale === "pl" ? "Dokończ swoją myśl — nie spiesz się" : "Finish your thought — no rush"}
+                </p>
               </div>
             </div>
           )}

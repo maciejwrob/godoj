@@ -17,7 +17,7 @@ const LANGUAGES = [
   { id: "ko", active: true, variants: null },
 ];
 
-const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
+const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
 export function AddLanguageModal({ open, onClose, existingLangs }: { open: boolean; onClose: () => void; existingLangs: string[] }) {
   const [step, setStep] = useState(1);
@@ -42,7 +42,9 @@ export function AddLanguageModal({ open, onClose, existingLangs }: { open: boole
       });
       if (res.ok) {
         onClose();
-        window.location.reload();
+        // Set the new language as active so dashboard loads with it
+        localStorage.setItem("godoj_active_lang", lang);
+        window.location.href = "/dashboard";
       } else {
         const data = await res.json();
         setError(data.error ?? t("error"));

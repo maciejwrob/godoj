@@ -13,6 +13,7 @@ const LEVELS: Record<Locale, LevelDef[]> = {
     { id: "B1", name: "Średnio zaawansowany", label: "B1", desc: "Mogę rozmawiać o znanych tematach" },
     { id: "B2", name: "Zaawansowany", label: "B2", desc: "Czuję się dość swobodnie" },
     { id: "C1", name: "Biegły", label: "C1", desc: "Chcę szlifować umiejętności" },
+    { id: "C2", name: "Profesjonalny", label: "C2", desc: "Chcę mówić jak native speaker" },
   ],
   en: [
     { id: "A1", name: "Beginner", label: "A1", desc: "I only know basic words" },
@@ -20,6 +21,7 @@ const LEVELS: Record<Locale, LevelDef[]> = {
     { id: "B1", name: "Intermediate", label: "B1", desc: "I can discuss familiar topics" },
     { id: "B2", name: "Upper Intermediate", label: "B2", desc: "I feel fairly comfortable" },
     { id: "C1", name: "Advanced", label: "C1", desc: "I want to polish my skills" },
+    { id: "C2", name: "Proficient", label: "C2", desc: "I want to speak like a native" },
   ],
 };
 

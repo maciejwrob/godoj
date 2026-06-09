@@ -212,10 +212,10 @@ export default function DashboardPage() {
               <div>
                 <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider truncate">{t("levelLabel")}</p>
                 <h4 className="text-2xl lg:text-3xl font-black text-white">{currentLevel}</h4>
-                {currentLevel !== "C1" && (data as DashboardData & { xpCurrent?: number; xpTotal?: number }).xpCurrent !== undefined && (
+                {currentLevel !== "Native" && (data as DashboardData & { xpCurrent?: number; xpTotal?: number }).xpCurrent !== undefined && (
                   <div className="mt-2 w-full">
                     <div className="h-1.5 w-full rounded-full bg-white/10">
-                      <div className="h-1.5 rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, Math.round(((data as DashboardData & { xpCurrent?: number }).xpCurrent ?? 0) / ({ "A1": 500, "A1+": 800, "A2": 1000, "A2+": 1200, "B1": 1500, "B1+": 2000, "B2": 2500, "B2+": 3000, "C1": 99999 }[currentLevel] ?? 99999) * 100))}%` }} />
+                      <div className="h-1.5 rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, Math.round(((data as DashboardData & { xpCurrent?: number }).xpCurrent ?? 0) / ({ "A1": 500, "A1+": 800, "A2": 1000, "A2+": 1200, "B1": 1500, "B1+": 2000, "B2": 2500, "B2+": 3000, "C1": 3500, "C1+": 4000, "C2": 5000, "C2+": 6000, "Native": 99999 }[currentLevel] ?? 99999) * 100))}%` }} />
                     </div>
                   </div>
                 )}

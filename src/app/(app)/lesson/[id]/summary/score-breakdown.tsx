@@ -17,14 +17,11 @@ const DIMENSION_ORDER = ["grammar", "vocabulary", "fluency", "comprehension", "c
 
 function ScoreBar({ score }: { score: number }) {
   const percent = (score / 5) * 100;
-  // Color gradient: red -> amber -> green
-  const color =
-    score >= 4 ? "bg-green-500" : score >= 3 ? "bg-amber-400" : "bg-red-400";
 
   return (
     <div className="h-2 w-full rounded-full bg-white/5">
       <div
-        className={`h-full rounded-full transition-all ${color}`}
+        className="h-full rounded-full bg-primary transition-all"
         style={{ width: `${percent}%` }}
       />
     </div>

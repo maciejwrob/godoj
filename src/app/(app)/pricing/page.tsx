@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 
 interface Subscription {
   tier: string;
@@ -19,6 +20,25 @@ const BETA_DEADLINE = "30.06.2026";
 
 const TOPUP = { minutes: 20, price: 29 };
 
+// Feature keys per tier — resolved via t()
+const TIER_FEATURES: Record<string, { key: string; params?: Record<string, string | number> }[]> = {
+  starter: [
+    { key: "pricingFeatMinutes", params: { minutes: 90 } },
+    { key: "pricingFeatTutor" },
+    { key: "pricingFeatAnalysis" },
+    { key: "pricingFeatProgress" },
+    { key: "pricingFeatSupport" },
+  ],
+  pro: [
+    { key: "pricingFeatMinutes", params: { minutes: 250 } },
+    { key: "pricingFeatTutor" },
+    { key: "pricingFeatAnalysis" },
+    { key: "pricingFeatProgress" },
+    { key: "pricingFeatSupport" },
+    { key: "pricingFeatEarlyAccess" },
+  ],
+};
+
 const TIERS = [
   {
     id: "starter",
@@ -27,14 +47,7 @@ const TIERS = [
     monthlyPrice: 89,
     yearlyPrice: 854,
     minutes: 90,
-    weeklyEquiv: "~20 min/tyg",
-    features: [
-      "90 minut rozmów miesięcznie",
-      "AI tutor głosowy",
-      "Szczegółowa analiza lekcji",
-      "Śledzenie postępów i XP",
-      "Priorytetowe wsparcie",
-    ],
+    weeklyMin: 20,
     popular: false,
   },
   {
@@ -44,21 +57,23 @@ const TIERS = [
     monthlyPrice: 179,
     yearlyPrice: 1717,
     minutes: 250,
-    weeklyEquiv: "~57 min/tyg",
-    features: [
-      "250 minut rozmów miesięcznie",
-      "AI tutor głosowy",
-      "Szczegółowa analiza lekcji",
-      "Śledzenie postępów i XP",
-      "Priorytetowe wsparcie",
-      "Dostęp do nowych funkcji",
-    ],
+    weeklyMin: 57,
     popular: true,
   },
 ];
 
+// Simple template: replace {key} with value
+function tpl(template: string, params: Record<string, string | number>): string {
+  let result = template;
+  for (const [k, v] of Object.entries(params)) {
+    result = result.replace(`{${k}}`, String(v));
+  }
+  return result;
+}
+
 export default function PricingPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
@@ -91,11 +106,11 @@ export default function PricingPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || "Wystąpił błąd");
+        alert(data.error || t("pricingError"));
         setCheckoutLoading(null);
       }
     } catch {
-      alert("Nie udało się połączyć z systemem płatności");
+      alert(t("pricingPaymentError"));
       setCheckoutLoading(null);
     }
   };
@@ -109,11 +124,11 @@ export default function PricingPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || "Wystąpił błąd");
+        alert(data.error || t("pricingError"));
         setTopupLoading(false);
       }
     } catch {
-      alert("Nie udało się połączyć z systemem płatności");
+      alert(t("pricingPaymentError"));
       setTopupLoading(false);
     }
   };
@@ -129,9 +144,9 @@ export default function PricingPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 lg:py-12">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-white">Wybierz plan</h1>
+        <h1 className="text-3xl font-bold text-white">{t("pricingTitle")}</h1>
         <p className="mt-2 text-slate-400">
-          Rozmawiaj z AI tutorem i ucz się języków w swoim tempie
+          {t("pricingSubtitle")}
         </p>
       </div>
 
@@ -140,8 +155,8 @@ export default function PricingPage() {
         <div className="mb-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-5 text-center">
           <p className="text-sm font-medium text-yellow-300">
             {trialMinutesLeft > 0
-              ? `Jesteś na okresie próbnym — pozostało ${trialMinutesLeft} z 30 minut. Wybierz plan, żeby kontynuować naukę po wyczerpaniu limitu.`
-              : "Twój okres próbny się skończył. Wybierz plan poniżej, żeby kontynuować naukę."}
+              ? tpl(t("pricingTrialRemaining"), { minutes: trialMinutesLeft })
+              : t("pricingTrialExpired")}
           </p>
         </div>
       )}
@@ -156,14 +171,14 @@ export default function PricingPage() {
           <div className="relative">
             <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-1.5 text-sm font-extrabold text-emerald-300">
               <span className="animate-pulse text-lg">🔥</span>
-              PROMOCJA BETA &minus;50%
+              {t("pricingBetaBadge")}
               <span className="animate-pulse text-lg">🔥</span>
             </div>
             <p className="mt-2 text-base font-bold text-white">
-              Połowa ceny przez pierwsze 3 miesiące na planach miesięcznych!
+              {t("pricingBetaDesc")}
             </p>
             <p className="mt-1 text-sm text-emerald-300/70">
-              Oferta ważna do {BETA_DEADLINE} — dołącz teraz i zacznij oszczędzać
+              {tpl(t("pricingBetaDeadline"), { date: BETA_DEADLINE })}
             </p>
           </div>
         </div>
@@ -179,7 +194,7 @@ export default function PricingPage() {
               : "text-slate-400 hover:text-white"
           }`}
         >
-          Miesięcznie
+          {t("pricingMonthly")}
           {BETA_ACTIVE && (
             <span className="ml-1.5 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-400">
               -50%
@@ -194,7 +209,7 @@ export default function PricingPage() {
               : "text-slate-400 hover:text-white"
           }`}
         >
-          Rocznie
+          {t("pricingYearly")}
           <span className="ml-1.5 rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-bold text-green-400">
             -20%
           </span>
@@ -215,6 +230,8 @@ export default function PricingPage() {
             TIERS.findIndex((t) => t.id === currentTierBase) >
             TIERS.findIndex((t) => t.id === tier.id);
 
+          const features = TIER_FEATURES[tier.id] ?? [];
+
           return (
             <div
               key={tier.id}
@@ -226,7 +243,7 @@ export default function PricingPage() {
             >
               {tier.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-godoj-blue px-4 py-1 text-xs font-bold text-white">
-                  Najpopularniejszy
+                  {t("pricingMostPopular")}
                 </div>
               )}
 
@@ -247,7 +264,7 @@ export default function PricingPage() {
                       {/* Original price - strikethrough */}
                       <div className="flex items-center gap-2">
                         <span className="text-base font-medium text-slate-500 line-through decoration-red-400/60 decoration-2">
-                          {fullPrice} PLN/mies
+                          {fullPrice} PLN{t("pricingPerMonth")}
                         </span>
                       </div>
                       {/* Discounted price */}
@@ -256,12 +273,12 @@ export default function PricingPage() {
                           {price}
                         </span>
                         <span className="text-lg font-bold text-white">PLN</span>
-                        <span className="text-sm text-slate-400">/mies</span>
+                        <span className="text-sm text-slate-400">{t("pricingPerMonth")}</span>
                       </div>
                       {/* Savings badge */}
                       <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400">
                         <span>💰</span>
-                        Oszczędzasz {savings} PLN/mies przez 3 mies.
+                        {tpl(t("pricingSavings"), { amount: savings })}
                       </div>
                     </>
                   ) : isYearly ? (
@@ -271,11 +288,11 @@ export default function PricingPage() {
                           {monthlyEquiv}
                         </span>
                         <span className="text-lg font-bold text-white">PLN</span>
-                        <span className="text-sm text-slate-400">/mies</span>
+                        <span className="text-sm text-slate-400">{t("pricingPerMonth")}</span>
                       </div>
                       <div className="mt-1 flex items-center gap-2">
                         <span className="text-sm text-slate-400">
-                          {price} PLN/rok
+                          {price} PLN{t("pricingPerYear")}
                         </span>
                         <span className="text-xs font-medium text-slate-500 line-through">
                           {tier.monthlyPrice * 12} PLN
@@ -288,26 +305,26 @@ export default function PricingPage() {
                         {price}
                       </span>
                       <span className="text-lg font-bold text-white">PLN</span>
-                      <span className="text-sm text-slate-400">/mies</span>
+                      <span className="text-sm text-slate-400">{t("pricingPerMonth")}</span>
                     </div>
                   )}
                 </div>
 
                 <p className="mt-2 text-sm text-slate-400">
-                  {tier.minutes} min/mies ({tier.weeklyEquiv})
+                  {tier.minutes} {t("pricingMinPerMonth")} ({tpl(t("weeklyEquiv"), { minutes: tier.weeklyMin })})
                 </p>
               </div>
 
               <ul className="mb-8 flex-1 space-y-3">
-                {tier.features.map((feature) => (
+                {features.map((feat, i) => (
                   <li
-                    key={feature}
+                    key={i}
                     className="flex items-start gap-2 text-sm text-slate-300"
                   >
                     <span className="material-symbols-outlined mt-0.5 text-base text-green-400">
                       check_circle
                     </span>
-                    {feature}
+                    {feat.params ? tpl(t(feat.key), feat.params) : t(feat.key)}
                   </li>
                 ))}
               </ul>
@@ -317,7 +334,7 @@ export default function PricingPage() {
                   disabled
                   className="w-full rounded-xl bg-white/5 py-3 text-sm font-medium text-slate-400"
                 >
-                  Twój obecny plan
+                  {t("pricingYourPlan")}
                 </button>
               ) : isDowngrade ? (
                 <button
@@ -339,12 +356,12 @@ export default function PricingPage() {
                   {checkoutLoading === checkoutTierId ? (
                     <span className="inline-flex items-center gap-2">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Przekierowuję...
+                      {t("pricingRedirecting")}
                     </span>
                   ) : hasBetaDiscount ? (
-                    `Wybierz ${tier.name} za ${price} PLN/mies`
+                    tpl(t("pricingSelectFor"), { name: tier.name, price })
                   ) : (
-                    `Wybierz ${tier.name}`
+                    tpl(t("pricingSelect"), { name: tier.name })
                   )}
                 </button>
               )}
@@ -358,9 +375,9 @@ export default function PricingPage() {
         <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-white/10 bg-surface-container p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-white">Potrzebujesz więcej minut?</h3>
+              <h3 className="font-bold text-white">{t("pricingNeedMore")}</h3>
               <p className="mt-1 text-sm text-slate-400">
-                Dokup {TOPUP.minutes} dodatkowych minut za {TOPUP.price} PLN (jednorazowo)
+                {tpl(t("pricingTopupDesc"), { minutes: TOPUP.minutes, price: TOPUP.price })}
               </p>
             </div>
             <button
@@ -371,10 +388,10 @@ export default function PricingPage() {
               {topupLoading ? (
                 <span className="inline-flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Ładuję...
+                  {t("pricingTopupLoading")}
                 </span>
               ) : (
-                `Dokup ${TOPUP.minutes} min`
+                tpl(t("pricingTopupBtn"), { minutes: TOPUP.minutes })
               )}
             </button>
           </div>
@@ -383,13 +400,13 @@ export default function PricingPage() {
 
       <div className="mt-10 text-center">
         <p className="text-sm text-slate-500">
-          Płatności obsługiwane przez Stripe. Możesz anulować w dowolnym momencie.
+          {t("pricingStripeNote")}
         </p>
         <button
           onClick={() => router.push("/settings/billing")}
           className="mt-2 text-sm text-godoj-blue hover:underline"
         >
-          Zarządzaj subskrypcją
+          {t("pricingManageSub")}
         </button>
       </div>
     </div>

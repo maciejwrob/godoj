@@ -179,7 +179,7 @@ ${lastLessonSummary ? `Previous lesson context: ${lastLessonSummary}` : "This is
 Get inspired by these topic ideas: ${sampleTopics}
 
 Reply in EXACTLY this format (2 lines, nothing else):
-TOPIC: [conversation topic in Polish, max 8 words, no period]
+TOPIC: [conversation topic in Polish with proper diacritical marks (ą, ć, ę, ł, ń, ó, ś, ź, ż), max 8 words, no period]
 GREETING: [natural greeting in ${languageNameEn} as ${agentName} the tutor, max 2 short sentences at ${level} level]`,
         }],
       });
@@ -212,10 +212,14 @@ Czas lekcji: ${duration} minut.
 ZASADY:
 - Dostosuj złożoność języka do poziomu ${level}
 - Bądź cierpliwy, zachęcający i naturalny
-- Delikatnie poprawiaj błędy w trakcie rozmowy
+- Delikatnie poprawiaj błędy — użyj poprawnej formy naturalnie w swojej odpowiedzi, NIE mów wprost "to był błąd"
 - Gdy zbliża się koniec czasu, naturalnie zakończ rozmowę
 - Mów TYLKO w języku docelowym, chyba że uczeń naprawdę nie rozumie
-- Jeśli uczeń się zacina, pomóż mu — zaproponuj łatwiejsze sformułowanie${lastLessonContext}`;
+- Jeśli uczeń się zacina, pomóż mu — zaproponuj łatwiejsze sformułowanie
+- ZAWSZE kończ swoją wypowiedź pytaniem lub zachętą do mówienia. Nigdy nie kończ samym stwierdzeniem — rozmowa musi się toczyć dalej.
+- Jeśli uczeń odpowiada krótko (jedno słowo, "tak/nie"), potwierdź krótko i zadaj pytanie uzupełniające.
+- Twój wzorzec odpowiedzi: krótka reakcja + pytanie uzupełniające. Rozmowa musi się toczyć.
+- Dla poziomu A1-A2: zadawaj proste pytania tak/nie lub "albo/albo". Dla B1+: pytania otwarte (dlaczego, jak, co myślisz).${lastLessonContext}`;
 
     // Get signed URL from ElevenLabs
     const signedUrlResponse = await fetch(
@@ -299,6 +303,7 @@ ZASADY:
       previous_context: previousCtx,
       agent_system_prompt: builtPrompt,
       unlimited: isUnlimited,
+      minutes_remaining: isUnlimited ? null : lessonCheck.minutesRemaining,
     });
   } catch (error) {
     console.error("Start lesson error:", error);

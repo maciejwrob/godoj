@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Mail, Loader2 } from "lucide-react";
 import { getTranslations } from "@/lib/i18n-data";
 import { UILanguageToggle, getStoredUILocale } from "@/components/ui-language-toggle";
@@ -178,11 +179,10 @@ export default function Home() {
   }
 
   return (
-    <main className="relative mx-auto min-h-screen max-w-[1400px] overflow-hidden lg:flex">
-      {/* ===================== LEFT COLUMN — Copy + Form ===================== */}
-      <div className="relative z-10 flex w-full flex-col justify-between px-5 py-6 sm:px-10 sm:py-8 lg:w-[45%] lg:min-w-[480px] lg:max-w-[600px] lg:px-14 lg:py-10 xl:px-16">
-        {/* Top bar */}
-        <div className="flex items-center justify-between">
+    <div className="flex min-h-dvh flex-col">
+      {/* ===================== STICKY TOP BAR ===================== */}
+      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-surface/80 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-3 sm:px-10 lg:px-14 xl:px-16">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 overflow-hidden rounded-xl">
               <Image src="/logo-icon.png" alt="Godoj" width={72} height={72} className="h-full w-full object-cover" priority />
@@ -191,8 +191,24 @@ export default function Home() {
               Godoj.co
             </span>
           </div>
-          <UILanguageToggle />
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Link href="/pricing" className="hidden sm:block text-sm font-medium text-on-surface-variant hover:text-white transition-colors">
+              {t("navPricing")}
+            </Link>
+            <UILanguageToggle />
+            <Link
+              href="/login"
+              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-all"
+            >
+              {t("navLogin")}
+            </Link>
+          </div>
         </div>
+      </header>
+
+    <main className="relative mx-auto max-w-[1400px] flex-1 overflow-hidden lg:flex">
+      {/* ===================== LEFT COLUMN — Copy + Form ===================== */}
+      <div className="relative z-10 flex w-full flex-col justify-between px-5 py-6 sm:px-10 sm:py-8 lg:w-[45%] lg:min-w-[480px] lg:max-w-[600px] lg:px-14 lg:py-10 xl:px-16">
 
         {/* MOBILE — Tutor strip (right after nav for instant social proof) */}
         <div className="relative mt-5 lg:hidden">
@@ -412,5 +428,6 @@ export default function Home() {
         </div>
       </div>
     </main>
+    </div>
   );
 }

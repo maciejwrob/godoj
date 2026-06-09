@@ -9,11 +9,42 @@ import { ChildrenSection } from "@/components/kids/children-section";
 import { clearActiveChild } from "@/lib/kids";
 import { useTranslation } from "@/lib/i18n";
 
+// Pinned: Polish + English on top, then alphabetically by autonym
 const NATIVE_LANGUAGES = [
-  { id: "pl", name: "Polski" },
-  { id: "en", name: "Angielski" },
-  { id: "uk", name: "Ukrainski" },
-  { id: "other", name: "Inne" },
+  { id: "pl", label: "Polski" },
+  { id: "en", label: "English" },
+  { id: "_sep", label: "───" },
+  { id: "ar", label: "العربية" },
+  { id: "bg", label: "Български" },
+  { id: "cs", label: "Čeština" },
+  { id: "da", label: "Dansk" },
+  { id: "de", label: "Deutsch" },
+  { id: "el", label: "Ελληνικά" },
+  { id: "es", label: "Español" },
+  { id: "fi", label: "Suomi" },
+  { id: "fr", label: "Français" },
+  { id: "hi", label: "हिन्दी" },
+  { id: "hr", label: "Hrvatski" },
+  { id: "hu", label: "Magyar" },
+  { id: "id", label: "Bahasa Indonesia" },
+  { id: "it", label: "Italiano" },
+  { id: "ja", label: "日本語" },
+  { id: "ko", label: "한국어" },
+  { id: "lt", label: "Lietuvių" },
+  { id: "nl", label: "Nederlands" },
+  { id: "no", label: "Norsk" },
+  { id: "pt", label: "Português" },
+  { id: "ro", label: "Română" },
+  { id: "ru", label: "Русский" },
+  { id: "sk", label: "Slovenčina" },
+  { id: "sl", label: "Slovenščina" },
+  { id: "sv", label: "Svenska" },
+  { id: "th", label: "ไทย" },
+  { id: "tr", label: "Türkçe" },
+  { id: "uk", label: "Українська" },
+  { id: "vi", label: "Tiếng Việt" },
+  { id: "zh", label: "中文" },
+  { id: "other", label: "—" },
 ];
 
 const DURATIONS = [5, 10];
@@ -75,7 +106,7 @@ export default function SettingsPage() {
         setReminders(profile?.reminders_enabled ?? false);
       } catch (err) {
         console.error("Settings fetch error:", err);
-        setError("Nie udało się załadować ustawień");
+        setError("settingsLoadError");
       } finally {
         setLoading(false);
       }
@@ -177,13 +208,19 @@ export default function SettingsPage() {
             <select
               value={nativeLanguage}
               onChange={(e) => setNativeLanguage(e.target.value)}
-              className="w-full rounded-lg border border-border bg-bg-dark px-3 py-2 text-text-primary outline-none transition-colors focus:border-primary"
+              className="w-full appearance-none rounded-lg border border-border bg-bg-dark bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_12px_center] bg-no-repeat pl-3 pr-10 py-2 text-text-primary outline-none transition-colors focus:border-primary"
             >
-              {NATIVE_LANGUAGES.map((lang) => (
-                <option key={lang.id} value={lang.id}>
-                  {lang.name}
-                </option>
-              ))}
+              {NATIVE_LANGUAGES.map((lang) =>
+                lang.id === "_sep" ? (
+                  <option key="_sep" disabled>
+                    {lang.label}
+                  </option>
+                ) : (
+                  <option key={lang.id} value={lang.id}>
+                    {lang.label}
+                  </option>
+                )
+              )}
             </select>
           </div>
 
@@ -195,7 +232,7 @@ export default function SettingsPage() {
             <select
               value={uiLanguage}
               onChange={(e) => setUiLanguage(e.target.value)}
-              className="w-full rounded-lg border border-border bg-bg-dark px-3 py-2 text-text-primary outline-none transition-colors focus:border-primary"
+              className="w-full appearance-none rounded-lg border border-border bg-bg-dark bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_12px_center] bg-no-repeat pl-3 pr-10 py-2 text-text-primary outline-none transition-colors focus:border-primary"
             >
               <option value="pl">🇵🇱 Polski</option>
               <option value="en">🇬🇧 English</option>
@@ -230,7 +267,7 @@ export default function SettingsPage() {
             <select
               value={preferredDuration}
               onChange={(e) => setPreferredDuration(Number(e.target.value))}
-              className="w-full rounded-lg border border-border bg-bg-dark px-3 py-2 text-text-primary outline-none transition-colors focus:border-primary"
+              className="w-full appearance-none rounded-lg border border-border bg-bg-dark bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_12px_center] bg-no-repeat pl-3 pr-10 py-2 text-text-primary outline-none transition-colors focus:border-primary"
             >
               {DURATIONS.map((d) => (
                 <option key={d} value={d}>
@@ -268,14 +305,14 @@ export default function SettingsPage() {
       <section className="mb-6 rounded-2xl border border-border bg-bg-card p-6">
         <div className="mb-4 flex items-center gap-2">
           <CreditCard className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-text-primary">Plan i rozliczenia</h2>
+          <h2 className="text-lg font-semibold text-text-primary">{t("billingTitle")}</h2>
         </div>
-        <p className="mb-3 text-sm text-text-secondary">Zarządzaj swoim planem, sprawdź wykorzystanie minut i historię płatności.</p>
+        <p className="mb-3 text-sm text-text-secondary">{t("billingDesc")}</p>
         <Link
           href="/settings/billing"
           className="inline-flex items-center gap-2 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
         >
-          Zarządzaj planem
+          {t("billingManage")}
         </Link>
       </section>
 
@@ -297,7 +334,7 @@ export default function SettingsPage() {
       {/* Status messages */}
       {error && (
         <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-          {error}
+          {t(error)}
         </div>
       )}
       {success && (

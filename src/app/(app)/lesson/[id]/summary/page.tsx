@@ -96,7 +96,8 @@ export default async function LessonSummaryPage({
   // XP progress — sub-level thresholds
   const XP_THRESHOLDS: Record<string, number> = {
     "A1": 500, "A1+": 800, "A2": 1000, "A2+": 1200,
-    "B1": 1500, "B1+": 2000, "B2": 2500, "B2+": 3000, "C1": 99999,
+    "B1": 1500, "B1+": 2000, "B2": 2500, "B2+": 3000,
+    "C1": 3500, "C1+": 4000, "C2": 5000, "C2+": 6000, "Native": 99999,
   };
   const xpEarned = lesson.xp_earned ?? 0;
   const xpCurrent = profileData?.xp_current ?? 0;
@@ -186,7 +187,7 @@ export default async function LessonSummaryPage({
             </h3>
             <span className="text-sm font-bold text-primary">+{xpEarned} XP</span>
           </div>
-          {currentLevel !== "C1" ? (
+          {currentLevel !== "Native" ? (
             <>
               <div className="flex items-center justify-between text-sm text-text-secondary mb-2">
                 <span>{currentLevel}</span>
