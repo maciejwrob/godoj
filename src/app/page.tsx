@@ -428,6 +428,21 @@ export default function Home() {
         </div>
       </div>
     </main>
+
+    {/* Footer */}
+    <footer className="border-t border-white/5 px-4 py-6 text-center text-xs text-text-secondary/50">
+      <div className="flex items-center justify-center gap-4">
+        <Link href="/regulamin" className="hover:text-text-secondary transition-colors">
+          {t("tosLink")}
+        </Link>
+        <span>·</span>
+        <Link href="/prywatnosc" className="hover:text-text-secondary transition-colors">
+          {t("privacyLink")}
+        </Link>
+        <span>·</span>
+        <span>maciej.wrob@gmail.com</span>
+      </div>
+    </footer>
     </div>
   );
 }

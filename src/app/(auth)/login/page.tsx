@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { sendMagicLink } from "./actions";
 import { createClient } from "@/lib/supabase/client";
-import { Mail, ArrowLeft, Loader2 } from "lucide-react";
+import { Mail, ArrowLeft, Loader2, Check } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { getTranslations } from "@/lib/i18n";
@@ -14,6 +14,7 @@ export default function LoginPage() {
   useEffect(() => { setLocale(getStoredUILocale()); }, []);
   const t = (key: string) => getTranslations(locale)[key] ?? key;
   const [email, setEmail] = useState("");
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -118,6 +119,26 @@ export default function LoginPage() {
             />
           </div>
 
+          {/* Marketing consent — optional, unchecked by default */}
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={marketingConsent}
+              onClick={() => setMarketingConsent(!marketingConsent)}
+              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                marketingConsent
+                  ? "border-primary bg-primary"
+                  : "border-border bg-bg-card group-hover:border-text-secondary"
+              }`}
+            >
+              {marketingConsent && <Check className="h-3.5 w-3.5 text-white" />}
+            </button>
+            <span className="text-xs text-text-secondary leading-relaxed">
+              {t("marketingConsent")}
+            </span>
+          </label>
+
           {error && (
             <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
               {error}
@@ -135,6 +156,19 @@ export default function LoginPage() {
               t("sendLoginLink")
             )}
           </button>
+
+          {/* ToS acceptance notice */}
+          <p className="text-center text-[11px] leading-relaxed text-text-secondary/70">
+            {t("tosAccept")}{" "}
+            <Link href="/regulamin" target="_blank" className="text-primary hover:underline">
+              {t("tosLink")}
+            </Link>{" "}
+            {t("tosAnd")}{" "}
+            <Link href="/prywatnosc" target="_blank" className="text-primary hover:underline">
+              {t("privacyLink")}
+            </Link>
+            .
+          </p>
         </form>
 
         <div className="text-center">

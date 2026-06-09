@@ -195,6 +195,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     maxLevelReached: "Maksymalny poziom osiągnięty!",
     xpTotal: "łącznie",
     settingsSaved: "Ustawienia zapisane",
+    tosAccept: "Klikając „Wyślij link”, akceptujesz",
+    tosLink: "Regulamin",
+    tosAnd: "i",
+    privacyLink: "Politykę Prywatności",
+    marketingConsent: "Chcę otrzymywać informacje o nowościach i promocjach",
     // Pricing page
     pricingTitle: "Wybierz plan",
     pricingSubtitle: "Rozmawiaj z AI tutorem i ucz się języków w swoim tempie",
@@ -453,6 +458,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     maxLevelReached: "Maximum level reached!",
     xpTotal: "total",
     settingsSaved: "Settings saved",
+    tosAccept: "By clicking \"Send login link\", you agree to the",
+    tosLink: "Terms of Service",
+    tosAnd: "and",
+    privacyLink: "Privacy Policy",
+    marketingConsent: "I'd like to receive updates about new features and promotions",
     // Pricing page
     pricingTitle: "Choose a plan",
     pricingSubtitle: "Talk to an AI tutor and learn languages at your own pace",
