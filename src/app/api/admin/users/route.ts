@@ -155,6 +155,9 @@ export async function DELETE(request: Request) {
     "vocabulary",
     "lessons",
     "streaks",
+    "subscription_topups",
+    "subscription_usage",
+    "subscriptions",
     "user_profiles",
     "users",
   ];

@@ -54,7 +54,7 @@ export default function AdminInvitePage() {
         body: JSON.stringify({
           email,
           role,
-          parentId: parentId || null,
+          parent_id: parentId || null,
         }),
       });
       setEmail("");
