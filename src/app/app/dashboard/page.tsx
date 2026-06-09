@@ -83,7 +83,7 @@ export default function DashboardPage() {
               <button onClick={() => setFeedbackDismissed(true)} className="flex-1 rounded-xl border border-white/10 py-3 text-sm text-slate-400 hover:text-white">
                 Może później
               </button>
-              <Link href={`/feedback?lesson_id=${feedbackLessonId}`} className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-godoj-blue py-3 text-sm font-bold text-white hover:scale-105 transition-all">
+              <Link href={`/app/feedback?lesson_id=${feedbackLessonId}`} className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-godoj-blue py-3 text-sm font-bold text-white hover:scale-105 transition-all">
                 <span className="material-symbols-outlined text-lg">mic</span>
                 Daj feedback
               </Link>
@@ -101,7 +101,7 @@ export default function DashboardPage() {
               <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top" />
             </div>
             <p className="flex-1 text-sm text-on-surface-variant">Nie dałeś feedbacku do ostatniej lekcji — Maciej będzie wdzięczny!</p>
-            <Link href={`/feedback?lesson_id=${feedbackLessonId}`} className="shrink-0 rounded-xl bg-godoj-blue px-4 py-2 text-sm font-bold text-white">Daj feedback</Link>
+            <Link href={`/app/feedback?lesson_id=${feedbackLessonId}`} className="shrink-0 rounded-xl bg-godoj-blue px-4 py-2 text-sm font-bold text-white">Daj feedback</Link>
             <button onClick={() => setFeedbackDismissed(true)} className="text-slate-500 hover:text-white"><span className="material-symbols-outlined text-sm">close</span></button>
           </div>
         )}
@@ -117,7 +117,7 @@ export default function DashboardPage() {
           </div>
           {/* Compact usage limits — top right */}
           {subscription && (
-            <Link href="/settings/billing" className="group/limits flex items-center gap-3 rounded-xl border border-white/5 bg-surface-container px-3 py-2 hover:border-primary/30 transition-colors">
+            <Link href="/app/settings/billing" className="group/limits flex items-center gap-3 rounded-xl border border-white/5 bg-surface-container px-3 py-2 hover:border-primary/30 transition-colors">
               {subscription.unlimited ? (
                 <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
                   <span className="material-symbols-outlined text-sm">diamond</span>
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                     </button>
                   ))}
                 </div>
-                <Link href={`/lesson?duration=${selectedDuration}`} className="flex items-center gap-3 rounded-2xl bg-surface px-6 py-3 lg:px-8 lg:py-4 font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
+                <Link href={`/app/lesson?duration=${selectedDuration}`} className="flex items-center gap-3 rounded-2xl bg-surface px-6 py-3 lg:px-8 lg:py-4 font-bold text-white shadow-xl hover:scale-105 active:scale-95 transition-all">
                   <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
                   {t("startLessonBtn")}
                 </Link>
@@ -239,7 +239,7 @@ export default function DashboardPage() {
           <section className="col-span-12 lg:col-span-5 space-y-4">
             <div className="flex justify-between items-center px-2">
               <h3 className="text-xl font-bold text-white">{t("recentAchievements")}</h3>
-              <Link href="/achievements" className="text-sm text-primary font-medium hover:underline">{t("seeAll")}</Link>
+              <Link href="/app/achievements" className="text-sm text-primary font-medium hover:underline">{t("seeAll")}</Link>
             </div>
             <div className="bg-surface-container-low rounded-[2rem] p-8 border border-white/5 relative overflow-hidden group min-h-[300px] flex flex-col items-center justify-center">
               <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -250,7 +250,7 @@ export default function DashboardPage() {
                   </div>
                   <p className="text-on-surface font-semibold text-lg">{t("noAchievements")}</p>
                   <p className="text-on-surface-variant max-w-[200px] mt-2 text-sm mx-auto">{t("completeFirstLesson")}</p>
-                  <Link href="/lesson" className="mt-8 inline-block text-sm font-bold text-primary px-6 py-2.5 rounded-full border border-primary/20 hover:bg-primary/10 transition-colors">
+                  <Link href="/app/lesson" className="mt-8 inline-block text-sm font-bold text-primary px-6 py-2.5 rounded-full border border-primary/20 hover:bg-primary/10 transition-colors">
                     {t("takeChallenge")}
                   </Link>
                 </div>
@@ -277,7 +277,7 @@ export default function DashboardPage() {
           <section className="col-span-12 lg:col-span-7 space-y-4">
             <div className="flex justify-between items-center gap-2 px-2">
               <h3 className="text-xl font-bold text-white truncate">{t("recentLessons")}</h3>
-              <Link href="/progress" className="shrink-0 text-sm text-primary font-medium hover:underline">{t("lessonHistory")}</Link>
+              <Link href="/app/progress" className="shrink-0 text-sm text-primary font-medium hover:underline">{t("lessonHistory")}</Link>
             </div>
             <div className="bg-surface-container-low rounded-[2rem] overflow-hidden border border-white/5">
               {lessons.length === 0 ? (
@@ -290,7 +290,7 @@ export default function DashboardPage() {
                 <>
                   <div className="divide-y divide-white/5">
                     {lessons.map((lesson) => (
-                      <Link key={lesson.id} href={`/lesson/${lesson.id}/summary`} className="group flex items-center justify-between p-5 hover:bg-surface-container-high transition-colors">
+                      <Link key={lesson.id} href={`/app/lesson/${lesson.id}/summary`} className="group flex items-center justify-between p-5 hover:bg-surface-container-high transition-colors">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
                             <span className="material-symbols-outlined">chat_bubble</span>
@@ -314,7 +314,7 @@ export default function DashboardPage() {
                     ))}
                   </div>
                   <div className="p-4 bg-surface-container-highest/30 flex justify-center">
-                    <Link href="/progress" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-white transition-colors">{t("loadMore")}</Link>
+                    <Link href="/app/progress" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-white transition-colors">{t("loadMore")}</Link>
                   </div>
                 </>
               )}
@@ -332,7 +332,7 @@ export default function DashboardPage() {
       </div>
 
       {/* FAB */}
-      <Link href="/lesson" className="fixed bottom-24 right-4 z-50 flex h-14 w-14 lg:h-16 lg:w-16 items-center justify-center rounded-2xl bg-godoj-blue text-white shadow-2xl hover:scale-110 active:scale-95 transition-transform lg:bottom-8 lg:right-8">
+      <Link href="/app/lesson" className="fixed bottom-24 right-4 z-50 flex h-14 w-14 lg:h-16 lg:w-16 items-center justify-center rounded-2xl bg-godoj-blue text-white shadow-2xl hover:scale-110 active:scale-95 transition-transform lg:bottom-8 lg:right-8">
         <span className="material-symbols-outlined text-2xl lg:text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>voice_chat</span>
       </Link>
     </div>

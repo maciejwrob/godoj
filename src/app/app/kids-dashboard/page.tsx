@@ -89,7 +89,7 @@ export default function KidsDashboardPage() {
         </div>
 
         <Link
-          href="/lesson"
+          href="/app/lesson"
           className="flex items-center justify-center gap-3 rounded-2xl px-6 py-5 text-center text-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95"
           style={{ backgroundColor: KIDS_THEME.accent }}
         >

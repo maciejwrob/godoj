@@ -14,7 +14,7 @@ export default async function KidsLayout({ children }: { children: React.ReactNo
 
   const cookieStore = await cookies();
   const activeChildId = cookieStore.get("godoj_active_child_id")?.value;
-  if (!activeChildId) redirect("/settings");
+  if (!activeChildId) redirect("/app/settings");
 
   const { data: child } = await supabase
     .from("child_profiles")
@@ -23,7 +23,7 @@ export default async function KidsLayout({ children }: { children: React.ReactNo
     .eq("parent_id", user.id)
     .single();
 
-  if (!child) redirect("/settings");
+  if (!child) redirect("/app/settings");
 
   const ageGroup = getAgeGroup(child.date_of_birth);
 

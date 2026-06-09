@@ -45,7 +45,7 @@ export default async function AdminLayout({
     .single();
 
   if (userData?.role !== "admin") {
-    redirect("/dashboard");
+    redirect("/app/dashboard");
   }
 
   return (
@@ -69,7 +69,7 @@ export default async function AdminLayout({
         </nav>
         <div className="p-2 border-t border-border">
           <Link
-            href="/dashboard"
+            href="/app/dashboard"
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary hover:bg-bg-card-hover hover:text-text-primary transition-colors text-sm"
           >
             <ArrowLeft size={18} />

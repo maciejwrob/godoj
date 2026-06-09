@@ -20,25 +20,6 @@ const BETA_DEADLINE = "30.06.2026";
 
 const TOPUP = { minutes: 20, price: 29 };
 
-// Feature keys per tier — resolved via t()
-const TIER_FEATURES: Record<string, { key: string; params?: Record<string, string | number> }[]> = {
-  starter: [
-    { key: "pricingFeatMinutes", params: { minutes: 90 } },
-    { key: "pricingFeatTutor" },
-    { key: "pricingFeatAnalysis" },
-    { key: "pricingFeatProgress" },
-    { key: "pricingFeatSupport" },
-  ],
-  pro: [
-    { key: "pricingFeatMinutes", params: { minutes: 250 } },
-    { key: "pricingFeatTutor" },
-    { key: "pricingFeatAnalysis" },
-    { key: "pricingFeatProgress" },
-    { key: "pricingFeatSupport" },
-    { key: "pricingFeatEarlyAccess" },
-  ],
-};
-
 const TIERS = [
   {
     id: "starter",
@@ -73,7 +54,7 @@ function tpl(template: string, params: Record<string, string | number>): string 
 
 export default function PricingPage() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
@@ -141,6 +122,11 @@ export default function PricingPage() {
   const isYearly = billingInterval === "year";
   const hasBetaDiscount = BETA_ACTIVE && !isYearly;
 
+  // Native tutor cost for comparison
+  const nativeTutorRate = locale === "pl" ? "120+ PLN" : "120+ PLN";
+  const perHourLabel = locale === "pl" ? "/godz" : "/hr";
+  const nativeLabel = locale === "pl" ? "prywatny lektor" : "private tutor";
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 lg:py-12">
       <div className="mb-8 text-center">
@@ -164,15 +150,14 @@ export default function PricingPage() {
       {/* Beta promo banner */}
       {BETA_ACTIVE && (
         <div className="relative mb-8 overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/15 via-green-500/10 to-emerald-500/15 p-6 text-center">
-          {/* Decorative dots */}
           <div className="pointer-events-none absolute -left-4 -top-4 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl" />
           <div className="pointer-events-none absolute -bottom-4 -right-4 h-24 w-24 rounded-full bg-green-500/10 blur-2xl" />
 
           <div className="relative">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-1.5 text-sm font-extrabold text-emerald-300">
-              <span className="animate-pulse text-lg">🔥</span>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-extrabold text-white">
+              <span className="text-lg">🔥</span>
               {t("pricingBetaBadge")}
-              <span className="animate-pulse text-lg">🔥</span>
+              <span className="text-lg">🔥</span>
             </div>
             <p className="mt-2 text-base font-bold text-white">
               {t("pricingBetaDesc")}
@@ -196,7 +181,11 @@ export default function PricingPage() {
         >
           {t("pricingMonthly")}
           {BETA_ACTIVE && (
-            <span className="ml-1.5 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-400">
+            <span className={`ml-1.5 rounded-full px-2 py-0.5 text-xs font-bold ${
+              billingInterval === "month"
+                ? "bg-emerald-600 text-white"
+                : "bg-emerald-500 text-white"
+            }`}>
               -50%
             </span>
           )}
@@ -210,7 +199,11 @@ export default function PricingPage() {
           }`}
         >
           {t("pricingYearly")}
-          <span className="ml-1.5 rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-bold text-green-400">
+          <span className={`ml-1.5 rounded-full px-2 py-0.5 text-xs font-bold ${
+            billingInterval === "year"
+              ? "bg-green-600 text-white"
+              : "bg-green-500 text-white"
+          }`}>
             -20%
           </span>
         </button>
@@ -230,7 +223,10 @@ export default function PricingPage() {
             TIERS.findIndex((t) => t.id === currentTierBase) >
             TIERS.findIndex((t) => t.id === tier.id);
 
-          const features = TIER_FEATURES[tier.id] ?? [];
+          // Price per hour calculation
+          const hoursPerMonth = tier.minutes / 60;
+          const displayPrice = hasBetaDiscount ? price : (isYearly ? monthlyEquiv : price);
+          const pricePerHour = Math.round(displayPrice / hoursPerMonth);
 
           return (
             <div
@@ -251,7 +247,7 @@ export default function PricingPage() {
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-bold text-white">{tier.name}</h2>
                   {hasBetaDiscount && (
-                    <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-xs font-extrabold text-emerald-400">
+                    <span className="rounded-md bg-emerald-500 px-2 py-0.5 text-xs font-extrabold text-white">
                       -50%
                     </span>
                   )}
@@ -261,13 +257,11 @@ export default function PricingPage() {
                 <div className="mt-3">
                   {hasBetaDiscount ? (
                     <>
-                      {/* Original price - strikethrough */}
                       <div className="flex items-center gap-2">
                         <span className="text-base font-medium text-slate-500 line-through decoration-red-400/60 decoration-2">
                           {fullPrice} PLN{t("pricingPerMonth")}
                         </span>
                       </div>
-                      {/* Discounted price */}
                       <div className="mt-1 flex items-baseline gap-2">
                         <span className="text-4xl font-extrabold text-white">
                           {price}
@@ -275,7 +269,6 @@ export default function PricingPage() {
                         <span className="text-lg font-bold text-white">PLN</span>
                         <span className="text-sm text-slate-400">{t("pricingPerMonth")}</span>
                       </div>
-                      {/* Savings badge */}
                       <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400">
                         <span>💰</span>
                         {tpl(t("pricingSavings"), { amount: savings })}
@@ -310,36 +303,33 @@ export default function PricingPage() {
                   )}
                 </div>
 
-                <p className="mt-2 text-sm text-slate-400">
-                  {tier.minutes} {t("pricingMinPerMonth")} ({tpl(t("weeklyEquiv"), { minutes: tier.weeklyMin })})
-                </p>
-              </div>
-
-              <ul className="mb-8 flex-1 space-y-3">
-                {features.map((feat, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-2 text-sm text-slate-300"
-                  >
-                    <span className="material-symbols-outlined mt-0.5 text-base text-green-400">
-                      check_circle
+                {/* Minutes + price per hour */}
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-medium text-white/80">
+                    {tier.minutes} {t("pricingMinPerMonth")}
+                  </p>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-bold text-emerald-400">
+                      ~{pricePerHour} PLN{perHourLabel}
                     </span>
-                    {feat.params ? tpl(t(feat.key), feat.params) : t(feat.key)}
-                  </li>
-                ))}
-              </ul>
+                    <span className="text-slate-500">
+                      vs {nativeTutorRate}{perHourLabel} ({nativeLabel})
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               {isCurrent ? (
                 <button
                   disabled
-                  className="w-full rounded-xl bg-white/5 py-3 text-sm font-medium text-slate-400"
+                  className="mt-auto w-full rounded-xl bg-white/5 py-3 text-sm font-medium text-slate-400"
                 >
                   {t("pricingYourPlan")}
                 </button>
               ) : isDowngrade ? (
                 <button
                   disabled
-                  className="w-full rounded-xl bg-white/5 py-3 text-sm font-medium text-slate-500"
+                  className="mt-auto w-full rounded-xl bg-white/5 py-3 text-sm font-medium text-slate-500"
                 >
                   —
                 </button>
@@ -347,7 +337,7 @@ export default function PricingPage() {
                 <button
                   onClick={() => handleUpgrade(checkoutTierId)}
                   disabled={!!checkoutLoading || loading}
-                  className={`w-full rounded-xl py-3.5 text-sm font-bold transition-all ${
+                  className={`mt-auto w-full rounded-xl py-3.5 text-sm font-bold transition-all ${
                     tier.popular
                       ? "bg-godoj-blue text-white hover:bg-godoj-blue/90 shadow-lg shadow-godoj-blue/25"
                       : "bg-white/10 text-white hover:bg-white/20"
@@ -403,7 +393,7 @@ export default function PricingPage() {
           {t("pricingStripeNote")}
         </p>
         <button
-          onClick={() => router.push("/settings/billing")}
+          onClick={() => router.push("/app/settings/billing")}
           className="mt-2 text-sm text-godoj-blue hover:underline"
         >
           {t("pricingManageSub")}

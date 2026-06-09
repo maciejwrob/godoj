@@ -65,8 +65,8 @@ export async function POST(request: Request) {
           quantity: 1,
         },
       ],
-      success_url: `${baseUrl}/settings/billing?success=true`,
-      cancel_url: `${baseUrl}/pricing`,
+      success_url: `${baseUrl}/app/settings/billing?success=true`,
+      cancel_url: `${baseUrl}/app/pricing`,
       locale: "pl",
       // Auto-apply beta -50% coupon for monthly plans (until 30.06.2026)
       ...(isMonthly && new Date() < new Date("2026-07-01")

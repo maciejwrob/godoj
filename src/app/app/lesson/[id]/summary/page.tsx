@@ -59,7 +59,7 @@ export default async function LessonSummaryPage({
     .eq("user_id", user.id)
     .single();
 
-  if (!lesson) redirect("/dashboard");
+  if (!lesson) redirect("/app/dashboard");
 
   const summary = lesson.summary_json as Summary | null;
   const [{ data: streak }, { data: profileData }] = await Promise.all([
@@ -270,7 +270,7 @@ export default async function LessonSummaryPage({
           </div>
           {/* Practice CTA inside vocab card — hidden until EXERCISES_ENABLED */}
           {EXERCISES_ENABLED && (
-            <Link href="/exercises" className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-tertiary/10 border border-tertiary/20 px-4 py-2.5 text-sm font-bold text-tertiary hover:bg-tertiary/20 transition-all">
+            <Link href="/app/exercises" className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-tertiary/10 border border-tertiary/20 px-4 py-2.5 text-sm font-bold text-tertiary hover:bg-tertiary/20 transition-all">
               <span className="material-symbols-outlined text-base">fitness_center</span>
               Pocwicz te slowa teraz!
             </Link>
@@ -301,14 +301,14 @@ export default async function LessonSummaryPage({
       {/* Actions */}
       <div className="flex gap-3">
         <Link
-          href="/dashboard"
+          href="/app/dashboard"
           className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm text-text-secondary hover:text-text-primary"
         >
           <Home className="h-4 w-4" />
           Dashboard
         </Link>
         <Link
-          href="/lesson"
+          href="/app/lesson"
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-medium text-white hover:bg-primary-dark"
         >
           {t.nextLesson}

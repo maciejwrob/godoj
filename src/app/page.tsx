@@ -55,7 +55,7 @@ export default function Home() {
         .then(({ error }) => {
           if (!error) {
             fetch("/api/auth/notify-login", { method: "POST" }).catch(() => {});
-            window.location.href = "/dashboard";
+            window.location.href = "/app/dashboard";
           }
         });
     }
@@ -194,6 +194,9 @@ export default function Home() {
           <div className="flex items-center gap-3 sm:gap-4">
             <Link href="/pricing" className="hidden sm:block text-sm font-medium text-on-surface-variant hover:text-white transition-colors">
               {t("navPricing")}
+            </Link>
+            <Link href="/metoda" className="hidden sm:block text-sm font-medium text-on-surface-variant hover:text-white transition-colors">
+              {locale === "pl" ? "Metoda" : "Method"}
             </Link>
             <UILanguageToggle />
             <Link
@@ -430,17 +433,33 @@ export default function Home() {
     </main>
 
     {/* Footer */}
-    <footer className="border-t border-white/5 px-4 py-6 text-center text-xs text-text-secondary/50">
-      <div className="flex items-center justify-center gap-4">
-        <Link href="/regulamin" className="hover:text-text-secondary transition-colors">
-          {t("tosLink")}
-        </Link>
-        <span>·</span>
-        <Link href="/prywatnosc" className="hover:text-text-secondary transition-colors">
-          {t("privacyLink")}
-        </Link>
-        <span>·</span>
-        <span>maciej.wrob@gmail.com</span>
+    <footer className="border-t border-white/5 px-5 py-8 sm:px-10">
+      <div className="mx-auto max-w-[1400px]">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/40">
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-5 overflow-hidden rounded">
+              <Image src="/logo-icon.png" alt="Godoj" width={20} height={20} className="h-full w-full object-cover" />
+            </div>
+            <span className="font-medium">Godoj.co</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <Link href="/pricing" className="hover:text-white/60 transition-colors">
+              {t("navPricing")}
+            </Link>
+            <Link href="/metoda" className="hover:text-white/60 transition-colors">
+              {locale === "pl" ? "Metoda" : "Method"}
+            </Link>
+            <Link href="/regulamin" className="hover:text-white/60 transition-colors">
+              {t("tosLink")}
+            </Link>
+            <Link href="/prywatnosc" className="hover:text-white/60 transition-colors">
+              {t("privacyLink")}
+            </Link>
+            <a href="mailto:maciej.wrob@gmail.com" className="hover:text-white/60 transition-colors">
+              maciej.wrob@gmail.com
+            </a>
+          </div>
+        </div>
       </div>
     </footer>
     </div>

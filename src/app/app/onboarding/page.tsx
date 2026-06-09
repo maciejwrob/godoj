@@ -157,7 +157,7 @@ export default function OnboardingPage() {
         return;
       }
       // Full page reload to force fresh server render with new profile data
-      window.location.href = "/dashboard";
+      window.location.href = "/app/dashboard";
     });
   };
 
@@ -192,7 +192,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
-          <LogoFull size={32} href="/onboarding" />
+          <LogoFull size={32} href="/app/onboarding" />
           <UILanguageToggle />
         </div>
 

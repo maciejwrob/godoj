@@ -309,7 +309,7 @@ export default function LessonPage() {
     onStatusChange: (prop: { status: string }) => { dbg(`Status: ${prop.status}`); },
     onError: (message: string) => {
       console.error("Conversation error:", message);
-      if (lessonState !== "ending") { setError(t("connectionLost") + " " + message); setLessonState("error"); logError("/lesson", "Conversation error: " + message, { step: "onError", agentId: profileRef.current.agentId }); }
+      if (lessonState !== "ending") { setError(t("connectionLost") + " " + message); setLessonState("error"); logError("/app/lesson", "Conversation error: " + message, { step: "onError", agentId: profileRef.current.agentId }); }
     },
   });
 
@@ -403,7 +403,7 @@ export default function LessonPage() {
       profileRef.current = { language: lang, agentId: agId };
       setAgentId(agId);
       await prepareLesson(lang, agId);
-    } catch (err) { const msg = "Nie udało się załadować danych."; setError(msg); setLessonState("error"); logError("/lesson", msg, { step: "loadLessonData", error: String(err) }); }
+    } catch (err) { const msg = "Nie udało się załadować danych."; setError(msg); setLessonState("error"); logError("/app/lesson", msg, { step: "loadLessonData", error: String(err) }); }
   };
 
   const prepareLesson = async (language: string, agId?: string) => {
@@ -444,7 +444,7 @@ export default function LessonPage() {
       setIsUnlimited(data.unlimited ?? false);
       setPlanMinutesRemaining(data.minutes_remaining ?? null);
       setLessonState("ready");
-    } catch (err) { const msg = err instanceof Error ? err.message : "Blad"; setError(msg); setLessonState("error"); logError("/lesson", msg, { step: "prepareLesson", language, agent_id: agId }); }
+    } catch (err) { const msg = err instanceof Error ? err.message : "Blad"; setError(msg); setLessonState("error"); logError("/app/lesson", msg, { step: "prepareLesson", language, agent_id: agId }); }
   };
 
   const startConversation = async () => {
@@ -486,7 +486,7 @@ export default function LessonPage() {
       } else if (err instanceof Error && err.message.startsWith("Brak signed URL")) {
         msg = err.message;
       }
-      setError(msg); setLessonState("error"); logError("/lesson", msg, { step: "startConversation", error: String(err) });
+      setError(msg); setLessonState("error"); logError("/app/lesson", msg, { step: "startConversation", error: String(err) });
     }
   };
 
@@ -502,8 +502,8 @@ export default function LessonPage() {
     try {
       const res = await fetch("/api/lessons/end", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lesson_id: lessonId, transcript: transcriptText, duration_seconds: durationSeconds }) });
       fetch("/api/achievements/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lesson_id: lessonId }) }).catch(() => {});
-      router.push(res.ok ? `/lesson/${lessonId}/summary` : "/dashboard");
-    } catch { router.push("/dashboard"); }
+      router.push(res.ok ? `/app/lesson/${lessonId}/summary` : "/app/dashboard");
+    } catch { router.push("/app/dashboard"); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonState, lessonId, router]);
 
@@ -614,11 +614,11 @@ export default function LessonPage() {
               : t("wantMoreContact")}
         </p>
         {limitError.type === "minutes" && (
-          <button onClick={() => router.push("/pricing")} className="w-full rounded-xl bg-godoj-blue py-3 text-sm font-bold text-white hover:bg-godoj-blue/90 transition-colors">
+          <button onClick={() => router.push("/app/pricing")} className="w-full rounded-xl bg-godoj-blue py-3 text-sm font-bold text-white hover:bg-godoj-blue/90 transition-colors">
             Zobacz plany
           </button>
         )}
-        <button onClick={() => router.push("/dashboard")} className="w-full rounded-xl border border-white/10 py-2.5 text-sm text-slate-400">{t("dashboard")}</button>
+        <button onClick={() => router.push("/app/dashboard")} className="w-full rounded-xl border border-white/10 py-2.5 text-sm text-slate-400">{t("dashboard")}</button>
       </div>
     </div>
   );
@@ -632,7 +632,7 @@ export default function LessonPage() {
         <h1 className="text-xl font-bold">{t("somethingWentWrong")}</h1>
         <p className="text-on-surface-variant">{error}</p>
         <div className="flex gap-3">
-          <button onClick={() => router.push("/dashboard")} className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-slate-400">{t("dashboard")}</button>
+          <button onClick={() => router.push("/app/dashboard")} className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-slate-400">{t("dashboard")}</button>
           <button onClick={loadLessonData} className="flex-1 rounded-xl bg-godoj-blue py-2.5 text-sm font-bold text-white">{t("tryAgain")}</button>
         </div>
       </div>
@@ -681,7 +681,7 @@ export default function LessonPage() {
           {t("startConversation")}
         </button>
         <div className="flex items-center justify-center gap-4 pt-2">
-          <button onClick={() => router.push("/dashboard")} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
+          <button onClick={() => router.push("/app/dashboard")} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
             <ArrowLeft className="h-4 w-4" />{t("backToDashboard")}
           </button>
           <span className="text-slate-700">·</span>
@@ -727,7 +727,7 @@ export default function LessonPage() {
       {/* Header */}
       <header className="flex h-16 shrink-0 items-center justify-between px-4 lg:px-8 bg-surface/50 backdrop-blur-md border-b border-white/5 z-20">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/dashboard")} className="h-9 w-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-white transition-colors">
+          <button onClick={() => router.push("/app/dashboard")} className="h-9 w-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-white transition-colors">
             <span className="material-symbols-outlined text-xl">arrow_back</span>
           </button>
           <div className="hidden sm:block">
@@ -952,7 +952,7 @@ export default function LessonPage() {
                       {locale === "pl" ? "Kup pakiet minut lub zmień plan, żeby kontynuować naukę." : "Buy more minutes or upgrade your plan to continue."}
                     </p>
                     <a
-                      href="/pricing"
+                      href="/app/pricing"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-block rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-all"

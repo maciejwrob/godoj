@@ -37,7 +37,7 @@ export default function LoginPage() {
             // Notify admin about login (fire-and-forget)
             fetch("/api/auth/notify-login", { method: "POST" }).catch(() => {});
             // Full page navigation so server picks up fresh auth cookies
-            window.location.href = "/dashboard";
+            window.location.href = "/app/dashboard";
           }
         });
     }
