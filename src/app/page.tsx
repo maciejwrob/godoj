@@ -209,7 +209,7 @@ export default function Home() {
         </div>
       </header>
 
-    <main className="relative mx-auto max-w-[1400px] flex-1 overflow-hidden lg:flex">
+    <main className="relative mx-auto w-full max-w-[1400px] flex-1 overflow-hidden lg:flex">
       {/* ===================== LEFT COLUMN — Copy + Form ===================== */}
       <div className="relative z-10 flex w-full flex-col justify-between px-5 py-6 sm:px-10 sm:py-8 lg:w-[45%] lg:min-w-[480px] lg:max-w-[600px] lg:px-14 lg:py-10 xl:px-16">
 
