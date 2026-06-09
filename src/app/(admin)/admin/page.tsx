@@ -32,6 +32,7 @@ interface DashboardData {
     registered: number;
     limit: number;
     waitlist: number;
+    waitlistEntries: { id: string; email: string; locale: string; createdAt: string }[];
     avgPerUser: number;
     topUser: { name: string; email: string; minutes: number } | null;
   };
@@ -178,6 +179,23 @@ export default function AdminDashboardPage() {
             )}
           </div>
         </div>
+
+        {/* Waitlist entries */}
+        {data.beta.waitlistEntries.length > 0 && (
+          <div className="mt-4 border-t border-border pt-4">
+            <p className="text-sm font-medium text-text-primary mb-2">Osoby na waitliście</p>
+            <div className="space-y-1">
+              {data.beta.waitlistEntries.map((w) => (
+                <div key={w.id} className="flex items-center justify-between text-xs">
+                  <span className="text-text-primary">{w.email}</span>
+                  <span className="text-text-secondary">
+                    {w.locale ?? "—"} · {new Date(w.createdAt).toLocaleDateString("pl-PL")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main stat cards */}
