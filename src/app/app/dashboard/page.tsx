@@ -161,7 +161,7 @@ export default function DashboardPage() {
               <div className="flex flex-wrap items-center gap-3 mt-6 lg:mt-8">
                 {/* Duration picker */}
                 <div className="flex gap-1.5">
-                  {(subscription?.unlimited || (subscription?.tier && subscription.tier !== "free") ? [5, 10, 15, 20, 30] : [5, 10]).map((d) => (
+                  {[5, 10, 15].map((d) => (
                     <button key={d} onClick={() => setSelectedDuration(d)}
                       className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${selectedDuration === d ? "bg-white text-surface" : "bg-white/20 text-white hover:bg-white/30"}`}>
                       {d} min

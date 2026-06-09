@@ -665,7 +665,7 @@ export default function LessonPage() {
         <div>
           <div className="mb-2 text-sm text-on-surface-variant text-center">{t("lessonDuration")}</div>
           <div className="flex justify-center gap-2">
-            {(isUnlimited ? [5, 10, 15, 20, 30] : [5, 10]).map((d) => (
+            {[5, 10, 15].map((d) => (
               <button key={d} onClick={() => setSelectedDuration(d)}
                 className={`rounded-full px-5 py-2 text-sm font-bold transition-all ${(selectedDuration ?? duration) === d ? "bg-godoj-blue text-white shadow-lg shadow-godoj-blue/30" : "border border-white/10 text-on-surface-variant hover:border-primary/50"}`}>
                 {d} min

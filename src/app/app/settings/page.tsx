@@ -47,7 +47,7 @@ const NATIVE_LANGUAGES = [
   { id: "other", label: "—" },
 ];
 
-const DURATIONS = [5, 10];
+const DURATIONS = [5, 10, 15];
 
 
 export default function SettingsPage() {
