@@ -3,8 +3,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Resend } from "resend";
 import { waitlistConfirmationEmail } from "@/lib/email-templates";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: Request) {
   try {
     const { email, locale } = await request.json();
@@ -40,6 +38,7 @@ export async function POST(request: Request) {
 
     // Send confirmation email
     try {
+      const resend = new Resend(process.env.RESEND_API_KEY);
       const { subject, html } = waitlistConfirmationEmail(locale);
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL ?? "maciej@godoj.co",
