@@ -107,7 +107,7 @@ export default function MetodaPage() {
     <div className="flex min-h-dvh flex-col bg-surface">
       {/* ===================== STICKY HEADER ===================== */}
       <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-surface/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-3 sm:px-10 lg:px-14 xl:px-16">
+        <div className="relative mx-auto flex max-w-[1400px] items-center justify-between px-5 py-3 sm:px-10 lg:px-14 xl:px-16">
           <Link href="/" className="flex items-center gap-3">
             <div className="h-9 w-9 overflow-hidden rounded-xl">
               <Image src="/logo-icon.png" alt="Godoj" width={72} height={72} className="h-full w-full object-cover" priority />
@@ -119,19 +119,21 @@ export default function MetodaPage() {
               Godoj.co
             </span>
           </Link>
-          <div className="flex items-center gap-3 sm:gap-4">
+          <nav className="hidden sm:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
             <Link
               href="/pricing"
-              className="hidden sm:block text-sm font-medium text-on-surface-variant hover:text-white transition-colors"
+              className="text-sm font-medium text-on-surface-variant hover:text-white transition-colors"
             >
               {t("navPricing")}
             </Link>
             <Link
               href="/metoda"
-              className="hidden sm:block text-sm font-medium text-white transition-colors"
+              className="text-sm font-medium text-white transition-colors"
             >
               {pt("Metoda", "Method")}
             </Link>
+          </nav>
+          <div className="flex items-center gap-3 sm:gap-4">
             <UILanguageToggle />
             <Link
               href="/login"
@@ -248,14 +250,20 @@ export default function MetodaPage() {
               <Image src="/logo-icon.png" alt="Godoj" width={20} height={20} className="rounded" />
               <span>Godoj.co</span>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+              <Link href="/pricing" className="hover:text-white/60 transition-colors">
+                {t("navPricing")}
+              </Link>
+              <Link href="/metoda" className="hover:text-white/60 transition-colors">
+                {pt("Metoda", "Method")}
+              </Link>
+              <span className="text-white/20">|</span>
               <Link href="/regulamin" className="hover:text-white/60 transition-colors">
                 {locale === "pl" ? "Regulamin" : "Terms of Service"}
               </Link>
               <Link href="/prywatnosc" className="hover:text-white/60 transition-colors">
                 {locale === "pl" ? "Polityka Prywatności" : "Privacy Policy"}
               </Link>
-              <span>maciej.wrob@gmail.com</span>
             </div>
           </div>
         </div>

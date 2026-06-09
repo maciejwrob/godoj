@@ -182,7 +182,7 @@ export default function Home() {
     <div className="flex min-h-dvh flex-col">
       {/* ===================== STICKY TOP BAR ===================== */}
       <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-surface/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-3 sm:px-10 lg:px-14 xl:px-16">
+        <div className="relative mx-auto flex max-w-[1400px] items-center justify-between px-5 py-3 sm:px-10 lg:px-14 xl:px-16">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 overflow-hidden rounded-xl">
               <Image src="/logo-icon.png" alt="Godoj" width={72} height={72} className="h-full w-full object-cover" priority />
@@ -191,13 +191,15 @@ export default function Home() {
               Godoj.co
             </span>
           </div>
-          <div className="flex items-center gap-3 sm:gap-4">
-            <Link href="/pricing" className="hidden sm:block text-sm font-medium text-on-surface-variant hover:text-white transition-colors">
+          <nav className="hidden sm:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
+            <Link href="/pricing" className="text-sm font-medium text-on-surface-variant hover:text-white transition-colors">
               {t("navPricing")}
             </Link>
-            <Link href="/metoda" className="hidden sm:block text-sm font-medium text-on-surface-variant hover:text-white transition-colors">
+            <Link href="/metoda" className="text-sm font-medium text-on-surface-variant hover:text-white transition-colors">
               {locale === "pl" ? "Metoda" : "Method"}
             </Link>
+          </nav>
+          <div className="flex items-center gap-3 sm:gap-4">
             <UILanguageToggle />
             <Link
               href="/login"
@@ -449,15 +451,13 @@ export default function Home() {
             <Link href="/metoda" className="hover:text-white/60 transition-colors">
               {locale === "pl" ? "Metoda" : "Method"}
             </Link>
+            <span className="text-white/20">|</span>
             <Link href="/regulamin" className="hover:text-white/60 transition-colors">
               {t("tosLink")}
             </Link>
             <Link href="/prywatnosc" className="hover:text-white/60 transition-colors">
               {t("privacyLink")}
             </Link>
-            <a href="mailto:maciej.wrob@gmail.com" className="hover:text-white/60 transition-colors">
-              maciej.wrob@gmail.com
-            </a>
           </div>
         </div>
       </div>
