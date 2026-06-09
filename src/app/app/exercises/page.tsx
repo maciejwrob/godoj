@@ -195,7 +195,7 @@ export default function ExercisesPage() {
         </div>
 
         <button
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push("/app/dashboard")}
           className="mt-8 flex w-full items-center justify-center gap-1 text-sm text-text-secondary hover:text-text-primary"
         >
           <ArrowLeft className="h-4 w-4" />{t("backToDashboardShort")}
@@ -227,7 +227,7 @@ export default function ExercisesPage() {
             {wordCount} {t("notEnoughWordsDesc")}
           </p>
           <button
-            onClick={() => router.push("/lesson")}
+            onClick={() => router.push("/app/lesson")}
             className="rounded-xl bg-primary px-6 py-3 font-medium text-white hover:bg-primary-dark"
           >
             {t("startLessonExercise")}
@@ -268,7 +268,7 @@ export default function ExercisesPage() {
 
         <div className="flex gap-3">
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/app/dashboard")}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-text-secondary hover:text-text-primary"
           >
             <Home className="h-4 w-4" />Dashboard

@@ -457,7 +457,7 @@ export default async function ProgressPage() {
               return (
                 <Link
                   key={lesson.id}
-                  href={`/lesson/${lesson.id}/summary`}
+                  href={`/app/lesson/${lesson.id}/summary`}
                   className="flex items-center justify-between rounded-lg bg-bg-card-hover p-4 transition-colors hover:bg-bg-card-hover/80"
                 >
                   <div className="min-w-0 flex-1">

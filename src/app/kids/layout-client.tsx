@@ -57,7 +57,7 @@ export default function KidsLayoutClient({ child, ageGroup, children }: Props) {
 
       if (data.valid) {
         clearActiveChild();
-        router.push("/dashboard");
+        router.push("/app/dashboard");
       } else {
         const next = localAttempts + 1;
         setLocalAttempts(next);

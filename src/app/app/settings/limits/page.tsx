@@ -44,7 +44,7 @@ export default function LimitsPage() {
     <div className="min-h-screen bg-surface px-4 py-8">
       <div className="mx-auto max-w-lg space-y-6">
         {/* Back */}
-        <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-white transition-colors">
+        <Link href="/app/dashboard" className="inline-flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-white transition-colors">
           <ArrowLeft className="h-4 w-4" />
           {pl ? "Wróć do Dashboard" : "Back to Dashboard"}
         </Link>

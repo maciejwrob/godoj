@@ -126,16 +126,16 @@ function FeedbackContent() {
       });
     } catch {}
 
-    if (lessonId) router.push(`/lesson/${lessonId}/summary`);
-    else router.push("/dashboard");
+    if (lessonId) router.push(`/app/lesson/${lessonId}/summary`);
+    else router.push("/app/dashboard");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, lessonId, router]);
 
-  const goBack = () => lessonId ? router.push(`/lesson/${lessonId}/summary`) : router.push("/dashboard");
+  const goBack = () => lessonId ? router.push(`/app/lesson/${lessonId}/summary`) : router.push("/app/dashboard");
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   const isSpeaking = conversation.isSpeaking;
 
-  if (!FEEDBACK_ENABLED) redirect("/dashboard");
+  if (!FEEDBACK_ENABLED) redirect("/app/dashboard");
 
   // ---- LOADING ----
   if (state === "loading") return (

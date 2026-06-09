@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = searchParams.get("next") ?? "/app/dashboard";
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login`);
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
     .single();
 
   if (!userData?.onboarding_complete) {
-    return NextResponse.redirect(`${origin}/onboarding`);
+    return NextResponse.redirect(`${origin}/app/onboarding`);
   }
 
   return NextResponse.redirect(`${origin}${next}`);

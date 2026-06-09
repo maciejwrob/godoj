@@ -28,7 +28,7 @@ export default function AuthProcessingPage() {
           });
           if (!error) {
             fetch("/api/auth/notify-login", { method: "POST" }).catch(() => {});
-            router.replace("/dashboard");
+            router.replace("/app/dashboard");
             return;
           }
         }
@@ -41,7 +41,7 @@ export default function AuthProcessingPage() {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (!error) {
             fetch("/api/auth/notify-login", { method: "POST" }).catch(() => {});
-            router.replace("/dashboard");
+            router.replace("/app/dashboard");
             return;
           }
         }

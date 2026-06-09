@@ -6,7 +6,7 @@ const KIDS_MODE_ENABLED = process.env.NEXT_PUBLIC_KIDS_MODE_ENABLED === "true";
 export async function proxy(request: NextRequest) {
   if (!KIDS_MODE_ENABLED) {
     const path = request.nextUrl.pathname;
-    if (path.startsWith("/kids") || path.startsWith("/kids-dashboard")) {
+    if (path.startsWith("/kids") || path.startsWith("/app/kids-dashboard")) {
       return new NextResponse("Not Found", { status: 404 });
     }
   }

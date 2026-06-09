@@ -29,16 +29,16 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
   const { t } = useTranslation();
 
   const NAV_ITEMS = [
-    { href: "/dashboard", label: t("dashboard"), icon: "dashboard" },
-    { href: "/lesson", label: t("lesson"), icon: "menu_book" },
-    { href: "/vocabulary", label: t("vocabulary"), icon: "translate" },
-    ...(EXERCISES_ENABLED ? [{ href: "/exercises", label: t("exercises"), icon: "fitness_center" }] : []),
-    { href: "/progress", label: t("progress"), icon: "leaderboard" },
-    { href: "/achievements", label: t("achievements"), icon: "military_tech" },
+    { href: "/app/dashboard", label: t("dashboard"), icon: "dashboard" },
+    { href: "/app/lesson", label: t("lesson"), icon: "menu_book" },
+    { href: "/app/vocabulary", label: t("vocabulary"), icon: "translate" },
+    ...(EXERCISES_ENABLED ? [{ href: "/app/exercises", label: t("exercises"), icon: "fitness_center" }] : []),
+    { href: "/app/progress", label: t("progress"), icon: "leaderboard" },
+    { href: "/app/achievements", label: t("achievements"), icon: "military_tech" },
   ];
 
   const BOTTOM_ITEMS = [
-    { href: "/settings", label: t("settings"), icon: "settings" },
+    { href: "/app/settings", label: t("settings"), icon: "settings" },
   ];
 
   const handleLogout = async () => {
@@ -94,7 +94,7 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
 
         {FEEDBACK_ENABLED && (
           <Link
-            href="/feedback?source=nav"
+            href="/app/feedback?source=nav"
             className="px-6 pb-2 text-xs text-slate-500/70 hover:text-slate-300 transition-colors"
           >
             {t("shareFeedback")}
@@ -143,7 +143,7 @@ export default function AppNav({ displayName, role }: { displayName: string; rol
             })}
             {FEEDBACK_ENABLED && (
               <Link
-                href="/feedback?source=nav"
+                href="/app/feedback?source=nav"
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500/70 hover:text-slate-300"
               >
