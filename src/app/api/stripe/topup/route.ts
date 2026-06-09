@@ -75,7 +75,7 @@ export async function POST() {
         },
       ],
       success_url: `${baseUrl}/app/settings/billing?topup=true`,
-      cancel_url: `${baseUrl}/app/pricing`,
+      cancel_url: `${baseUrl}/app/settings/plans`,
       locale: "pl",
       metadata: {
         type: "topup",

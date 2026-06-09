@@ -33,7 +33,7 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
-  const isOnboarding = pathname === "/onboarding";
+  const isOnboarding = pathname === "/app/onboarding";
   const isAdmin = pathname.startsWith("/admin");
   const isApiPath = pathname.startsWith("/api/");
 
@@ -61,21 +61,21 @@ export async function updateSession(request: NextRequest) {
   // Admin routes — only for admins
   if (isAdmin && userRole !== "admin") {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/app/dashboard";
     return NextResponse.redirect(url);
   }
 
-  // Logged in without onboarding → force /onboarding (skip for API routes — they handle auth themselves)
+  // Logged in without onboarding → force /app/onboarding (skip for API routes — they handle auth themselves)
   if (!onboardingComplete && !isOnboarding && !isPublicPath && !isApiPath) {
     const url = request.nextUrl.clone();
-    url.pathname = "/onboarding";
+    url.pathname = "/app/onboarding";
     return NextResponse.redirect(url);
   }
 
   // Logged in with onboarding → redirect away from /login, /onboarding, /
   if (onboardingComplete && (isPublicPath || isOnboarding)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/app/dashboard";
     return NextResponse.redirect(url);
   }
 

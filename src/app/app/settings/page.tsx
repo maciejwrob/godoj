@@ -100,7 +100,14 @@ export default function SettingsPage() {
 
         setDisplayName(userData?.display_name ?? "");
         setNativeLanguage(userData?.native_language ?? "pl");
-        setUiLanguage(userData?.ui_language ?? "en");
+
+        // localStorage is the actual source of truth for UI language
+        const storedLocale = localStorage.getItem("godoj_ui_locale");
+        if (storedLocale === "pl" || storedLocale === "en") {
+          setUiLanguage(storedLocale);
+        } else {
+          setUiLanguage(userData?.ui_language ?? "en");
+        }
         setCurrentLevel(profile?.current_level ?? "A1");
         setPreferredDuration(profile?.preferred_duration_min ?? 10);
         setReminders(profile?.reminders_enabled ?? false);
@@ -139,8 +146,9 @@ export default function SettingsPage() {
         throw new Error(data.error ?? "Blad zapisu");
       }
 
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      // Sync localStorage and reload so the whole UI updates
+      localStorage.setItem("godoj_ui_locale", uiLanguage);
+      window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Blad zapisu ustawien");
     } finally {

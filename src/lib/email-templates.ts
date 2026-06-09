@@ -69,14 +69,20 @@ function emailShell(content: string, footer: string, helpLine: string): string {
 export function magicLinkEmail(magicLinkUrl: string, nativeLang?: string | null): string {
   const locale = resolveEmailLocale(nativeLang);
   const s = emailStrings[locale];
+
+  // Create a clean proxy URL through our domain instead of showing raw Supabase URL
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://godoj.co";
+  const proxyUrl = `${appUrl}/api/auth/verify?link=${encodeURIComponent(magicLinkUrl)}`;
+  const displayUrl = `${appUrl.replace(/^https?:\/\//, "")}/login`;
+
   const content = `
       <h1 style="color:#dee5ff;font-size:20px;font-weight:700;text-align:center;margin:0 0 16px 0;">${s.greeting}</h1>
       <p style="color:#a3aac4;font-size:14px;line-height:1.6;text-align:center;margin:0 0 32px 0;">${s.loginBody}</p>
       <div style="text-align:center;margin-bottom:24px;">
-        <a href="${magicLinkUrl}" style="display:inline-block;background-color:#1A73E8;color:#FFFFFF;font-size:16px;font-weight:700;text-decoration:none;padding:16px 32px;border-radius:12px;">${s.loginButton}</a>
+        <a href="${proxyUrl}" style="display:inline-block;background-color:#1A73E8;color:#FFFFFF;font-size:16px;font-weight:700;text-decoration:none;padding:16px 32px;border-radius:12px;">${s.loginButton}</a>
       </div>
       <p style="color:#6d758c;font-size:12px;text-align:center;margin:0 0 8px 0;">${s.linkFallback}</p>
-      <p style="color:#84adff;font-size:11px;text-align:center;word-break:break-all;margin:0;">${magicLinkUrl}</p>`;
+      <p style="color:#84adff;font-size:11px;text-align:center;word-break:break-all;margin:0;"><a href="${proxyUrl}" style="color:#84adff;text-decoration:none;">${displayUrl}</a></p>`;
   return emailShell(content, s.footer, s.helpLine);
 }
 

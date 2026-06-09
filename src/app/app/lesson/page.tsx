@@ -614,7 +614,7 @@ export default function LessonPage() {
               : t("wantMoreContact")}
         </p>
         {limitError.type === "minutes" && (
-          <button onClick={() => router.push("/app/pricing")} className="w-full rounded-xl bg-godoj-blue py-3 text-sm font-bold text-white hover:bg-godoj-blue/90 transition-colors">
+          <button onClick={() => router.push("/app/settings/plans")} className="w-full rounded-xl bg-godoj-blue py-3 text-sm font-bold text-white hover:bg-godoj-blue/90 transition-colors">
             Zobacz plany
           </button>
         )}
@@ -952,7 +952,7 @@ export default function LessonPage() {
                       {locale === "pl" ? "Kup pakiet minut lub zmień plan, żeby kontynuować naukę." : "Buy more minutes or upgrade your plan to continue."}
                     </p>
                     <a
-                      href="/app/pricing"
+                      href="/app/settings/plans"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-block rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-all"

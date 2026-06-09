@@ -17,7 +17,7 @@ export function LogoIcon({ size = 32 }: { size?: number }) {
   );
 }
 
-export function LogoFull({ size = 32, href = "/dashboard" }: { size?: number; href?: string }) {
+export function LogoFull({ size = 32, href = "/app/dashboard" }: { size?: number; href?: string }) {
   return (
     <Link href={href} className="flex items-center gap-2.5">
       <LogoIcon size={size} />

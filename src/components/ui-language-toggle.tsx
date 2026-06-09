@@ -25,6 +25,12 @@ export function UILanguageToggle({ className }: { className?: string }) {
     const next = locale === "pl" ? "en" : "pl";
     localStorage.setItem(STORAGE_KEY, next);
     setLocale(next);
+    // Fire-and-forget DB sync — page reloads anyway
+    fetch("/api/user/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ui_language: next }),
+    }).catch(() => {});
     window.location.reload();
   };
 

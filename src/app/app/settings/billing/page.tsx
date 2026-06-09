@@ -200,7 +200,7 @@ export default function BillingPage() {
                 {t("billingNearLimit")}
               </p>
               <Link
-                href="/app/pricing"
+                href="/app/settings/plans"
                 className="mt-1 inline-block text-sm font-bold text-godoj-blue hover:underline"
               >
                 {t("billingViewPlans")}
@@ -229,7 +229,7 @@ export default function BillingPage() {
       {/* Actions */}
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
         <Link
-          href="/app/pricing"
+          href="/app/settings/plans"
           className="flex items-center justify-center gap-2 rounded-xl bg-godoj-blue px-6 py-3 text-sm font-bold text-white hover:bg-godoj-blue/90 transition-colors"
         >
           <span className="material-symbols-outlined text-lg">upgrade</span>

@@ -44,7 +44,7 @@ export function AddLanguageModal({ open, onClose, existingLangs }: { open: boole
         onClose();
         // Set the new language as active so dashboard loads with it
         localStorage.setItem("godoj_active_lang", lang);
-        window.location.href = "/dashboard";
+        window.location.href = "/app/dashboard";
       } else {
         const data = await res.json();
         setError(data.error ?? t("error"));
