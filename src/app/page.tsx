@@ -262,26 +262,26 @@ export default function Home() {
           </p>
 
           {/* Email form + CTA button */}
-          <form onSubmit={handleSubmit} className="max-w-[420px] space-y-2.5">
+          <form onSubmit={handleSubmit} className="max-w-[420px] mt-2 space-y-3">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t("emailPlaceholder")}
               required
-              className="w-full rounded-xl border border-white/10 bg-surface-container-high px-4 py-3.5 text-sm sm:text-base text-white placeholder:text-white/40 focus:border-godoj-blue focus:outline-none focus:ring-1 focus:ring-godoj-blue"
+              className="w-full rounded-xl border border-white/15 bg-white/10 px-5 py-4 text-base text-white placeholder:text-white/40 focus:border-godoj-blue focus:outline-none focus:ring-2 focus:ring-godoj-blue/40 shadow-lg shadow-black/20"
             />
             <button
               type="submit"
               disabled={loading}
-              className={`w-full flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-bold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 ${betaFull ? "bg-amber-500" : "bg-godoj-blue"}`}
+              className={`w-full flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-base font-bold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 ${betaFull ? "bg-amber-500" : "bg-godoj-blue"}`}
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : betaFull ? t("waitlistCta") : t("landingCta")}
             </button>
           </form>
 
           {/* Seats counter or waitlist badge */}
-          <div className="max-w-[420px] flex items-center justify-center gap-2 py-2">
+          <div className="max-w-[420px] flex items-center justify-center gap-2 py-3">
             {betaFull ? (
               <>
                 <span className="relative flex h-1.5 w-1.5 shrink-0">

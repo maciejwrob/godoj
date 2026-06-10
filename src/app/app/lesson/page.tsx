@@ -85,6 +85,8 @@ export default function LessonPage() {
   const pausedAtRef = useRef<number>(0); // total paused ms to subtract from duration
   const isPausedRef = useRef(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const lessonStateRef = useRef<LessonState>(lessonState);
+  useEffect(() => { lessonStateRef.current = lessonState; }, [lessonState]);
   const [wordTranslations, setWordTranslations] = useState<Map<string, WordTranslation>>(new Map());
   const [translatingKey, setTranslatingKey] = useState<string | null>(null);
   const [activeTooltip, setActiveTooltip] = useState<{ key: string; x: number; y: number } | null>(null);
@@ -396,7 +398,20 @@ export default function LessonPage() {
   // ---- Lifecycle ----
   useEffect(() => {
     loadLessonData();
-    return () => { clearHintTimers(); if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current); if (autoEndTimerRef.current) clearInterval(autoEndTimerRef.current); };
+
+    // Intercept browser back button during active lesson
+    window.history.pushState(null, "", window.location.href);
+    const handlePopState = () => {
+      if (lessonStateRef.current === "active" || lessonStateRef.current === "connecting") {
+        window.history.pushState(null, "", window.location.href);
+        setShowExitConfirm(true);
+      } else {
+        router.push("/app/dashboard");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+
+    return () => { window.removeEventListener("popstate", handlePopState); clearHintTimers(); if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current); if (autoEndTimerRef.current) clearInterval(autoEndTimerRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -762,8 +777,19 @@ export default function LessonPage() {
         {/* Tutor avatar — left panel (desktop only) */}
         <div className="hidden lg:flex w-1/3 items-end justify-center p-8 relative">
           <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full pointer-events-none" />
-          <div className="relative z-10 flex items-end justify-center h-full w-full">
+          <div className="relative z-10 flex flex-col items-center justify-end h-full w-full gap-4">
             <TutorAvatar agentId={agentId} size={240} speaking={isSpeaking} />
+            {/* Status indicator next to avatar */}
+            <div className={`flex items-center gap-2 rounded-full px-4 py-2 border transition-all ${
+              isPaused ? "bg-amber-500/10 border-amber-500/20" : isSpeaking ? "bg-primary/10 border-primary/20" : "bg-emerald-500/10 border-emerald-500/20"
+            }`}>
+              <span className={`h-2 w-2 rounded-full ${
+                isPaused ? "bg-amber-400" : isSpeaking ? "bg-primary animate-pulse" : "bg-emerald-400 animate-pulse"
+              }`} />
+              <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                {isPaused ? (locale === "pl" ? "Pauza" : "Paused") : isSpeaking ? `${agentName} ${t("speaking")}` : t("listening")}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -784,7 +810,7 @@ export default function LessonPage() {
           )}
 
           {/* Chat messages */}
-          <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-6 pb-48 space-y-6" onClick={() => activeTooltip && setActiveTooltip(null)} onScroll={() => activeTooltip && setActiveTooltip(null)} style={{ scrollbarWidth: "thin", scrollbarColor: "#334155 transparent" }}>
+          <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-6 pb-32 space-y-6" onClick={() => activeTooltip && setActiveTooltip(null)} onScroll={() => activeTooltip && setActiveTooltip(null)} style={{ scrollbarWidth: "thin", scrollbarColor: "#334155 transparent" }}>
             {chatMessages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
                 <TutorAvatar agentId={agentId} size={80} speaking={isSpeaking} />
@@ -877,103 +903,117 @@ export default function LessonPage() {
             </span>
           )}
 
-          {/* Bottom controls — floating */}
-          <div className="absolute bottom-0 left-0 right-0 z-30 flex flex-col items-center pb-6 pointer-events-none">
-            {/* SOS + Mic + End */}
-            <div className="flex items-end gap-6 pointer-events-auto">
-              {/* SOS */}
-              <button onClick={handleHintToggle} className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${hintsEnabled ? "bg-tertiary/10 text-tertiary border border-tertiary/20" : "bg-surface-container-high text-slate-500 border border-white/5"}`} title={hintsEnabled ? t("disableHints") : t("enableHints")}>
-                <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: hintsEnabled ? "'FILL' 1" : undefined }}>lightbulb</span>
-                <span className="hidden sm:inline">{hintsEnabled ? t("hintsOn") : t("hintsOff")}</span>
+          {/* Bottom controls — clean bar */}
+          <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
+            {/* Mobile status indicator (hidden on desktop where it's by the avatar) */}
+            <div className="lg:hidden flex justify-center mb-3">
+              <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 pointer-events-auto border transition-all ${
+                isPaused ? "bg-amber-500/10 border-amber-500/20" : isSpeaking ? "bg-primary/10 border-primary/20" : "bg-emerald-500/10 border-emerald-500/20"
+              }`}>
+                <span className={`h-2 w-2 rounded-full ${
+                  isPaused ? "bg-amber-400" : isSpeaking ? "bg-primary animate-pulse" : "bg-emerald-400 animate-pulse"
+                }`} />
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                  {isPaused ? (locale === "pl" ? "Pauza" : "Paused") : isSpeaking ? `${agentName} ${t("speaking")}` : hintsLoading ? t("searchingHints") : t("listening")}
+                </span>
+              </div>
+            </div>
+
+            {/* Control buttons */}
+            <div className="flex items-center justify-center gap-3 pointer-events-auto">
+              {/* Hints */}
+              <button onClick={handleHintToggle} className={`h-12 w-12 rounded-full flex items-center justify-center border transition-all ${hintsEnabled ? "bg-tertiary/10 text-tertiary border-tertiary/20" : "bg-surface-container-high/90 backdrop-blur-md text-slate-400 border-white/5 hover:text-white"}`} title={hintsEnabled ? t("disableHints") : t("enableHints")}>
+                <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: hintsEnabled ? "'FILL' 1" : undefined }}>lightbulb</span>
               </button>
 
               {/* Pause */}
               <button
                 onClick={() => isPaused ? resumeLesson() : pauseLesson("manual")}
                 className={`h-12 w-12 rounded-full flex items-center justify-center border transition-all ${
-                  isPaused ? "bg-primary/20 text-primary border-primary/30 animate-pulse" : "bg-surface-container-high text-slate-400 border-white/5 hover:text-white"
+                  isPaused ? "bg-primary/20 text-primary border-primary/30 animate-pulse" : "bg-surface-container-high/90 backdrop-blur-md text-slate-400 border-white/5 hover:text-white"
                 }`}
                 title={isPaused ? (locale === "pl" ? "Wznów" : "Resume") : (locale === "pl" ? "Pauza" : "Pause")}
               >
-                <span className="material-symbols-outlined text-lg">{isPaused ? "play_arrow" : "pause"}</span>
+                <span className="material-symbols-outlined text-xl">{isPaused ? "play_arrow" : "pause"}</span>
               </button>
 
-              {/* Mic button */}
-              <div className="relative flex flex-col items-center">
-                {!isSpeaking && conversation.status === "connected" && (
-                  <div className="absolute -inset-3 bg-primary/20 blur-2xl rounded-full animate-pulse" style={{ animationDuration: "2s" }} />
+              {/* Mic — primary action, slightly larger */}
+              <div className="relative">
+                {!isSpeaking && conversation.status === "connected" && !isPaused && (
+                  <div className="absolute -inset-2 bg-primary/20 blur-xl rounded-full animate-pulse" style={{ animationDuration: "2s" }} />
                 )}
-                <div className={`relative h-20 w-20 rounded-full flex flex-col items-center justify-center shadow-[0_0_40px_rgba(59,130,246,0.3)] transition-all ${
-                  isSpeaking ? "bg-surface-container-high ring-2 ring-primary/30" : "bg-primary hover:scale-110 active:scale-95"
+                <div className={`relative h-14 w-14 rounded-full flex items-center justify-center shadow-lg transition-all ${
+                  isPaused ? "bg-surface-container-high/90 ring-1 ring-white/10" : isSpeaking ? "bg-surface-container-high/90 ring-2 ring-primary/30" : "bg-primary hover:scale-105 active:scale-95"
                 }`}>
-                  <span className="material-symbols-outlined text-3xl text-white" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    {isSpeaking ? "volume_up" : "mic"}
+                  <span className="material-symbols-outlined text-2xl text-white" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    {isPaused ? "mic_off" : isSpeaking ? "volume_up" : "mic"}
                   </span>
-                </div>
-                <div className="mt-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
-                  <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    {isPaused ? (locale === "pl" ? "PAUZA" : "PAUSED") : isSpeaking ? `${agentName} ${t("speaking")}` : hintsLoading ? t("searchingHints") : t("listening")}
-                  </p>
                 </div>
               </div>
 
-              {/* Send Now — force end-of-turn */}
-              {!isSpeaking && conversation.status === "connected" && (
+              {/* Send Now */}
+              {!isSpeaking && conversation.status === "connected" && !isPaused && (
                 <button
-                  onClick={() => {
-                    try { conversation.sendUserMessage("..."); } catch {}
-                  }}
+                  onClick={() => { try { conversation.sendUserMessage("..."); } catch {} }}
                   className="h-12 w-12 rounded-full bg-godoj-blue/20 flex items-center justify-center text-godoj-blue hover:bg-godoj-blue/30 border border-godoj-blue/20 transition-all"
                   title={t("sendNow")}
-                  style={{ marginBottom: "max(0px, env(safe-area-inset-bottom))" }}
                 >
-                  <span className="material-symbols-outlined">send</span>
+                  <span className="material-symbols-outlined text-xl">send</span>
                 </button>
               )}
 
               {/* End */}
               <button onClick={handleEndLesson} className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500/20 border border-white/5 transition-all" title={t("endCall")}>
-                <span className="material-symbols-outlined">call_end</span>
+                <span className="material-symbols-outlined text-xl">call_end</span>
               </button>
             </div>
           </div>
 
-          {/* Pause overlay */}
+          {/* Pause banner — doesn't cover chat so user can read bubbles/hints */}
           {isPaused && (
-            <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="text-center space-y-4 p-8 max-w-sm">
-                <div className="mx-auto h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-3xl text-primary">pause</span>
-                </div>
-                <h3 className="text-xl font-bold text-white">
-                  {pauseReason === "limit"
-                    ? (locale === "pl" ? "Limit minut wyczerpany" : "Plan minutes exhausted")
-                    : (locale === "pl" ? "Lekcja wstrzymana" : "Lesson paused")
-                  }
-                </h3>
-                {pauseReason === "limit" && (
-                  <div className="space-y-2">
-                    <p className="text-sm text-on-surface-variant">
-                      {locale === "pl" ? "Kup pakiet minut lub zmień plan, żeby kontynuować naukę." : "Buy more minutes or upgrade your plan to continue."}
+            <div className="absolute top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
+              <div className="pointer-events-auto m-3 w-full max-w-lg rounded-2xl border border-primary/20 bg-surface-container/95 backdrop-blur-xl shadow-2xl shadow-primary/10 p-4">
+                {pauseReason === "limit" ? (
+                  <div className="text-center space-y-3">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="material-symbols-outlined text-lg text-amber-400">timer_off</span>
+                      <h3 className="text-sm font-bold text-white">
+                        {locale === "pl" ? "Limit minut wyczerpany" : "Plan minutes exhausted"}
+                      </h3>
+                    </div>
+                    <p className="text-xs text-on-surface-variant">
+                      {locale === "pl" ? "Kup pakiet minut lub zmień plan, żeby kontynuować." : "Buy more minutes or upgrade your plan to continue."}
                     </p>
-                    <a
-                      href="/app/settings/plans"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-all"
-                    >
-                      {locale === "pl" ? "Zobacz plany" : "See plans"}
-                    </a>
+                    <div className="flex gap-2 justify-center">
+                      <a href="/app/settings/plans" target="_blank" rel="noopener noreferrer" className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary/90 transition-all">
+                        {locale === "pl" ? "Zobacz plany" : "See plans"}
+                      </a>
+                      <button onClick={resumeLesson} className="rounded-xl bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 border border-white/10 transition-all">
+                        {locale === "pl" ? "Wznów" : "Resume"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
+                        <span className="material-symbols-outlined text-lg text-primary">pause</span>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-white">
+                          {locale === "pl" ? "Lekcja wstrzymana" : "Lesson paused"}
+                        </h3>
+                        <p className="text-[11px] text-on-surface-variant">
+                          {locale === "pl" ? "Przeczytaj podpowiedzi, przemyśl odpowiedź" : "Read hints, think about your answer"}
+                        </p>
+                      </div>
+                    </div>
+                    <button onClick={resumeLesson} className="rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-primary/90 transition-all flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm">play_arrow</span>
+                      {locale === "pl" ? "Wznów" : "Resume"}
+                    </button>
                   </div>
                 )}
-                <button
-                  onClick={resumeLesson}
-                  className={`rounded-xl px-6 py-3 text-sm font-bold transition-all ${
-                    pauseReason === "limit" ? "bg-white/10 text-white hover:bg-white/20 border border-white/10" : "bg-primary text-white hover:bg-primary/90"
-                  }`}
-                >
-                  {locale === "pl" ? "Wznów lekcję" : "Resume lesson"}
-                </button>
               </div>
             </div>
           )}
