@@ -44,8 +44,7 @@ const LANGUAGES: Language[] = [
   { id: "de", name: { pl: "Niemiecki", en: "German" }, flag: "🇩🇪", active: true },
   { id: "fi", name: { pl: "Fiński", en: "Finnish" }, flag: "🇫🇮", active: true },
   { id: "ko", name: { pl: "Koreański 한국어", en: "Korean 한국어" }, flag: "🇰🇷", active: true },
-  { id: "pt", name: { pl: "Portugalski", en: "Portuguese" }, flag: "🇵🇹", active: false },
-  { id: "hu", name: { pl: "Węgierski", en: "Hungarian" }, flag: "🇭🇺", active: false },
+  { id: "ja", name: { pl: "Japoński 日本語", en: "Japanese 日本語" }, flag: "🇯🇵", active: true },
 ];
 
 export default function OnboardingPage() {
@@ -330,6 +329,26 @@ function StepLanguage({
   onVariant: (v: string) => void;
 }) {
   const { t, locale } = useTranslation();
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [reqLang, setReqLang] = useState("");
+  const [reqLevel, setReqLevel] = useState("");
+  const [reqNote, setReqNote] = useState("");
+  const [reqSending, setReqSending] = useState(false);
+  const [reqSent, setReqSent] = useState(false);
+
+  const handleRequestSubmit = async () => {
+    if (!reqLang.trim()) return;
+    setReqSending(true);
+    try {
+      await fetch("/api/language-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language: reqLang, level: reqLevel, note: reqNote }),
+      });
+      setReqSent(true);
+    } catch {} finally { setReqSending(false); }
+  };
+
   return (
     <div>
       <h2 className="mb-2 text-2xl font-bold">{t("targetLangQuestion")}</h2>
@@ -340,25 +359,87 @@ function StepLanguage({
           <button
             key={lang.id}
             onClick={() => onSelect(lang)}
-            disabled={!lang.active}
-            className={`relative flex items-center gap-3 rounded-xl border p-4 text-left transition-all ${
+            className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-all ${
               selected === lang.id
                 ? "border-primary bg-primary/10"
-                : lang.active
-                  ? "border-border bg-bg-card hover:border-primary/50"
-                  : "cursor-not-allowed border-border/50 bg-bg-card/50 opacity-50"
+                : "border-border bg-bg-card hover:border-primary/50"
             }`}
           >
             <span className="text-2xl">{lang.flag}</span>
             <span className="font-medium">{lang.name[locale]}</span>
-            {!lang.active && (
-              <span className="absolute right-2 top-2 rounded-full bg-bg-card-hover px-2 py-0.5 text-[10px] text-text-secondary">
-                {t("comingSoon")}
-              </span>
-            )}
           </button>
         ))}
       </div>
+
+      {/* Language request */}
+      {!showRequestForm && !reqSent && (
+        <p className="mt-4 text-center text-xs text-text-secondary">
+          {locale === "pl" ? "Nie widzisz swojego języka?" : "Don't see your language?"}{" "}
+          <button onClick={() => setShowRequestForm(true)} className="text-primary hover:underline">
+            {locale === "pl" ? "Poproś o dodanie" : "Request it"}
+          </button>
+        </p>
+      )}
+
+      {showRequestForm && !reqSent && (
+        <div className="mt-4 rounded-xl border border-border bg-bg-card p-4 space-y-3">
+          <p className="text-sm font-medium">{locale === "pl" ? "Jaki język chcesz dodać?" : "Which language would you like?"}</p>
+          <input
+            type="text"
+            value={reqLang}
+            onChange={(e) => setReqLang(e.target.value)}
+            placeholder={locale === "pl" ? "np. Japoński, Arabski..." : "e.g. Japanese, Arabic..."}
+            className="w-full rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/50 focus:border-primary focus:outline-none"
+          />
+          <select
+            value={reqLevel}
+            onChange={(e) => setReqLevel(e.target.value)}
+            className="w-full rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:border-primary focus:outline-none"
+          >
+            <option value="">{locale === "pl" ? "Twój poziom (opcjonalnie)" : "Your level (optional)"}</option>
+            <option value="A1">{locale === "pl" ? "A1 — Początkujący" : "A1 — Beginner"}</option>
+            <option value="A2">{locale === "pl" ? "A2 — Podstawowy" : "A2 — Elementary"}</option>
+            <option value="B1">{locale === "pl" ? "B1 — Średnio zaawansowany" : "B1 — Intermediate"}</option>
+            <option value="B2">{locale === "pl" ? "B2 — Zaawansowany" : "B2 — Upper intermediate"}</option>
+            <option value="C1">{locale === "pl" ? "C1 — Biegły" : "C1 — Advanced"}</option>
+          </select>
+          <textarea
+            value={reqNote}
+            onChange={(e) => setReqNote(e.target.value)}
+            placeholder={locale === "pl" ? "Dodatkowe uwagi (opcjonalnie)" : "Additional notes (optional)"}
+            rows={2}
+            className="w-full rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/50 focus:border-primary focus:outline-none resize-none"
+          />
+          <div className="flex gap-2">
+            <button onClick={() => setShowRequestForm(false)} className="flex-1 rounded-lg border border-border px-3 py-2 text-sm text-text-secondary hover:bg-bg-card-hover transition-colors">
+              {locale === "pl" ? "Anuluj" : "Cancel"}
+            </button>
+            <button
+              onClick={handleRequestSubmit}
+              disabled={!reqLang.trim() || reqSending}
+              className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary-dark transition-colors disabled:opacity-40"
+            >
+              {reqSending ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : locale === "pl" ? "Wyślij" : "Submit"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {reqSent && (
+        <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 flex gap-3 items-start">
+          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-primary/20">
+            <img src="/avatars/maciej.png" alt="Maciej" className="h-full w-full object-cover" />
+          </div>
+          <div>
+            <p className="text-sm text-text-primary leading-relaxed">
+              {locale === "pl"
+                ? `Dzięki za zgłoszenie! Postaram się dodać ten język w ciągu 48 godzin. Poinformuję Cię osobiście mailem, jak tylko będzie gotowy.`
+                : `Thanks for your request! I'll do my best to add this language within 48 hours. I'll personally email you as soon as it's ready.`}
+            </p>
+            <p className="mt-1.5 text-xs font-semibold text-text-secondary">Maciej — founder, Godoj.co</p>
+          </div>
+        </div>
+      )}
 
       {showVariants && selectedLanguage?.variants && (
         <div className="mt-6">

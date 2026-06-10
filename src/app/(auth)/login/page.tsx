@@ -160,11 +160,11 @@ export default function LoginPage() {
           {/* ToS acceptance notice */}
           <p className="text-center text-[11px] leading-relaxed text-text-secondary/70">
             {t("tosAccept")}{" "}
-            <Link href="/regulamin" target="_blank" className="text-primary hover:underline">
+            <Link href="/terms-of-service" target="_blank" className="text-primary hover:underline">
               {t("tosLink")}
             </Link>{" "}
             {t("tosAnd")}{" "}
-            <Link href="/prywatnosc" target="_blank" className="text-primary hover:underline">
+            <Link href="/privacy-policy" target="_blank" className="text-primary hover:underline">
               {t("privacyLink")}
             </Link>
             .

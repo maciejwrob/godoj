@@ -26,7 +26,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { language, agent_id } = await request.json();
+    const { language, agent_id, ui_locale } = await request.json();
+    const topicLocale = ui_locale === "en" ? "en" : "pl";
 
     // Check subscription-based usage limits
     const lessonCheck = await checkCanStartLesson(user.id, user.email ?? undefined);
@@ -136,14 +137,14 @@ export async function POST(request: Request) {
     const langNames: Record<string, string> = {
       es: "hiszpańskim", en: "angielskim", no: "norweskim", fr: "francuskim",
       it: "włoskim", sv: "szwedzkim", de: "niemieckim", fi: "fińskim",
-      pt: "portugalskim", hu: "węgierskim", ko: "koreańskim",
+      ko: "koreańskim", ja: "japońskim",
     };
     const langName = langNames[language] ?? language;
 
     const langNamesEn: Record<string, string> = {
       no: "Norwegian", es: "Spanish", en: "English", fr: "French",
-      sv: "Swedish", it: "Italian", pt: "Portuguese", de: "German",
-      hu: "Hungarian", fi: "Finnish", ko: "Korean",
+      sv: "Swedish", it: "Italian", de: "German",
+      fi: "Finnish", ko: "Korean", ja: "Japanese",
     };
     const languageNameEn = langNamesEn[language] ?? language;
 
@@ -179,7 +180,7 @@ ${lastLessonSummary ? `Previous lesson context: ${lastLessonSummary}` : "This is
 Get inspired by these topic ideas: ${sampleTopics}
 
 Reply in EXACTLY this format (2 lines, nothing else):
-TOPIC: [conversation topic in Polish with proper diacritical marks (ą, ć, ę, ł, ń, ó, ś, ź, ż), max 8 words, no period]
+TOPIC: [conversation topic in ${topicLocale === "en" ? "English" : "Polish with proper diacritical marks (ą, ć, ę, ł, ń, ó, ś, ź, ż)"}, max 8 words, no period]
 GREETING: [natural greeting in ${languageNameEn} as ${agentName} the tutor, max 2 short sentences at ${level} level]`,
         }],
       });

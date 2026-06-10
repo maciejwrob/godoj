@@ -83,6 +83,8 @@ export default function LessonPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [pauseReason, setPauseReason] = useState<"manual" | "limit" | null>(null);
   const pausedAtRef = useRef<number>(0); // total paused ms to subtract from duration
+  const isPausedRef = useRef(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [wordTranslations, setWordTranslations] = useState<Map<string, WordTranslation>>(new Map());
   const [translatingKey, setTranslatingKey] = useState<string | null>(null);
   const [activeTooltip, setActiveTooltip] = useState<{ key: string; x: number; y: number } | null>(null);
@@ -178,6 +180,7 @@ export default function LessonPage() {
 
   // ---- ElevenLabs ----
   const conversation = useConversation({
+    micMuted: isPaused,
     onConnect: ({ conversationId }) => {
       console.log("[ElevenLabs] WebSocket connected, conversationId:", conversationId);
       dbg(`Connected: ${conversationId}`);
@@ -202,6 +205,7 @@ export default function LessonPage() {
       const graceSeconds = 120; // 2 min bonus after plan limit
 
       lessonTimerRef.current = setInterval(() => {
+        if (isPausedRef.current) return;
         elapsed++;
         setTimeLeft((prev) => prev - 1);
 
@@ -317,17 +321,18 @@ export default function LessonPage() {
   const pauseLesson = useCallback((reason: "manual" | "limit" = "manual") => {
     if (isPaused || conversation.status !== "connected") return;
     setIsPaused(true);
+    isPausedRef.current = true;
     setPauseReason(reason);
     pausedAtRef.current = Date.now();
     try { conversation.setVolume({ volume: 0 }); } catch {}
     try { conversation.sendContextualUpdate("PAUSE: The student has paused the lesson. Do NOT say anything. Wait in complete silence until resumed."); } catch {}
-    if (lessonTimerRef.current) { clearInterval(lessonTimerRef.current); lessonTimerRef.current = null; }
     clearHintTimers();
   }, [isPaused, conversation]);
 
   const resumeLesson = useCallback(() => {
     if (!isPaused || conversation.status !== "connected") return;
     setIsPaused(false);
+    isPausedRef.current = false;
     setPauseReason(null);
     try { conversation.setVolume({ volume: 1 }); } catch {}
     try { conversation.sendContextualUpdate("RESUME: The student is back. Continue the conversation naturally from where you left off."); } catch {}
@@ -409,7 +414,7 @@ export default function LessonPage() {
   const prepareLesson = async (language: string, agId?: string) => {
     setLessonState("loading"); setError("");
     try {
-      const res = await fetch("/api/lessons/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language, agent_id: agId ?? "default" }) });
+      const res = await fetch("/api/lessons/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language, agent_id: agId ?? "default", ui_locale: locale }) });
       if (!res.ok) {
         const data = await res.json();
         if (data.error === "MINUTES_EXHAUSTED" || res.status === 403) {
@@ -537,7 +542,7 @@ export default function LessonPage() {
       const res = await fetch("/api/lessons/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ language: profileRef.current.language, agent_id: profileRef.current.agentId }),
+        body: JSON.stringify({ language: profileRef.current.language, agent_id: profileRef.current.agentId, ui_locale: locale }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -727,7 +732,7 @@ export default function LessonPage() {
       {/* Header */}
       <header className="flex h-16 shrink-0 items-center justify-between px-4 lg:px-8 bg-surface/50 backdrop-blur-md border-b border-white/5 z-20">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/app/dashboard")} className="h-9 w-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-white transition-colors">
+          <button onClick={() => lessonState === "active" || lessonState === "connecting" ? setShowExitConfirm(true) : router.push("/app/dashboard")} className="h-9 w-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-white transition-colors">
             <span className="material-symbols-outlined text-xl">arrow_back</span>
           </button>
           <div className="hidden sm:block">
@@ -991,6 +996,35 @@ export default function LessonPage() {
           )}
         </div>
       </div>
+
+      {/* Exit confirmation dialog */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-surface-container-high border border-white/10 p-6 space-y-4">
+            <div className="text-center space-y-2">
+              <div className="mx-auto h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                <span className="material-symbols-outlined text-2xl text-red-400">warning</span>
+              </div>
+              <h3 className="text-lg font-bold text-white">
+                {locale === "pl" ? "Zakończyć lekcję?" : "End lesson?"}
+              </h3>
+              <p className="text-sm text-on-surface-variant leading-relaxed">
+                {locale === "pl"
+                  ? "Postęp nie zostanie zapisany i nie otrzymasz podsumowania. Wykorzystane minuty nie zostaną zwrócone."
+                  : "Your progress won’t be saved and you won’t receive a summary. Minutes used won’t be refunded."}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowExitConfirm(false)} className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 transition-colors">
+                {locale === "pl" ? "Kontynuuj" : "Continue"}
+              </button>
+              <button onClick={() => { setShowExitConfirm(false); handleEndLesson(); }} className="flex-1 rounded-xl bg-red-500/20 border border-red-500/30 py-2.5 text-sm font-bold text-red-400 hover:bg-red-500/30 transition-colors">
+                {locale === "pl" ? "Zakończ" : "End"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

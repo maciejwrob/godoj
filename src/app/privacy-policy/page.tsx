@@ -289,7 +289,7 @@ export default function PrivacyPage() {
           <p>
             Operator zastrzega sobie prawo do przeglądu transkrypcji
             w przypadku podejrzenia naruszenia{" "}
-            <Link href="/regulamin" className="text-primary hover:underline">
+            <Link href="/terms-of-service" className="text-primary hover:underline">
               Regulaminu
             </Link>{" "}
             lub prawa.
@@ -313,8 +313,8 @@ export default function PrivacyPage() {
             Możemy aktualizować niniejszą Politykę Prywatności. O istotnych
             zmianach poinformujemy drogą e-mailową. Aktualna wersja jest
             zawsze dostępna pod adresem{" "}
-            <Link href="/prywatnosc" className="text-primary hover:underline">
-              godoj.co/prywatnosc
+            <Link href="/privacy-policy" className="text-primary hover:underline">
+              godoj.co/privacy-policy
             </Link>
             .
           </p>

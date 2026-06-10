@@ -124,26 +124,6 @@ export function FlagSvg({ lang, variant }: FlagProps) {
           <rect y="2" width="5" height="1" fill="#FFCC00"/>
         </svg>
       );
-    case "hu": // Hungary — 2:1, equal horizontal bands
-      return (
-        <svg viewBox="0 0 6 3" preserveAspectRatio="xMidYMid slice" style={fillStyle}>
-          <rect width="6" height="1" fill="#CE2939"/>
-          <rect y="1" width="6" height="1" fill="#fff"/>
-          <rect y="2" width="6" height="1" fill="#477050"/>
-        </svg>
-      );
-
-    // -----------------------------------------------------------------------
-    // Portugal — 3:2, 2:3 green/red vertical (shield omitted)
-    // -----------------------------------------------------------------------
-    case "pt":
-      return (
-        <svg viewBox="0 0 6 4" preserveAspectRatio="xMidYMid slice" style={fillStyle}>
-          <rect width="2.4" height="4" fill="#046A38"/>
-          <rect x="2.4" width="3.6" height="4" fill="#DA291C"/>
-        </svg>
-      );
-
     // -----------------------------------------------------------------------
     // Mexico (es-LATAM) — 7:4, green/white/red vertical (eagle omitted)
     // -----------------------------------------------------------------------
@@ -259,6 +239,14 @@ export function FlagSvg({ lang, variant }: FlagProps) {
               <circle cx="0.25" r="0.25" fill="#0047A0"/>
             </g>
           </g>
+        </svg>
+      );
+
+    case "ja":
+      return (
+        <svg viewBox="0 0 3 2" preserveAspectRatio="xMidYMid slice" style={fillStyle}>
+          <rect width="3" height="2" fill="#fff"/>
+          <circle cx="1.5" cy="1" r="0.6" fill="#BC002D"/>
         </svg>
       );
 

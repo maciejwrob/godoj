@@ -43,7 +43,7 @@ export default function PricingPage() {
               {t("navPricing")}
             </Link>
             <Link
-              href="/metoda"
+              href="/method"
               className="text-sm font-medium text-on-surface-variant hover:text-white transition-colors"
             >
               {pt("Metoda", "Method")}
@@ -334,7 +334,7 @@ export default function PricingPage() {
 
           <div className="mt-6 text-center">
             <Link
-              href="/metoda"
+              href="/method"
               className="inline-block text-sm font-medium text-godoj-blue hover:underline transition-colors"
             >
               {pt(
@@ -383,10 +383,10 @@ export default function PricingPage() {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
               <Link href="/pricing" className="hover:text-white/60 transition-colors">{t("navPricing")}</Link>
-              <Link href="/metoda" className="hover:text-white/60 transition-colors">{pt("Metoda", "Method")}</Link>
+              <Link href="/method" className="hover:text-white/60 transition-colors">{pt("Metoda", "Method")}</Link>
               <span className="text-white/20">|</span>
-              <Link href="/regulamin" className="hover:text-white/60 transition-colors">{t("tosLink")}</Link>
-              <Link href="/prywatnosc" className="hover:text-white/60 transition-colors">{t("privacyLink")}</Link>
+              <Link href="/terms-of-service" className="hover:text-white/60 transition-colors">{t("tosLink")}</Link>
+              <Link href="/privacy-policy" className="hover:text-white/60 transition-colors">{t("privacyLink")}</Link>
             </div>
           </div>
         </div>

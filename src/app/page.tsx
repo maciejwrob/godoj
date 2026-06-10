@@ -195,7 +195,7 @@ export default function Home() {
             <Link href="/pricing" className="text-sm font-medium text-on-surface-variant hover:text-white transition-colors">
               {t("navPricing")}
             </Link>
-            <Link href="/metoda" className="text-sm font-medium text-on-surface-variant hover:text-white transition-colors">
+            <Link href="/method" className="text-sm font-medium text-on-surface-variant hover:text-white transition-colors">
               {locale === "pl" ? "Metoda" : "Method"}
             </Link>
           </nav>
@@ -448,14 +448,14 @@ export default function Home() {
             <Link href="/pricing" className="hover:text-white/60 transition-colors">
               {t("navPricing")}
             </Link>
-            <Link href="/metoda" className="hover:text-white/60 transition-colors">
+            <Link href="/method" className="hover:text-white/60 transition-colors">
               {locale === "pl" ? "Metoda" : "Method"}
             </Link>
             <span className="text-white/20">|</span>
-            <Link href="/regulamin" className="hover:text-white/60 transition-colors">
+            <Link href="/terms-of-service" className="hover:text-white/60 transition-colors">
               {t("tosLink")}
             </Link>
-            <Link href="/prywatnosc" className="hover:text-white/60 transition-colors">
+            <Link href="/privacy-policy" className="hover:text-white/60 transition-colors">
               {t("privacyLink")}
             </Link>
           </div>

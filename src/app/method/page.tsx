@@ -127,7 +127,7 @@ export default function MetodaPage() {
               {t("navPricing")}
             </Link>
             <Link
-              href="/metoda"
+              href="/method"
               className="text-sm font-medium text-white transition-colors"
             >
               {pt("Metoda", "Method")}
@@ -254,14 +254,14 @@ export default function MetodaPage() {
               <Link href="/pricing" className="hover:text-white/60 transition-colors">
                 {t("navPricing")}
               </Link>
-              <Link href="/metoda" className="hover:text-white/60 transition-colors">
+              <Link href="/method" className="hover:text-white/60 transition-colors">
                 {pt("Metoda", "Method")}
               </Link>
               <span className="text-white/20">|</span>
-              <Link href="/regulamin" className="hover:text-white/60 transition-colors">
+              <Link href="/terms-of-service" className="hover:text-white/60 transition-colors">
                 {locale === "pl" ? "Regulamin" : "Terms of Service"}
               </Link>
-              <Link href="/prywatnosc" className="hover:text-white/60 transition-colors">
+              <Link href="/privacy-policy" className="hover:text-white/60 transition-colors">
                 {locale === "pl" ? "Polityka Prywatności" : "Privacy Policy"}
               </Link>
             </div>

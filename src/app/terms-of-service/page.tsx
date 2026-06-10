@@ -36,7 +36,7 @@ export default function TermsPage() {
           <p>
             Korzystanie z Serwisu oznacza akceptację niniejszego Regulaminu
             oraz{" "}
-            <Link href="/prywatnosc" className="text-primary hover:underline">
+            <Link href="/privacy-policy" className="text-primary hover:underline">
               Polityki Prywatności
             </Link>
             .
@@ -144,7 +144,7 @@ export default function TermsPage() {
           </p>
           <p>
             Szczegóły dotyczące przetwarzania danych znajdują się w{" "}
-            <Link href="/prywatnosc" className="text-primary hover:underline">
+            <Link href="/privacy-policy" className="text-primary hover:underline">
               Polityce Prywatności
             </Link>
             .
@@ -234,7 +234,7 @@ export default function TermsPage() {
           <p>
             W przypadku usunięcia konta dane Użytkownika zostaną usunięte
             zgodnie z{" "}
-            <Link href="/prywatnosc" className="text-primary hover:underline">
+            <Link href="/privacy-policy" className="text-primary hover:underline">
               Polityką Prywatności
             </Link>
             .

@@ -296,7 +296,7 @@ export default function DashboardPage() {
                             <span className="material-symbols-outlined">chat_bubble</span>
                           </div>
                           <div>
-                            <h5 className="text-white font-bold">{lesson.language ? getLangFlag(lesson.language) + " " : ""}{lesson.topic ?? t("conversation")}</h5>
+                            <h5 className="text-white font-bold">{lesson.language ? getLangFlag(lesson.language, activeVariant) + " " : ""}{lesson.topic ?? t("conversation")}</h5>
                             <p className="text-slate-500 text-xs">{new Date(lesson.started_at).toLocaleDateString(locale === "pl" ? "pl-PL" : "en-US")} · {lesson.duration_seconds ? `${Math.round(lesson.duration_seconds / 60)} min` : "--"}</p>
                           </div>
                         </div>

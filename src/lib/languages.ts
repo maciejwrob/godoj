@@ -7,9 +7,8 @@ export const LANG_FLAGS: Record<string, string> = {
   sv: "\uD83C\uDDF8\uD83C\uDDEA",
   de: "\uD83C\uDDE9\uD83C\uDDEA",
   fi: "\uD83C\uDDEB\uD83C\uDDEE",
-  pt: "\uD83C\uDDF5\uD83C\uDDF9",
-  hu: "\uD83C\uDDED\uD83C\uDDFA",
   ko: "\uD83C\uDDF0\uD83C\uDDF7",
+  ja: "\uD83C\uDDEF\uD83C\uDDF5",
 };
 
 export const LANG_NAMES: Record<string, Record<string, string>> = {
@@ -21,9 +20,8 @@ export const LANG_NAMES: Record<string, Record<string, string>> = {
   sv: { pl: "Szwedzki", en: "Swedish" },
   de: { pl: "Niemiecki", en: "German" },
   fi: { pl: "Fiński", en: "Finnish" },
-  pt: { pl: "Portugalski", en: "Portuguese" },
-  hu: { pl: "Węgierski", en: "Hungarian" },
   ko: { pl: "Koreański", en: "Korean" },
+  ja: { pl: "Japoński", en: "Japanese" },
 };
 
 export const VARIANT_FLAGS: Record<string, string> = {
