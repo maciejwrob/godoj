@@ -39,31 +39,42 @@ export async function GET(request: Request) {
     return NextResponse.json({ processed: 0 });
   }
 
-  let processed = 0;
+  // Deduplicate by email — send at most 1 follow-up per address
+  const byEmail = new Map<string, typeof pendingLinks>();
   for (const link of pendingLinks) {
-    const lang = (link.ui_language === "en" ? "en" : "pl") as "pl" | "en";
-    const name = link.name || (lang === "pl" ? "Hej" : "there");
+    const existing = byEmail.get(link.email) ?? [];
+    existing.push(link);
+    byEmail.set(link.email, existing);
+  }
+
+  let processed = 0;
+  for (const [email, links] of byEmail) {
+    const latest = links[0];
+    const lang = (latest.ui_language === "en" ? "en" : "pl") as "pl" | "en";
+    const name = latest.name || (lang === "pl" ? "Hej" : "there");
     const { subject, text } = followUpEmail(name, lang);
 
     try {
       const { data: emailResult } = await resend.emails.send({
         from: "Maciej <maciej@godoj.co>",
         replyTo: "maciej@godoj.co",
-        to: link.email,
+        to: email,
         subject,
         text,
       });
 
+      const now = new Date().toISOString();
+      const ids = links.map(l => l.id);
       await db.from("magic_link_events")
         .update({
-          follow_up_sent_at: new Date().toISOString(),
+          follow_up_sent_at: now,
           follow_up_resend_email_id: emailResult?.id ?? null,
         })
-        .eq("id", link.id);
+        .in("id", ids);
 
       processed++;
     } catch (err) {
-      console.error(`[cron/followup] Failed for ${link.email}:`, err);
+      console.error(`[cron/followup] Failed for ${email}:`, err);
     }
   }
 
