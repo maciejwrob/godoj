@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Resend } from "resend";
 import { magicLinkEmail } from "@/lib/email-templates";
 
-export async function sendMagicLink(email: string, locale?: "pl" | "en") {
+export async function sendMagicLink(email: string, locale?: "pl" | "en", marketingConsent?: boolean) {
   const supabase = createAdminClient();
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -21,6 +21,14 @@ export async function sendMagicLink(email: string, locale?: "pl" | "en") {
       success: false as const,
       error: "Failed to send link. Please try again.",
     };
+  }
+
+  // Store marketing consent — opt-in only: a later login with the box
+  // unchecked must NOT revoke a previously granted consent.
+  if (marketingConsent && data.user?.id) {
+    try {
+      await supabase.from("users").update({ marketing_consent: true }).eq("id", data.user.id);
+    } catch {}
   }
 
   // Use explicit locale if provided, otherwise check DB, fallback to "en"

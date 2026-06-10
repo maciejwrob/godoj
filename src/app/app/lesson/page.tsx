@@ -78,7 +78,7 @@ export default function LessonPage() {
     return false;
   });
   const [autoEndCountdown, setAutoEndCountdown] = useState<number | null>(null);
-  const [limitError, setLimitError] = useState<{ type: "daily" | "monthly" | "minutes"; used: number; limit: number; tier?: string } | null>(null);
+  const [limitError, setLimitError] = useState<{ type: "daily" | "monthly" | "minutes" | "trial"; used: number; limit: number; tier?: string } | null>(null);
   const [isUnlimited, setIsUnlimited] = useState(false);
   const [planMinutesRemaining, setPlanMinutesRemaining] = useState<number | null>(null); // minutes left in subscription
   const [trialWarningShown, setTrialWarningShown] = useState(false);
@@ -534,8 +534,8 @@ export default function LessonPage() {
       const res = await fetch("/api/lessons/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language, agent_id: agId ?? "default", ui_locale: locale }) });
       if (!res.ok) {
         const data = await res.json();
-        if (data.error === "MINUTES_EXHAUSTED" || res.status === 403) {
-          setLimitError({ type: "minutes", used: data.minutesUsed ?? 0, limit: data.minutesLimit ?? 0, tier: data.tier });
+        if (data.error === "TRIAL_EXPIRED" || data.error === "MINUTES_EXHAUSTED" || res.status === 403) {
+          setLimitError({ type: data.error === "TRIAL_EXPIRED" ? "trial" : "minutes", used: data.minutesUsed ?? 0, limit: data.minutesLimit ?? 0, tier: data.tier });
           setLessonState("error");
           return;
         }
@@ -728,24 +728,32 @@ export default function LessonPage() {
   if (lessonState === "error" && limitError) return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="max-w-sm space-y-6 text-center">
-        <div className="text-5xl">{limitError.type === "minutes" ? "⏱️" : limitError.type === "daily" ? "🎙️" : "📊"}</div>
+        <div className="text-5xl">{limitError.type === "trial" ? "⌛" : limitError.type === "minutes" ? "⏱️" : limitError.type === "daily" ? "🎙️" : "📊"}</div>
         <h1 className="text-xl font-bold">
-          {limitError.type === "minutes"
-            ? "Wykorzystano limit minut"
-            : limitError.type === "daily"
-              ? `${t("dailyLimitTitle")} (${limitError.limit} min)`
-              : `${t("monthlyLimitTitle")} (${limitError.limit} min)`}
+          {limitError.type === "trial"
+            ? (locale === "pl" ? "Okres próbny zakończony" : "Your free trial has ended")
+            : limitError.type === "minutes"
+              ? (locale === "pl" ? "Wykorzystano limit minut" : "Plan minutes used up")
+              : limitError.type === "daily"
+                ? `${t("dailyLimitTitle")} (${limitError.limit} min)`
+                : `${t("monthlyLimitTitle")} (${limitError.limit} min)`}
         </h1>
         <p className="text-on-surface-variant">
-          {limitError.type === "minutes"
-            ? `Wykorzystano ${Math.round(limitError.used)} z ${limitError.limit} minut w tym okresie. Przejdź na wyższy plan, żeby kontynuować naukę.`
-            : limitError.type === "daily"
-              ? t("comeBackTomorrow")
-              : t("wantMoreContact")}
+          {limitError.type === "trial"
+            ? (locale === "pl"
+                ? "Mam nadzieję, że rozmowy Ci się podobały! Wybierz plan, żeby dalej godać — albo przedłuż okres próbny o 7 dni na stronie planów."
+                : "Hope you enjoyed the conversations! Pick a plan to keep speaking — or extend your trial by 7 days on the plans page.")
+            : limitError.type === "minutes"
+              ? (locale === "pl"
+                  ? `Wykorzystano ${Math.round(limitError.used)} z ${limitError.limit} minut w tym okresie. Przejdź na wyższy plan, żeby kontynuować naukę.`
+                  : `You've used ${Math.round(limitError.used)} of ${limitError.limit} minutes this period. Upgrade your plan to keep learning.`)
+              : limitError.type === "daily"
+                ? t("comeBackTomorrow")
+                : t("wantMoreContact")}
         </p>
-        {limitError.type === "minutes" && (
+        {(limitError.type === "minutes" || limitError.type === "trial") && (
           <button onClick={() => router.push("/app/settings/plans")} className="w-full rounded-xl bg-godoj-blue py-3 text-sm font-bold text-white hover:bg-godoj-blue/90 transition-colors">
-            Zobacz plany
+            {locale === "pl" ? "Zobacz plany" : "See plans"}
           </button>
         )}
         <button onClick={() => router.push("/app/dashboard")} className="w-full rounded-xl border border-white/10 py-2.5 text-sm text-slate-400">{t("dashboard")}</button>

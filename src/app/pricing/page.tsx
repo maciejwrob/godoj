@@ -6,12 +6,37 @@ import Link from "next/link";
 import { getTranslations } from "@/lib/i18n-data";
 import { UILanguageToggle, getStoredUILocale } from "@/components/ui-language-toggle";
 
+type Currency = "PLN" | "EUR" | "USD";
+const CURRENCIES: Currency[] = ["PLN", "EUR", "USD"];
+// Whole-number prices per currency; beta -50% halves cleanly and Stripe
+// amount-off coupons charge EXACTLY what we display (45/90, $12/$24, €10/€20)
+const PRICE_TABLE: Record<Currency, { starterFull: number; starterBeta: number; proFull: number; proBeta: number; tutorRate: string }> = {
+  PLN: { starterFull: 89, starterBeta: 45, proFull: 179, proBeta: 90, tutorRate: "od 120 PLN/godz|from 120 PLN/h" },
+  EUR: { starterFull: 20, starterBeta: 10, proFull: 40,  proBeta: 20, tutorRate: "od €30/godz|from €30/h" },
+  USD: { starterFull: 24, starterBeta: 12, proFull: 48,  proBeta: 24, tutorRate: "od $30/godz|from $30/h" },
+};
+const fmtPrice = (n: number, c: Currency) => (c === "PLN" ? `${n} PLN` : c === "USD" ? `$${n}` : `€${n}`);
+
 export default function PricingPage() {
   const [locale, setLocale] = useState<"pl" | "en">("en");
+  const [currency, setCurrency] = useState<Currency>("PLN");
 
   useEffect(() => {
-    setLocale(getStoredUILocale());
+    const l = getStoredUILocale();
+    setLocale(l);
+    const stored = localStorage.getItem("godoj_currency");
+    if (stored === "PLN" || stored === "EUR" || stored === "USD") setCurrency(stored);
+    else setCurrency(l === "pl" ? "PLN" : "USD");
   }, []);
+
+  const changeCurrency = (c: Currency) => {
+    setCurrency(c);
+    localStorage.setItem("godoj_currency", c);
+  };
+
+  const P = PRICE_TABLE[currency];
+  const perHour = (beta: number, minutes: number) => Math.round(beta / (minutes / 60));
+  const tutorRate = P.tutorRate.split("|");
 
   const i18n = getTranslations(locale);
   const t = (key: string) => i18n[key] ?? key;
@@ -107,6 +132,20 @@ export default function PricingPage() {
 
         {/* ---------- 3. Pricing cards ---------- */}
         <section className="mb-14 sm:mb-20">
+          {/* Currency switcher */}
+          <div className="mb-5 flex items-center justify-center gap-1.5">
+            {CURRENCIES.map((c) => (
+              <button
+                key={c}
+                onClick={() => changeCurrency(c)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+                  currency === c ? "bg-white/15 text-white border border-white/20" : "text-white/40 hover:text-white border border-transparent"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
           <div className="grid gap-5 sm:gap-6 md:grid-cols-2">
             {/* Starter card */}
             <div className="relative border border-white/10 bg-surface-container rounded-2xl p-6 sm:p-8 flex flex-col">
@@ -119,15 +158,15 @@ export default function PricingPage() {
 
               {/* Price */}
               <div className="mb-5">
-                <span className="text-sm text-white/40 line-through mr-2">89 PLN{pt("/mies", "/mo")}</span>
+                <span className="text-sm text-white/40 line-through mr-2">{fmtPrice(P.starterFull, currency)}{pt("/mies", "/mo")}</span>
                 <div className="flex items-baseline gap-1.5 mt-1">
                   <span
                     className="text-4xl sm:text-5xl font-extrabold text-white"
                     style={{ fontFamily: "var(--font-manrope), sans-serif" }}
                   >
-                    45
+                    {fmtPrice(P.starterBeta, currency)}
                   </span>
-                  <span className="text-lg text-white/60 font-medium">PLN{pt("/mies", "/mo")}</span>
+                  <span className="text-lg text-white/60 font-medium">{pt("/mies", "/mo")}</span>
                 </div>
               </div>
 
@@ -143,9 +182,9 @@ export default function PricingPage() {
 
               {/* Per hour comparison */}
               <div className="mb-8">
-                <span className="text-sm font-semibold text-emerald-400">~30 PLN{pt("/godz", "/h")}</span>
+                <span className="text-sm font-semibold text-emerald-400">~{fmtPrice(perHour(P.starterBeta, 90), currency)}{pt("/godz", "/h")}</span>
                 <span className="text-sm text-white/40 ml-2">
-                  {pt("(prywatny lektor: od 120 PLN/godz)", "(private tutor: from 120 PLN/h)")}
+                  ({pt("prywatny lektor:", "private tutor:")} {pt(tutorRate[0], tutorRate[1])})
                 </span>
               </div>
 
@@ -181,15 +220,15 @@ export default function PricingPage() {
 
               {/* Price */}
               <div className="mb-5">
-                <span className="text-sm text-white/40 line-through mr-2">179 PLN{pt("/mies", "/mo")}</span>
+                <span className="text-sm text-white/40 line-through mr-2">{fmtPrice(P.proFull, currency)}{pt("/mies", "/mo")}</span>
                 <div className="flex items-baseline gap-1.5 mt-1">
                   <span
                     className="text-4xl sm:text-5xl font-extrabold text-white"
                     style={{ fontFamily: "var(--font-manrope), sans-serif" }}
                   >
-                    90
+                    {fmtPrice(P.proBeta, currency)}
                   </span>
-                  <span className="text-lg text-white/60 font-medium">PLN{pt("/mies", "/mo")}</span>
+                  <span className="text-lg text-white/60 font-medium">{pt("/mies", "/mo")}</span>
                 </div>
               </div>
 
@@ -205,9 +244,9 @@ export default function PricingPage() {
 
               {/* Per hour comparison */}
               <div className="mb-8">
-                <span className="text-sm font-semibold text-emerald-400">~22 PLN{pt("/godz", "/h")}</span>
+                <span className="text-sm font-semibold text-emerald-400">~{fmtPrice(perHour(P.proBeta, 250), currency)}{pt("/godz", "/h")}</span>
                 <span className="text-sm text-white/40 ml-2">
-                  {pt("(prywatny lektor: od 120 PLN/godz)", "(private tutor: from 120 PLN/h)")}
+                  ({pt("prywatny lektor:", "private tutor:")} {pt(tutorRate[0], tutorRate[1])})
                 </span>
               </div>
 
@@ -240,8 +279,8 @@ export default function PricingPage() {
             {[
               {
                 label: pt("Cena za godzinę", "Price per hour"),
-                godoj: "~22 PLN",
-                tutor: pt("od 120 PLN", "from 120 PLN"),
+                godoj: `~${fmtPrice(perHour(P.proBeta, 250), currency)}`,
+                tutor: pt(tutorRate[0].replace("/godz", ""), tutorRate[1].replace("/h", "")),
               },
               {
                 label: pt("Dostępność", "Availability"),

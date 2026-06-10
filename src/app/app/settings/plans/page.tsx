@@ -11,6 +11,9 @@ interface Subscription {
   minutesLimit: number;
   minutesRemaining: number;
   isUnlimited: boolean;
+  trialEndsAt?: string | null;
+  trialExpired?: boolean;
+  trialExtensionUsed?: boolean;
 }
 
 // Beta discount config
@@ -18,31 +21,22 @@ const BETA_DISCOUNT = 0.5; // 50% off
 const BETA_ACTIVE = true;
 const BETA_DEADLINE = "30.06.2026";
 
-const TOPUP = { minutes: 20, price: 29 };
+type Currency = "PLN" | "EUR" | "USD";
+const CURRENCIES: Currency[] = ["PLN", "EUR", "USD"];
+// Whole-number price points per currency so the -50% beta halves cleanly
+// (charges match displayed prices exactly — Stripe uses amount-off coupons)
+const PRICE_TABLE: Record<Currency, { starterM: number; starterY: number; proM: number; proY: number; topup: number; tutorRate: string }> = {
+  PLN: { starterM: 89, starterY: 854,  proM: 179, proY: 1717, topup: 29, tutorRate: "120+ PLN" },
+  EUR: { starterM: 20, starterY: 192,  proM: 40,  proY: 384,  topup: 7,  tutorRate: "€30+" },
+  USD: { starterM: 24, starterY: 230,  proM: 48,  proY: 460,  topup: 7,  tutorRate: "$30+" },
+};
+const fmtPrice = (n: number, c: Currency) => (c === "PLN" ? `${n} PLN` : c === "USD" ? `$${n}` : `€${n}`);
+
+const TOPUP = { minutes: 20 };
 
 const TIERS = [
-  {
-    id: "starter",
-    yearlyId: "starter_yearly",
-    name: "Starter",
-    monthlyPrice: 89,
-    yearlyPrice: 854,
-    minutes: 90,
-    weeklyMin: 20,
-    languages: 1,
-    popular: false,
-  },
-  {
-    id: "pro",
-    yearlyId: "pro_yearly",
-    name: "Pro",
-    monthlyPrice: 179,
-    yearlyPrice: 1717,
-    minutes: 250,
-    weeklyMin: 57,
-    languages: 2,
-    popular: true,
-  },
+  { id: "starter", yearlyId: "starter_yearly", name: "Starter", minutes: 90,  weeklyMin: 20, languages: 1, popular: false },
+  { id: "pro",     yearlyId: "pro_yearly",     name: "Pro",     minutes: 250, weeklyMin: 57, languages: 2, popular: true },
 ];
 
 // Simple template: replace {key} with value
@@ -62,6 +56,19 @@ export default function PricingPage() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [topupLoading, setTopupLoading] = useState(false);
   const [billingInterval, setBillingInterval] = useState<"month" | "year">("month");
+  const [currency, setCurrency] = useState<Currency>("PLN");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("godoj_currency");
+    if (stored === "PLN" || stored === "EUR" || stored === "USD") setCurrency(stored);
+    else setCurrency(locale === "pl" ? "PLN" : "USD");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
+
+  const changeCurrency = (c: Currency) => {
+    setCurrency(c);
+    localStorage.setItem("godoj_currency", c);
+  };
 
   useEffect(() => {
     fetch("/api/subscription")
@@ -81,7 +88,7 @@ export default function PricingPage() {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier: tierId, ui_locale: locale }),
+        body: JSON.stringify({ tier: tierId, ui_locale: locale, currency: currency.toLowerCase() }),
       });
 
       const data = await res.json();
@@ -105,7 +112,7 @@ export default function PricingPage() {
       const res = await fetch("/api/stripe/topup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ui_locale: locale }),
+        body: JSON.stringify({ ui_locale: locale, currency: currency.toLowerCase() }),
       });
       const data = await res.json();
       if (data.url) {
@@ -120,6 +127,22 @@ export default function PricingPage() {
     }
   };
 
+  const [extending, setExtending] = useState(false);
+  const handleExtendTrial = async () => {
+    if (extending) return;
+    setExtending(true);
+    try {
+      const res = await fetch("/api/trial/extend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ui_locale: locale }),
+      });
+      const data = await res.json();
+      if (data.success) window.location.reload();
+      else { alert(data.error || t("pricingError")); setExtending(false); }
+    } catch { alert(t("pricingError")); setExtending(false); }
+  };
+
   const currentTier = subscription?.tier ?? "free";
   const currentTierBase = currentTier.replace("_yearly", "");
 
@@ -129,7 +152,8 @@ export default function PricingPage() {
   const hasBetaDiscount = BETA_ACTIVE && !isYearly;
 
   // Native tutor cost for comparison
-  const nativeTutorRate = locale === "pl" ? "120+ PLN" : "120+ PLN";
+  const P = PRICE_TABLE[currency];
+  const nativeTutorRate = P.tutorRate;
   const perHourLabel = locale === "pl" ? "/godz" : "/hr";
   const nativeLabel = locale === "pl" ? "prywatny lektor" : "private tutor";
 
@@ -144,12 +168,30 @@ export default function PricingPage() {
 
       {/* Trial banner */}
       {isTrial && (
-        <div className="mb-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-5 text-center">
-          <p className="text-sm font-medium text-yellow-300">
-            {trialMinutesLeft > 0
-              ? tpl(t("pricingTrialRemaining"), { minutes: trialMinutesLeft })
-              : t("pricingTrialExpired")}
+        <div className={`mb-6 rounded-2xl border p-5 text-center ${
+          subscription?.trialExpired ? "border-red-500/25 bg-red-500/5" : "border-yellow-500/20 bg-yellow-500/5"
+        }`}>
+          <p className={`text-sm font-medium ${subscription?.trialExpired ? "text-red-300" : "text-yellow-300"}`}>
+            {subscription?.trialExpired || trialMinutesLeft <= 0
+              ? t("pricingTrialExpired")
+              : tpl(t("pricingTrialRemaining"), { minutes: trialMinutesLeft })}
           </p>
+          {!subscription?.trialExpired && subscription?.trialEndsAt && trialMinutesLeft > 0 && (
+            <p className="mt-1 text-xs text-yellow-300/60">
+              {locale === "pl" ? "Okres próbny kończy się" : "Trial ends"} {new Date(subscription.trialEndsAt).toLocaleDateString(locale === "pl" ? "pl-PL" : "en-US", { day: "numeric", month: "long" })}
+            </p>
+          )}
+          {subscription?.trialExpired && !subscription?.trialExtensionUsed && (
+            <button
+              onClick={handleExtendTrial}
+              disabled={extending}
+              className="mt-3 rounded-xl bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/20 border border-white/10 transition-all disabled:opacity-50"
+            >
+              {extending
+                ? (locale === "pl" ? "Przedłużam…" : "Extending…")
+                : (locale === "pl" ? "Przedłuż okres próbny o 7 dni (jednorazowo)" : "Extend trial by 7 days (one time)")}
+            </button>
+          )}
         </div>
       )}
 
@@ -174,6 +216,21 @@ export default function PricingPage() {
           </div>
         </div>
       )}
+
+      {/* Currency switcher */}
+      <div className="mb-4 flex items-center justify-center gap-1.5">
+        {CURRENCIES.map((c) => (
+          <button
+            key={c}
+            onClick={() => changeCurrency(c)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+              currency === c ? "bg-white/15 text-white border border-white/20" : "text-slate-500 hover:text-white border border-transparent"
+            }`}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
 
       {/* Billing interval toggle */}
       <div className="mb-8 flex items-center justify-center gap-3">
@@ -217,10 +274,12 @@ export default function PricingPage() {
 
       <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
         {TIERS.map((tier) => {
-          const fullPrice = isYearly ? tier.yearlyPrice : tier.monthlyPrice;
+          const monthlyPrice = tier.id === "starter" ? P.starterM : P.proM;
+          const yearlyPrice = tier.id === "starter" ? P.starterY : P.proY;
+          const fullPrice = isYearly ? yearlyPrice : monthlyPrice;
           const price = hasBetaDiscount ? Math.round(fullPrice * (1 - BETA_DISCOUNT)) : fullPrice;
-          const monthlyEquiv = isYearly && tier.yearlyPrice > 0
-            ? Math.round(tier.yearlyPrice / 12)
+          const monthlyEquiv = isYearly && yearlyPrice > 0
+            ? Math.round(yearlyPrice / 12)
             : price;
           const savings = hasBetaDiscount ? fullPrice - price : 0;
           const checkoutTierId = isYearly && tier.yearlyId ? tier.yearlyId : tier.id;
@@ -265,45 +324,42 @@ export default function PricingPage() {
                     <>
                       <div className="flex items-center gap-2">
                         <span className="text-base font-medium text-slate-500 line-through decoration-red-400/60 decoration-2">
-                          {fullPrice} PLN{t("pricingPerMonth")}
+                          {fmtPrice(fullPrice, currency)}{t("pricingPerMonth")}
                         </span>
                       </div>
                       <div className="mt-1 flex items-baseline gap-2">
                         <span className="text-4xl font-extrabold text-white">
-                          {price}
+                          {fmtPrice(price, currency)}
                         </span>
-                        <span className="text-lg font-bold text-white">PLN</span>
                         <span className="text-sm text-slate-400">{t("pricingPerMonth")}</span>
                       </div>
                       <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400">
                         <span>💰</span>
-                        {tpl(t("pricingSavings"), { amount: savings })}
+                        {tpl(t("pricingSavings"), { amount: fmtPrice(savings, currency) })}
                       </div>
                     </>
                   ) : isYearly ? (
                     <>
                       <div className="flex items-baseline gap-2">
                         <span className="text-4xl font-extrabold text-white">
-                          {monthlyEquiv}
+                          {fmtPrice(monthlyEquiv, currency)}
                         </span>
-                        <span className="text-lg font-bold text-white">PLN</span>
                         <span className="text-sm text-slate-400">{t("pricingPerMonth")}</span>
                       </div>
                       <div className="mt-1 flex items-center gap-2">
                         <span className="text-sm text-slate-400">
-                          {price} PLN{t("pricingPerYear")}
+                          {fmtPrice(price, currency)}{t("pricingPerYear")}
                         </span>
                         <span className="text-xs font-medium text-slate-500 line-through">
-                          {tier.monthlyPrice * 12} PLN
+                          {fmtPrice(monthlyPrice * 12, currency)}
                         </span>
                       </div>
                     </>
                   ) : (
                     <div className="flex items-baseline gap-2">
                       <span className="text-4xl font-extrabold text-white">
-                        {price}
+                        {fmtPrice(price, currency)}
                       </span>
-                      <span className="text-lg font-bold text-white">PLN</span>
                       <span className="text-sm text-slate-400">{t("pricingPerMonth")}</span>
                     </div>
                   )}
@@ -324,7 +380,7 @@ export default function PricingPage() {
                   </p>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-bold text-emerald-400">
-                      ~{pricePerHour} PLN{perHourLabel}
+                      ~{fmtPrice(pricePerHour, currency)}{perHourLabel}
                     </span>
                     <span className="text-slate-500">
                       vs {nativeTutorRate}{perHourLabel} ({nativeLabel})
@@ -363,7 +419,7 @@ export default function PricingPage() {
                       {t("pricingRedirecting")}
                     </span>
                   ) : hasBetaDiscount ? (
-                    tpl(t("pricingSelectFor"), { name: tier.name, price })
+                    tpl(t("pricingSelectFor"), { name: tier.name, price: fmtPrice(price, currency) })
                   ) : (
                     tpl(t("pricingSelect"), { name: tier.name })
                   )}
@@ -381,7 +437,7 @@ export default function PricingPage() {
             <div>
               <h3 className="font-bold text-white">{t("pricingNeedMore")}</h3>
               <p className="mt-1 text-sm text-slate-400">
-                {tpl(t("pricingTopupDesc"), { minutes: TOPUP.minutes, price: TOPUP.price })}
+                {tpl(t("pricingTopupDesc"), { minutes: TOPUP.minutes, price: fmtPrice(P.topup, currency) })}
               </p>
             </div>
             <button

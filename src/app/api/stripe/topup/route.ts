@@ -18,6 +18,8 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
     if (body?.ui_locale === "en") uiLocale = "en";
+    const cur = ["pln", "usd", "eur"].includes(body?.currency) ? body.currency : "pln";
+    const priceCol = cur === "usd" ? "stripe_price_id_usd" : cur === "eur" ? "stripe_price_id_eur" : "stripe_price_id";
 
     // Only allow top-up for paid subscribers
     const db = createAdminClient();
@@ -37,15 +39,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Look up the top-up price from DB
+    // Look up the top-up price for the chosen currency from DB
     const { data: topupTier } = await db
       .from("subscription_tiers")
-      .select("stripe_price_id")
+      .select(`${priceCol}`)
       .eq("id", "topup")
       .eq("is_active", true)
       .single();
 
-    if (!topupTier?.stripe_price_id) {
+    const topupPriceId = (topupTier as Record<string, string> | null)?.[priceCol];
+    if (!topupPriceId) {
       return NextResponse.json(
         { error: m("Doładowanie nie jest jeszcze skonfigurowane", "Top-up is not configured yet") },
         { status: 400 }
@@ -75,7 +78,7 @@ export async function POST(request: Request) {
       client_reference_id: user.id,
       line_items: [
         {
-          price: topupTier.stripe_price_id,
+          price: topupPriceId,
           quantity: 1,
         },
       ],

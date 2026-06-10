@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { saveOnboarding, type OnboardingData } from "./actions";
 import {
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
 import { LogoFull } from "@/components/logo";
 import { UILanguageToggle } from "@/components/ui-language-toggle";
 import { getLocalizedLevels, getLocalizedGoals, getLocalizedInterests } from "@/config/onboarding-data";
+import { NATIVE_LANGUAGES } from "@/config/native-languages";
 import { useTranslation } from "@/lib/i18n";
 
 const TOTAL_STEPS = 4;
@@ -62,6 +63,8 @@ export default function OnboardingPage() {
 
   // Form state
   const [displayName, setDisplayName] = useState("");
+  const [nativeLanguage, setNativeLanguage] = useState("pl");
+  useEffect(() => { setNativeLanguage(locale === "pl" ? "pl" : "en"); }, [locale]);
   const [selectedLang, setSelectedLang] = useState("");
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [showVariants, setShowVariants] = useState(false);
@@ -128,11 +131,9 @@ export default function OnboardingPage() {
     // Pre-set localStorage so dashboard uses the correct language immediately
     localStorage.setItem("godoj_active_lang", selectedLang);
     startTransition(async () => {
-      // Derive native language from UI locale
-      const derivedNativeLang = locale === "pl" ? "pl" : "en";
       const data: OnboardingData = {
         displayName: displayName.trim(),
-        nativeLanguage: derivedNativeLang,
+        nativeLanguage,
         targetLanguage: selectedLang,
         languageVariant: selectedVariant,
         currentLevel: level,
@@ -214,7 +215,7 @@ export default function OnboardingPage() {
           className={`animate-${direction === "forward" ? "slide-in-right" : "slide-in-left"}`}
         >
           {step === 1 && (
-            <StepName value={displayName} onChange={setDisplayName} />
+            <StepName value={displayName} onChange={setDisplayName} nativeLang={nativeLanguage} onNativeLang={setNativeLanguage} />
           )}
           {step === 2 && (
             <StepLanguage
@@ -291,8 +292,8 @@ export default function OnboardingPage() {
 
 // -- Step components --
 
-function StepName({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const { t } = useTranslation();
+function StepName({ value, onChange, nativeLang, onNativeLang }: { value: string; onChange: (v: string) => void; nativeLang: string; onNativeLang: (v: string) => void }) {
+  const { t, locale } = useTranslation();
   return (
     <div>
       <h2 className="mb-2 text-2xl font-bold">{t("whatsYourName")}</h2>
@@ -307,6 +308,31 @@ function StepName({ value, onChange }: { value: string; onChange: (v: string) =>
         autoFocus
         className="w-full rounded-xl border border-border bg-bg-card px-4 py-3 text-lg text-text-primary placeholder:text-text-secondary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       />
+
+      {/* Native language — drives translations, hints and lesson summaries */}
+      <div className="mt-6">
+        <label className="mb-2 block text-sm font-medium text-text-secondary">
+          {locale === "pl" ? "Twój język ojczysty" : "Your native language"}
+        </label>
+        <select
+          value={nativeLang}
+          onChange={(e) => onNativeLang(e.target.value)}
+          className="w-full rounded-xl border border-border bg-bg-card px-4 py-3 text-text-primary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        >
+          {NATIVE_LANGUAGES.map((l) =>
+            l.id === "_sep" ? (
+              <option key="_sep" disabled>{l.label}</option>
+            ) : (
+              <option key={l.id} value={l.id}>{l.label}</option>
+            )
+          )}
+        </select>
+        <p className="mt-1.5 text-xs text-text-secondary/70">
+          {locale === "pl"
+            ? "W tym języku dostaniesz tłumaczenia słówek i podpowiedzi podczas lekcji."
+            : "Word translations and in-lesson hints will be in this language."}
+        </p>
+      </div>
     </div>
   );
 }

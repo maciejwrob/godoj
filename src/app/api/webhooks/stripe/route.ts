@@ -364,10 +364,14 @@ async function getTierByPriceId(
   db: ReturnType<typeof createAdminClient>,
   priceId: string
 ): Promise<string> {
+  // Match any currency column: PLN (stripe_price_id), USD, EUR
   const { data } = await db
     .from("subscription_tiers")
     .select("id")
-    .eq("stripe_price_id", priceId)
+    .or(
+      `stripe_price_id.eq.${priceId},stripe_price_id_usd.eq.${priceId},stripe_price_id_eur.eq.${priceId}`
+    )
+    .limit(1)
     .single();
 
   return data?.id ?? "starter"; // Default to starter if price not found

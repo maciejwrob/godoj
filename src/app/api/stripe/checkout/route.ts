@@ -3,10 +3,17 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe, getOrCreateStripeCustomer } from "@/lib/stripe";
 
-// Amount-off beta coupons (clean 45/90 PLN charge instead of 44.50/89.50 from %-off)
-const BETA_COUPONS: Record<string, string> = {
-  starter: "GoqEnEez", // 44 PLN off for 3 months → 45 PLN
-  pro: "hsmzNVhS",     // 89 PLN off for 3 months → 90 PLN
+// Amount-off beta coupons per currency (clean half-price charges: 45/90 PLN, $12/$24, €10/€20)
+const BETA_COUPONS: Record<string, Record<string, string>> = {
+  pln: { starter: "GoqEnEez", pro: "hsmzNVhS" },
+  usd: { starter: "fhpCykAa", pro: "jUWRVrxF" },
+  eur: { starter: "tAxkEvfT", pro: "WX0mZfzH" },
+};
+
+const PRICE_COLUMNS: Record<string, string> = {
+  pln: "stripe_price_id",
+  usd: "stripe_price_id_usd",
+  eur: "stripe_price_id_eur",
 };
 
 export async function POST(request: Request) {
@@ -22,8 +29,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { tier, ui_locale } = await request.json();
+    const { tier, ui_locale, currency } = await request.json();
     if (ui_locale === "en") uiLocale = "en";
+    const cur = ["pln", "usd", "eur"].includes(currency) ? currency : "pln";
 
     if (!tier || !["starter", "pro", "starter_yearly", "pro_yearly"].includes(tier)) {
       return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
@@ -31,16 +39,18 @@ export async function POST(request: Request) {
 
     const isMonthly = !tier.includes("_yearly");
 
-    // Look up Stripe price ID from DB
+    // Look up Stripe price ID for the chosen currency from DB
+    const priceCol = PRICE_COLUMNS[cur];
     const db = createAdminClient();
     const { data: tierData } = await db
       .from("subscription_tiers")
-      .select("stripe_price_id, name_pl")
+      .select(`${priceCol}, name_pl`)
       .eq("id", tier)
       .eq("is_active", true)
       .single();
 
-    if (!tierData?.stripe_price_id) {
+    const stripePriceId = (tierData as Record<string, string> | null)?.[priceCol];
+    if (!stripePriceId) {
       return NextResponse.json(
         { error: m("Plan nie jest jeszcze skonfigurowany", "This plan is not configured yet") },
         { status: 400 }
@@ -70,7 +80,7 @@ export async function POST(request: Request) {
       client_reference_id: user.id,
       line_items: [
         {
-          price: tierData.stripe_price_id,
+          price: stripePriceId,
           quantity: 1,
         },
       ],
@@ -78,8 +88,8 @@ export async function POST(request: Request) {
       cancel_url: `${baseUrl}/app/settings/plans`,
       locale: uiLocale === "en" ? "en" : "pl",
       // Auto-apply beta -50% amount-off coupon for monthly plans (until 30.06.2026)
-      ...(isMonthly && new Date() < new Date("2026-07-01") && BETA_COUPONS[tier]
-        ? { discounts: [{ coupon: BETA_COUPONS[tier] }] }
+      ...(isMonthly && new Date() < new Date("2026-07-01") && BETA_COUPONS[cur]?.[tier]
+        ? { discounts: [{ coupon: BETA_COUPONS[cur][tier] }] }
         : { allow_promotion_codes: true }),
       billing_address_collection: "auto",
     });

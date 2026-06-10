@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     if (!lessonCheck.allowed) {
       return NextResponse.json(
         {
-          error: "MINUTES_EXHAUSTED",
+          error: lessonCheck.code ?? "MINUTES_EXHAUSTED",
           minutesUsed: lessonCheck.minutesUsed,
           minutesLimit: lessonCheck.minutesLimit,
           tier: lessonCheck.tier,

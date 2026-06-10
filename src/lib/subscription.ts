@@ -20,11 +20,20 @@ export interface UserSubscription {
   periodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   stripeSubscriptionId: string | null;
+  /** Free tier only: when the 14-day trial ends (ISO) and whether it's over */
+  trialEndsAt: string | null;
+  trialExpired: boolean;
+  trialExtensionUsed: boolean;
 }
+
+const TRIAL_DAYS = 14;
+const TRIAL_EXTENSION_DAYS = 7;
+export { TRIAL_EXTENSION_DAYS };
 
 export interface LessonCheckResult {
   allowed: boolean;
   reason?: string;
+  code?: "TRIAL_EXPIRED" | "MINUTES_EXHAUSTED";
   minutesUsed: number;
   minutesLimit: number;
   minutesRemaining: number;
@@ -118,34 +127,54 @@ export async function getUserSubscription(
       periodEnd: null,
       cancelAtPeriodEnd: false,
       stripeSubscriptionId: null,
+      trialEndsAt: null,
+      trialExpired: false,
+      trialExtensionUsed: false,
     };
   }
 
   const db = createAdminClient();
 
-  // Get active subscription
-  const { data: sub } = await db
-    .from("subscriptions")
-    .select(
-      "tier_id, status, current_period_end, cancel_at_period_end, stripe_subscription_id"
-    )
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+  // Get active subscription + usage + top-ups in parallel (independent queries)
+  const [{ data: sub }, { minutesUsed }, topupMinutes] = await Promise.all([
+    db
+      .from("subscriptions")
+      .select(
+        "tier_id, status, current_period_end, cancel_at_period_end, stripe_subscription_id"
+      )
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single(),
+    getCurrentUsage(userId),
+    getTopupMinutes(userId),
+  ]);
 
   const tier = sub?.tier_id ?? "free";
   const planMinutes = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
 
-  // Get usage for current period
-  const { minutesUsed } = await getCurrentUsage(userId);
-
-  // Get top-up minutes (don't expire with billing period)
-  const topupMinutes = await getTopupMinutes(userId);
-
   // Total available = plan minutes + top-up minutes
-  const minutesLimit = planMinutes + topupMinutes;
+  let minutesLimit = planMinutes + topupMinutes;
+
+  // Trial expiry: free tier is valid 14 days from trial_started_at (+ extension)
+  let trialEndsAt: string | null = null;
+  let trialExpired = false;
+  let trialExtensionUsed = false;
+  if (tier === "free") {
+    const { data: userRow } = await db
+      .from("users")
+      .select("trial_started_at, trial_extension_days, created_at")
+      .eq("id", userId)
+      .single();
+    const startedAt = userRow?.trial_started_at ?? userRow?.created_at ?? new Date().toISOString();
+    const extensionDays = Number(userRow?.trial_extension_days ?? 0);
+    trialExtensionUsed = extensionDays > 0;
+    const endMs = new Date(startedAt).getTime() + (TRIAL_DAYS + extensionDays) * 86400000;
+    trialEndsAt = new Date(endMs).toISOString();
+    trialExpired = Date.now() > endMs;
+    if (trialExpired) minutesLimit = 0; // trial over — no free minutes left (top-ups don't apply to free tier)
+  }
 
   // Get tier display name
   const { data: tierData } = await db
@@ -165,6 +194,9 @@ export async function getUserSubscription(
     periodEnd: sub?.current_period_end ?? null,
     cancelAtPeriodEnd: sub?.cancel_at_period_end ?? false,
     stripeSubscriptionId: sub?.stripe_subscription_id ?? null,
+    trialEndsAt,
+    trialExpired,
+    trialExtensionUsed,
   };
 }
 
@@ -188,11 +220,16 @@ export async function checkCanStartLesson(
     };
   }
 
-  const allowed = subscription.minutesRemaining > 0;
+  const allowed = subscription.minutesRemaining > 0 && !subscription.trialExpired;
   const isTrial = subscription.tier === "free";
 
   return {
     allowed,
+    code: allowed
+      ? undefined
+      : subscription.trialExpired
+        ? "TRIAL_EXPIRED"
+        : "MINUTES_EXHAUSTED",
     reason: allowed
       ? undefined
       : isTrial

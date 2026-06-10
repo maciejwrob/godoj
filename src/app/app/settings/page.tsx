@@ -8,44 +8,9 @@ import Link from "next/link";
 import { ChildrenSection } from "@/components/kids/children-section";
 import { clearActiveChild } from "@/lib/kids";
 import { useTranslation } from "@/lib/i18n";
+import { NATIVE_LANGUAGES } from "@/config/native-languages";
 
 // Pinned: Polish + English on top, then alphabetically by autonym
-const NATIVE_LANGUAGES = [
-  { id: "pl", label: "Polski" },
-  { id: "en", label: "English" },
-  { id: "_sep", label: "───" },
-  { id: "ar", label: "العربية" },
-  { id: "bg", label: "Български" },
-  { id: "cs", label: "Čeština" },
-  { id: "da", label: "Dansk" },
-  { id: "de", label: "Deutsch" },
-  { id: "el", label: "Ελληνικά" },
-  { id: "es", label: "Español" },
-  { id: "fi", label: "Suomi" },
-  { id: "fr", label: "Français" },
-  { id: "hi", label: "हिन्दी" },
-  { id: "hr", label: "Hrvatski" },
-  { id: "hu", label: "Magyar" },
-  { id: "id", label: "Bahasa Indonesia" },
-  { id: "it", label: "Italiano" },
-  { id: "ja", label: "日本語" },
-  { id: "ko", label: "한국어" },
-  { id: "lt", label: "Lietuvių" },
-  { id: "nl", label: "Nederlands" },
-  { id: "no", label: "Norsk" },
-  { id: "pt", label: "Português" },
-  { id: "ro", label: "Română" },
-  { id: "ru", label: "Русский" },
-  { id: "sk", label: "Slovenčina" },
-  { id: "sl", label: "Slovenščina" },
-  { id: "sv", label: "Svenska" },
-  { id: "th", label: "ไทย" },
-  { id: "tr", label: "Türkçe" },
-  { id: "uk", label: "Українська" },
-  { id: "vi", label: "Tiếng Việt" },
-  { id: "zh", label: "中文" },
-  { id: "other", label: "—" },
-];
 
 const DURATIONS = [5, 10, 15];
 
