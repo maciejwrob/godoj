@@ -47,6 +47,8 @@ export default function LessonPage() {
   const { t, locale } = useTranslation();
   const [lessonState, setLessonState] = useState<LessonState>("loading");
   const [lessonId, setLessonId] = useState<string | null>(null);
+  const lessonIdRef = useRef<string | null>(null);
+  useEffect(() => { lessonIdRef.current = lessonId; }, [lessonId]);
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState("A1");
   const [displayName, setDisplayName] = useState("");
@@ -82,8 +84,10 @@ export default function LessonPage() {
   const [trialWarningShown, setTrialWarningShown] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [pauseReason, setPauseReason] = useState<"manual" | "limit" | null>(null);
-  const pausedAtRef = useRef<number>(0); // total paused ms to subtract from duration
+  const pausedAtRef = useRef<number>(0); // timestamp of current pause start
+  const pausedTotalRef = useRef<number>(0); // accumulated paused ms, subtracted from billed duration
   const isPausedRef = useRef(false);
+  const endingRef = useRef(false); // synchronous guard against double end
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const lessonStateRef = useRef<LessonState>(lessonState);
   useEffect(() => { lessonStateRef.current = lessonState; }, [lessonState]);
@@ -271,9 +275,11 @@ export default function LessonPage() {
       }, 25000);
     },
     onDisconnect: () => {
+      const wasActive = lessonActiveRef.current;
       lessonActiveRef.current = false;
       if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current);
-      if (lessonState === "active") handleEndLesson();
+      // Ref-based check: lessonState in this closure is stale after endSession()
+      if (wasActive && !endingRef.current) handleEndLesson();
     },
     onMessage: ({ message, source }) => {
       const clean = cleanCaption(message);
@@ -333,6 +339,11 @@ export default function LessonPage() {
 
   const resumeLesson = useCallback(() => {
     if (!isPaused || conversation.status !== "connected") return;
+    // Accumulate paused time — subtracted from billed duration on end
+    if (pausedAtRef.current) {
+      pausedTotalRef.current += Date.now() - pausedAtRef.current;
+      pausedAtRef.current = 0;
+    }
     setIsPaused(false);
     isPausedRef.current = false;
     setPauseReason(null);
@@ -411,7 +422,24 @@ export default function LessonPage() {
     };
     window.addEventListener("popstate", handlePopState);
 
-    return () => { window.removeEventListener("popstate", handlePopState); clearHintTimers(); if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current); if (autoEndTimerRef.current) clearInterval(autoEndTimerRef.current); };
+    // Tab close / app switch mid-lesson: finalize via beacon so the lesson row
+    // isn't orphaned and minutes get recorded (fetch dies on page teardown)
+    const handlePageHide = () => {
+      if (!lessonActiveRef.current || endingRef.current || !lessonIdRef.current) return;
+      endingRef.current = true;
+      const pausedMs = pausedTotalRef.current + (isPausedRef.current && pausedAtRef.current ? Date.now() - pausedAtRef.current : 0);
+      const durationSeconds = Math.max(0, Math.round((Date.now() - startTimeRef.current - pausedMs) / 1000));
+      const transcriptText = transcriptRef.current.map((t) => `${t.source === "ai" ? "Tutor" : "User"}: ${t.message}`).join("\n");
+      try {
+        navigator.sendBeacon(
+          "/api/lessons/end",
+          new Blob([JSON.stringify({ lesson_id: lessonIdRef.current, transcript: transcriptText, duration_seconds: durationSeconds })], { type: "application/json" })
+        );
+      } catch {}
+    };
+    window.addEventListener("pagehide", handlePageHide);
+
+    return () => { window.removeEventListener("popstate", handlePopState); window.removeEventListener("pagehide", handlePageHide); clearHintTimers(); if (lessonTimerRef.current) clearInterval(lessonTimerRef.current); if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current); if (autoEndTimerRef.current) clearInterval(autoEndTimerRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -511,13 +539,19 @@ export default function LessonPage() {
   };
 
   const handleEndLesson = useCallback(async () => {
-    if (lessonState === "ending") return;
+    // Synchronous re-entrancy guard: endSession() fires onDisconnect before
+    // React re-renders, so a state-based check alone allows a double call
+    // (= double XP + double minute recording).
+    if (endingRef.current) return;
+    endingRef.current = true;
     setLessonState("ending"); lessonActiveRef.current = false;
     clearHintTimers(); if (lessonTimerRef.current) clearInterval(lessonTimerRef.current);
     if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current);
     try { await conversation.endSession(); } catch {}
 
-    const durationSeconds = Math.round((Date.now() - startTimeRef.current) / 1000);
+    // Wall-clock minus accumulated pause time
+    const pausedMs = pausedTotalRef.current + (isPausedRef.current && pausedAtRef.current ? Date.now() - pausedAtRef.current : 0);
+    const durationSeconds = Math.max(0, Math.round((Date.now() - startTimeRef.current - pausedMs) / 1000));
     const transcriptText = transcriptRef.current.map((t) => `${t.source === "ai" ? "Tutor" : "User"}: ${t.message}`).join("\n");
     try {
       const res = await fetch("/api/lessons/end", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lesson_id: lessonId, transcript: transcriptText, duration_seconds: durationSeconds }) });

@@ -24,8 +24,8 @@ export async function POST(request: Request) {
       { data: userAchievements },
       { data: lessons },
       { data: streak },
-      { data: vocabCount },
-      { data: masteredCount },
+      { count: vocabCount },
+      { count: masteredCount },
       { data: currentLesson },
     ] = await Promise.all([
       supabase.from("achievements").select("*"),

@@ -6,6 +6,8 @@ import { recordUsage } from "@/lib/subscription";
 
 const anthropic = new Anthropic();
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -17,14 +19,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { lesson_id, transcript, duration_seconds } = await request.json();
+    const { lesson_id, transcript, duration_seconds: clientDuration } = await request.json();
 
     // Get lesson, profile, and user data
     const [{ data: lesson }, { data: profile }, { data: userData }] = await Promise.all([
       supabase
         .from("lessons")
-        .select("language, level_at_start")
+        .select("language, level_at_start, started_at, ended_at, user_id")
         .eq("id", lesson_id)
+        .eq("user_id", user.id)
         .single(),
       supabase
         .from("user_profiles")
@@ -58,6 +61,17 @@ export async function POST(request: Request) {
         { status: 404 }
       );
     }
+
+    // Lesson already finalized? (double end-call, beacon + manual, etc.)
+    if (lesson.ended_at) {
+      return NextResponse.json({ already_ended: true });
+    }
+
+    // Server-side duration: never trust the client value.
+    // Clamp to wall-clock elapsed since the lesson row was created (+60s grace), max 60 min.
+    const serverElapsed = Math.max(0, Math.round((Date.now() - new Date(lesson.started_at).getTime()) / 1000));
+    const claimed = Number.isFinite(Number(clientDuration)) ? Math.max(0, Math.round(Number(clientDuration))) : serverElapsed;
+    const duration_seconds = Math.min(claimed, serverElapsed + 60, 3600);
 
     const langNames: Record<string, string> = {
       es: "hiszpański", en: "angielski", no: "norweski", fr: "francuski",

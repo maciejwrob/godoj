@@ -48,6 +48,11 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // API routes handle their own auth/role checks — skip the users query
+  if (isApiPath) {
+    return supabaseResponse;
+  }
+
   // Logged in — get user data for routing decisions
   const { data: userData } = await supabase
     .from("users")

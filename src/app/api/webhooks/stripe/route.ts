@@ -143,23 +143,29 @@ export async function POST(request: Request) {
           }
         }
 
-        // Upsert subscription (replace any existing active subscription)
+        // Replace any OTHER active subscription, then upsert this one.
+        // Stripe delivers events at-least-once — this must be idempotent:
+        // a redelivered event must not cancel the row it just created.
         await db
           .from("subscriptions")
           .update({ status: "canceled" })
           .eq("user_id", userId)
-          .eq("status", "active");
+          .eq("status", "active")
+          .neq("stripe_subscription_id", subscriptionId);
 
         const period = getPeriod(stripeSubscription);
-        await db.from("subscriptions").insert({
-          user_id: userId,
-          tier_id: tier,
-          stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptionId,
-          status: "active",
-          current_period_start: new Date(period.start * 1000).toISOString(),
-          current_period_end: new Date(period.end * 1000).toISOString(),
-        });
+        await db.from("subscriptions").upsert(
+          {
+            user_id: userId,
+            tier_id: tier,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            status: "active",
+            current_period_start: new Date(period.start * 1000).toISOString(),
+            current_period_end: new Date(period.end * 1000).toISOString(),
+          },
+          { onConflict: "stripe_subscription_id" }
+        );
 
         // Initialize usage for the new period
         const periodStart = new Date(period.start * 1000);
@@ -328,6 +334,8 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     console.error("[webhook/stripe] Error processing event:", err);
+    // Non-2xx so Stripe retries — handlers are idempotent (upserts / unique keys)
+    return NextResponse.json({ error: "processing failed" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

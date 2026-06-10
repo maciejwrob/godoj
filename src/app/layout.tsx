@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
-import { headers } from "next/headers";
 import { getTranslations } from "@/lib/i18n-data";
-import type { Locale } from "@/lib/i18n-data";
 import "./globals.css";
 
 const inter = Inter({
@@ -15,31 +13,27 @@ const manrope = Manrope({
   subsets: ["latin", "latin-ext"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const headersList = await headers();
-  const acceptLanguage = headersList.get("accept-language") ?? "";
-  const lower = acceptLanguage.toLowerCase();
-  const locale: Locale = (lower.startsWith("en") && !lower.includes("pl")) ? "en" : "pl";
-  const t = getTranslations(locale);
+// Static metadata (Polish-market product). Reading headers() here would force
+// EVERY route — including all marketing pages — to render dynamically on each visit.
+const t = getTranslations("pl");
 
-  return {
-    metadataBase: new URL("https://godoj.co"),
+export const metadata: Metadata = {
+  metadataBase: new URL("https://godoj.co"),
+  title: t["metaTitle"],
+  description: t["metaDescription"],
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
     title: t["metaTitle"],
-    description: t["metaDescription"],
-    icons: {
-      icon: [
-        { url: "/favicon.ico", sizes: "32x32" },
-        { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      ],
-      apple: "/apple-touch-icon.png",
-    },
-    openGraph: {
-      title: t["metaTitle"],
-      description: t["metaDescriptionOG"],
-      images: [{ url: "/og-image.png", width: 1200, height: 630 }],
-    },
-  };
-}
+    description: t["metaDescriptionOG"],
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+};
 
 export default function RootLayout({
   children,

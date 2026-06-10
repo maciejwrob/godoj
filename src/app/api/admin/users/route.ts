@@ -131,7 +131,8 @@ export async function PATCH(request: Request) {
   const sanitized: Record<string, unknown> = {};
   for (const k of allowed) { if (k in updates) sanitized[k] = updates[k]; }
 
-  const { error } = await supabase.from("users").update(sanitized).eq("id", user_id);
+  // Service-role client: column-level grants block role/is_active via user client
+  const { error } = await createAdminClient().from("users").update(sanitized).eq("id", user_id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ success: true });

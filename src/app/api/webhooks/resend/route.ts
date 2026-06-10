@@ -2,10 +2,36 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import crypto from "crypto";
 
-// Verify Resend webhook signature
-function verifySignature(payload: string, signature: string, secret: string): boolean {
-  const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+// Resend delivers webhooks via Svix. Signed content is "{id}.{timestamp}.{body}",
+// HMAC-SHA256 with the base64-decoded secret (after the "whsec_" prefix),
+// compared against each "v1,<base64>" entry in the svix-signature header.
+function verifySvixSignature(
+  body: string,
+  svixId: string | null,
+  svixTimestamp: string | null,
+  svixSignature: string | null,
+  secret: string
+): boolean {
+  if (!svixId || !svixTimestamp || !svixSignature) return false;
+  try {
+    const secretBytes = Buffer.from(
+      secret.startsWith("whsec_") ? secret.slice(6) : secret,
+      "base64"
+    );
+    const expected = crypto
+      .createHmac("sha256", secretBytes)
+      .update(`${svixId}.${svixTimestamp}.${body}`)
+      .digest("base64");
+    const expectedBuf = Buffer.from(expected);
+    return svixSignature.split(" ").some((entry) => {
+      const sig = entry.split(",")[1];
+      if (!sig) return false;
+      const sigBuf = Buffer.from(sig);
+      return sigBuf.length === expectedBuf.length && crypto.timingSafeEqual(sigBuf, expectedBuf);
+    });
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(request: Request) {
@@ -16,11 +42,18 @@ export async function POST(request: Request) {
   }
 
   const body = await request.text();
-  const signature = request.headers.get("svix-signature") ?? "";
 
-  // Resend uses Svix for webhooks — simplified verification
-  // In production, use the svix package for full verification
-  // For now, we accept and process
+  if (
+    !verifySvixSignature(
+      body,
+      request.headers.get("svix-id"),
+      request.headers.get("svix-timestamp"),
+      request.headers.get("svix-signature"),
+      secret
+    )
+  ) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
 
   let event;
   try {

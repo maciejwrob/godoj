@@ -15,6 +15,8 @@ async function serverLogError(userId: string | null, page: string, message: stri
 
 const anthropic = new Anthropic();
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   let topicLocale: "pl" | "en" = "pl";
   const m = (pl: string, en: string) => (topicLocale === "en" ? en : pl);
@@ -96,8 +98,16 @@ export async function POST(request: Request) {
     const elevenlabsAgentId = agentConfig.elevenlabs_agent_id;
     const agentName = agentConfig.voice_name;
 
-    // Get user data + recent topics in parallel
-    const [{ data: userData }, { data: profile }, { data: lastLesson }, { data: recentLessonsData }] =
+    // Fire the ElevenLabs signed-URL request NOW — it only needs the agent id
+    // and runs concurrently with the user-data queries and the Claude call below
+    const signedUrlPromise = fetch(
+      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${elevenlabsAgentId}`,
+      { method: "GET", headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY! } }
+    );
+
+    // Get user data + recent topics + agent prompt config in parallel
+    const adminDb = createAdminClient();
+    const [{ data: userData }, { data: profile }, { data: lastLesson }, { data: recentLessonsData }, { data: configRow }] =
       await Promise.all([
         supabase
           .from("users")
@@ -117,6 +127,7 @@ export async function POST(request: Request) {
           .select("summary_json, topic")
           .eq("user_id", user.id)
           .eq("language", language)
+          .not("ended_at", "is", null)
           .order("started_at", { ascending: false })
           .limit(1)
           .single(),
@@ -125,8 +136,10 @@ export async function POST(request: Request) {
           .select("topic")
           .eq("user_id", user.id)
           .eq("language", language)
+          .not("ended_at", "is", null)
           .order("started_at", { ascending: false })
           .limit(10),
+        adminDb.from("app_config").select("value").eq("key", "agent_system_prompt").single(),
       ]);
 
     const level = profile?.current_level ?? "A1";
@@ -224,16 +237,8 @@ ZASADY:
 - Twój wzorzec odpowiedzi: krótka reakcja + pytanie uzupełniające. Rozmowa musi się toczyć.
 - Dla poziomu A1-A2: zadawaj proste pytania tak/nie lub "albo/albo". Dla B1+: pytania otwarte (dlaczego, jak, co myślisz).${lastLessonContext}`;
 
-    // Get signed URL from ElevenLabs
-    const signedUrlResponse = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${elevenlabsAgentId}`,
-      {
-        method: "GET",
-        headers: {
-          "xi-api-key": process.env.ELEVENLABS_API_KEY!,
-        },
-      }
-    );
+    // Signed URL was requested in parallel — collect the result
+    const signedUrlResponse = await signedUrlPromise;
 
     if (!signedUrlResponse.ok) {
       const errorText = await signedUrlResponse.text();
@@ -285,9 +290,7 @@ ZASADY:
       first_message: firstMessage,
     };
 
-    // Try to load custom prompt from DB
-    const adminDb = createAdminClient();
-    const { data: configRow } = await adminDb.from("app_config").select("value").eq("key", "agent_system_prompt").single();
+    // Custom prompt was loaded in the parallel batch above
     const builtPrompt = getAgentSystemPrompt(promptVars, configRow?.value ?? null);
 
     return NextResponse.json({

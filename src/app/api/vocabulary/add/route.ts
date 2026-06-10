@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       if (profile) resolvedLanguage = profile.target_language;
     }
 
-    await supabase.from("vocabulary").insert({
+    const { error } = await supabase.from("vocabulary").insert({
       user_id: user.id,
       language: resolvedLanguage,
       word,
@@ -27,6 +27,24 @@ export async function POST(request: Request) {
       lesson_id: lesson_id || null,
       context_sentence: null,
     });
+
+    // Unique index on (user_id, language, lower(word)) — on duplicate, bump times_used
+    if (error) {
+      const { data: existing } = await supabase
+        .from("vocabulary")
+        .select("id, times_used")
+        .eq("user_id", user.id)
+        .eq("language", resolvedLanguage)
+        .ilike("word", word)
+        .limit(1)
+        .single();
+      if (existing) {
+        await supabase
+          .from("vocabulary")
+          .update({ times_used: (existing.times_used ?? 0) + 1, last_seen_at: new Date().toISOString() })
+          .eq("id", existing.id);
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch {
