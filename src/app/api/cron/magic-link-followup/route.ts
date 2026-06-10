@@ -5,13 +5,13 @@ import { Resend } from "resend";
 function followUpEmail(name: string, lang: "pl" | "en"): { subject: string; text: string } {
   if (lang === "pl") {
     return {
-      subject: `Hej ${name}, link do Godoj — coś nie zadziałało?`,
-      text: `Cześć ${name},\n\ntu Maciek — twórca Godoj.co. Widzę, że wysłaliśmy Ci link do zalogowania jakieś 15 minut temu, ale jeszcze go nie kliknąłeś.\n\nZdarza się, że link ląduje w spamie albo coś nie działa. Jeśli masz jakikolwiek problem — po prostu odpisz na tego maila. Czytam każdy.\n\nSerio.\n\nM.\n\n---\nGodoj.co — naucz się języka przez rozmowę`,
+      subject: `${name}, potrzebujesz pomocy z logowaniem?`,
+      text: `Cześć ${name},\n\ntu Maciej, twórca Godoj.co. Wysłaliśmy Ci link do zalogowania jakieś 15 minut temu — jeśli jeszcze go nie kliknąłeś, oto co możesz zrobić:\n\n1. Sprawdź folder spam/oferty — link mógł tam trafić\n2. Kliknij przycisk „Zaloguj się do Godoj" w mailu z tematem „Zaloguj się do Godoj.co 🎙"\n3. Jeśli link nie działa — wejdź na godoj.co/login i wyślij nowy\n\nGdyby coś dalej nie działało, po prostu odpisz na tego maila. Czytam każdy i chętnie pomogę.\n\nMaciej\nfounder, Godoj.co`,
     };
   }
   return {
-    subject: `Hey ${name}, your Godoj link — did something break?`,
-    text: `Hi ${name},\n\nThis is Maciek — the guy behind Godoj.co. I noticed we sent you a login link about 15 minutes ago and you haven't used it yet.\n\nSometimes the link gets eaten by spam filters or something just doesn't work. If anything's broken — just reply to this email. I read every one.\n\nSeriously.\n\nM.\n\n---\nGodoj.co — learn a language by talking`,
+    subject: `${name}, need help logging in?`,
+    text: `Hi ${name},\n\nThis is Maciej, founder of Godoj.co. We sent you a login link about 15 minutes ago — if you haven't clicked it yet, here's what you can do:\n\n1. Check your spam/promotions folder — the link might have ended up there\n2. Click the "Log in to Godoj" button in the email with subject "Log in to Godoj.co 🎙"\n3. If the link doesn't work — go to godoj.co/login and request a new one\n\nIf anything still isn't working, just reply to this email. I read every one and I'm happy to help.\n\nMaciej\nfounder, Godoj.co`,
   };
 }
 
