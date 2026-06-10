@@ -27,7 +27,7 @@ export default function PrivacyPage() {
           <h2>1. Administrator danych</h2>
           <p>
             Administratorem Twoich danych osobowych jest Maciej Wróblewski,
-            kontakt: maciej.wrob@gmail.com (dalej: &bdquo;Administrator&rdquo;).
+            kontakt: hello@godoj.co (dalej: &bdquo;Administrator&rdquo;).
           </p>
         </section>
 
@@ -208,7 +208,7 @@ export default function PrivacyPage() {
             </li>
           </ul>
           <p>
-            Aby skorzystać z tych praw, napisz na maciej.wrob@gmail.com.
+            Aby skorzystać z tych praw, napisz na hello@godoj.co.
             Odpowiemy w ciągu 30 dni.
           </p>
           <p>
@@ -329,7 +329,7 @@ export default function PrivacyPage() {
           <p>
             Maciej Wróblewski
             <br />
-            E-mail: maciej.wrob@gmail.com
+            E-mail: hello@godoj.co
           </p>
         </section>
       </div>

@@ -87,6 +87,10 @@ export default function LessonPage() {
   const pausedAtRef = useRef<number>(0); // timestamp of current pause start
   const pausedTotalRef = useRef<number>(0); // accumulated paused ms, subtracted from billed duration
   const isPausedRef = useRef(false);
+  const isPausingRef = useRef(false); // true while pause-disconnect is in flight (so onDisconnect doesn't end the lesson)
+  const isReconnectingRef = useRef(false); // true while resume-reconnect is in flight (so onConnect doesn't re-init timers)
+  const inLessonRef = useRef(false); // true from first connect until the lesson is truly ended (stays true while paused)
+  const [resuming, setResuming] = useState(false); // UI: reconnect spinner on resume
   const endingRef = useRef(false); // synchronous guard against double end
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const lessonStateRef = useRef<LessonState>(lessonState);
@@ -155,7 +159,7 @@ export default function LessonPage() {
     if (hintShownThisTurnRef.current) return false;
     const elapsed = Date.now() - startTimeRef.current;
     const sinceLast = Date.now() - lastHintTimeRef.current;
-    return lessonActiveRef.current && !agentSpeakingRef.current && elapsed > HINT_GRACE_MS && (lastHintTimeRef.current === 0 || sinceLast > HINT_COOLDOWN_MS);
+    return lessonActiveRef.current && !isPausedRef.current && !agentSpeakingRef.current && elapsed > HINT_GRACE_MS && (lastHintTimeRef.current === 0 || sinceLast > HINT_COOLDOWN_MS);
   };
 
   const hideHints = () => {
@@ -186,12 +190,41 @@ export default function LessonPage() {
 
   // ---- ElevenLabs ----
   const conversation = useConversation({
-    micMuted: isPaused,
+    // Pause fully disconnects, so this only guards the brief window before the
+    // disconnect lands; the reconnecting session (resuming) must start unmuted.
+    micMuted: isPaused && !resuming,
     onConnect: ({ conversationId }) => {
       console.log("[ElevenLabs] WebSocket connected, conversationId:", conversationId);
       dbg(`Connected: ${conversationId}`);
       setLessonState("active");
       lessonActiveRef.current = true;
+      inLessonRef.current = true;
+
+      // RESUME path: a fresh session reconnected after a pause. Don't reset the
+      // clock or re-create the lesson timer — just restore audio and re-seed the
+      // agent with where the conversation left off (it's a new conversationId
+      // with no memory). The main timer kept running (skipping ticks while paused).
+      if (isReconnectingRef.current) {
+        isReconnectingRef.current = false;
+        isPausingRef.current = false;
+        setResuming(false);
+        try { conversation.setVolume({ volume: 1 }); } catch {}
+        if (systemPrompt) { try { conversation.sendContextualUpdate(systemPrompt); } catch {} }
+        const recent = transcriptRef.current.slice(-8).map((t) => `${t.source === "ai" ? agentName : displayName}: ${t.message}`).join("\n");
+        try {
+          conversation.sendContextualUpdate(
+            `The lesson just resumed after a short pause. Here is the recent conversation so you have context:\n${recent}\n\nContinue the conversation naturally from here. The student is ready to keep talking — do not greet them again or restart the topic.`
+          );
+        } catch {}
+        // Re-arm background enrichment (its interval was cleared on disconnect)
+        if (!enrichmentTimerRef.current) {
+          enrichmentTimerRef.current = setInterval(() => {
+            if (hintLevelRef.current === 0 && !agentSpeakingRef.current && !isPausedRef.current) fetchEnrichment();
+          }, 25000);
+        }
+        return;
+      }
+
       startTimeRef.current = Date.now();
 
       if (systemPrompt) conversation.sendContextualUpdate(systemPrompt);
@@ -277,7 +310,10 @@ export default function LessonPage() {
     onDisconnect: () => {
       const wasActive = lessonActiveRef.current;
       lessonActiveRef.current = false;
-      if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current);
+      if (enrichmentTimerRef.current) { clearInterval(enrichmentTimerRef.current); enrichmentTimerRef.current = null; }
+      // Paused: this disconnect is intentional (we stop the agent + billing).
+      // Keep the lesson alive — resume will reconnect.
+      if (isPausingRef.current) return;
       // Ref-based check: lessonState in this closure is stale after endSession()
       if (wasActive && !endingRef.current) handleEndLesson();
     },
@@ -321,35 +357,72 @@ export default function LessonPage() {
     onStatusChange: (prop: { status: string }) => { dbg(`Status: ${prop.status}`); },
     onError: (message: string) => {
       console.error("Conversation error:", message);
+      // Ignore errors caused by our intentional pause-disconnect
+      if (isPausingRef.current || isPausedRef.current) return;
       if (lessonState !== "ending") { setError(t("connectionLost") + " " + message); setLessonState("error"); logError("/app/lesson", "Conversation error: " + message, { step: "onError", agentId: profileRef.current.agentId }); }
     },
   });
 
   // ---- Pause / Resume ----
-  const pauseLesson = useCallback((reason: "manual" | "limit" = "manual") => {
-    if (isPaused || conversation.status !== "connected") return;
+  // The ElevenLabs SDK has no real "pause" — a muted agent keeps running its
+  // turn loop, streaming messages, and BILLING. So a true pause = fully
+  // disconnect the session; resume = reconnect a fresh session and re-seed it
+  // with the conversation so far. The on-screen chat/hints stay (React state).
+  const pauseLesson = useCallback(async (reason: "manual" | "limit" = "manual") => {
+    if (isPaused || isPausingRef.current || conversation.status !== "connected") return;
     setIsPaused(true);
     isPausedRef.current = true;
+    isPausingRef.current = true;
     setPauseReason(reason);
     pausedAtRef.current = Date.now();
-    try { conversation.setVolume({ volume: 0 }); } catch {}
-    try { conversation.sendContextualUpdate("PAUSE: The student has paused the lesson. Do NOT say anything. Wait in complete silence until resumed."); } catch {}
     clearHintTimers();
+    // Fully stop the agent and ElevenLabs billing
+    try { await conversation.endSession(); } catch {}
   }, [isPaused, conversation]);
 
-  const resumeLesson = useCallback(() => {
-    if (!isPaused || conversation.status !== "connected") return;
-    // Accumulate paused time — subtracted from billed duration on end
-    if (pausedAtRef.current) {
-      pausedTotalRef.current += Date.now() - pausedAtRef.current;
-      pausedAtRef.current = 0;
+  const resumeLesson = useCallback(async () => {
+    if (!isPaused || isReconnectingRef.current) return;
+    setResuming(true);
+    isReconnectingRef.current = true;
+    try {
+      // Fresh single-use signed URL (no new lesson row / no Claude call)
+      const res = await fetch("/api/lessons/signed-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language: profileRef.current.language, agent_id: profileRef.current.agentId }),
+      });
+      if (!res.ok) throw new Error("signed-url failed");
+      const { signed_url } = await res.json();
+
+      await conversation.startSession({
+        signedUrl: signed_url,
+        dynamicVariables: {
+          user_name: displayName, user_level: level, native_language: nativeLanguage,
+          language_name: languageName, agent_name: agentName, lesson_topic: topic,
+          lesson_duration: String(selectedDuration ?? duration),
+          first_message: "", // no greeting on resume — onConnect re-seeds context
+          previous_context: previousContext,
+        },
+      });
+      // Reconnect complete — accumulate the WHOLE pause window (incl. reconnect
+      // time) into pausedTotal so it's excluded from billed duration, then unpause.
+      if (pausedAtRef.current) {
+        pausedTotalRef.current += Date.now() - pausedAtRef.current;
+        pausedAtRef.current = 0;
+      }
+      setIsPaused(false);
+      isPausedRef.current = false;
+      setPauseReason(null);
+      // onConnect (reconnect branch) clears isReconnecting/isPausing + restores audio
+    } catch (err) {
+      console.error("[resume] failed:", err);
+      // Roll back to a clean paused state so the user can retry (pausedAtRef intact)
+      isReconnectingRef.current = false;
+      setResuming(false);
+      setError(locale === "pl" ? "Nie udało się wznowić. Spróbuj ponownie." : "Couldn't resume. Try again.");
+      setTimeout(() => setError(""), 4000);
     }
-    setIsPaused(false);
-    isPausedRef.current = false;
-    setPauseReason(null);
-    try { conversation.setVolume({ volume: 1 }); } catch {}
-    try { conversation.sendContextualUpdate("RESUME: The student is back. Continue the conversation naturally from where you left off."); } catch {}
-  }, [isPaused, conversation]);
+  }, [isPaused, conversation, displayName, level, nativeLanguage, languageName, agentName, topic, selectedDuration, duration, previousContext, locale]);
 
   // ---- Fetch hints (add to chat as hint message) ----
   const fetchHint = async (hintLvl: 1 | 2, isUpgrade = false) => {
@@ -425,7 +498,8 @@ export default function LessonPage() {
     // Tab close / app switch mid-lesson: finalize via beacon so the lesson row
     // isn't orphaned and minutes get recorded (fetch dies on page teardown)
     const handlePageHide = () => {
-      if (!lessonActiveRef.current || endingRef.current || !lessonIdRef.current) return;
+      // Finalize on tab close even if paused (session disconnected but lesson still in progress)
+      if (!inLessonRef.current || endingRef.current || !lessonIdRef.current) return;
       endingRef.current = true;
       const pausedMs = pausedTotalRef.current + (isPausedRef.current && pausedAtRef.current ? Date.now() - pausedAtRef.current : 0);
       const durationSeconds = Math.max(0, Math.round((Date.now() - startTimeRef.current - pausedMs) / 1000));
@@ -544,6 +618,7 @@ export default function LessonPage() {
     // (= double XP + double minute recording).
     if (endingRef.current) return;
     endingRef.current = true;
+    inLessonRef.current = false;
     setLessonState("ending"); lessonActiveRef.current = false;
     clearHintTimers(); if (lessonTimerRef.current) clearInterval(lessonTimerRef.current);
     if (enrichmentTimerRef.current) clearInterval(enrichmentTimerRef.current);
@@ -968,12 +1043,13 @@ export default function LessonPage() {
               {/* Pause */}
               <button
                 onClick={() => isPaused ? resumeLesson() : pauseLesson("manual")}
-                className={`h-12 w-12 rounded-full flex items-center justify-center border transition-all ${
+                disabled={resuming}
+                className={`h-12 w-12 rounded-full flex items-center justify-center border transition-all disabled:opacity-60 ${
                   isPaused ? "bg-primary/20 text-primary border-primary/30 animate-pulse" : "bg-surface-container-high/90 backdrop-blur-md text-slate-400 border-white/5 hover:text-white"
                 }`}
                 title={isPaused ? (locale === "pl" ? "Wznów" : "Resume") : (locale === "pl" ? "Pauza" : "Pause")}
               >
-                <span className="material-symbols-outlined text-xl">{isPaused ? "play_arrow" : "pause"}</span>
+                <span className={`material-symbols-outlined text-xl ${resuming ? "animate-spin" : ""}`}>{resuming ? "progress_activity" : isPaused ? "play_arrow" : "pause"}</span>
               </button>
 
               {/* Mic — primary action, slightly larger */}
@@ -1027,8 +1103,8 @@ export default function LessonPage() {
                       <a href="/app/settings/plans" target="_blank" rel="noopener noreferrer" className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary/90 transition-all">
                         {locale === "pl" ? "Zobacz plany" : "See plans"}
                       </a>
-                      <button onClick={resumeLesson} className="rounded-xl bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 border border-white/10 transition-all">
-                        {locale === "pl" ? "Wznów" : "Resume"}
+                      <button onClick={resumeLesson} disabled={resuming} className="rounded-xl bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 border border-white/10 transition-all disabled:opacity-50">
+                        {resuming ? (locale === "pl" ? "Łączę…" : "Connecting…") : (locale === "pl" ? "Wznów" : "Resume")}
                       </button>
                     </div>
                   </div>
@@ -1036,20 +1112,24 @@ export default function LessonPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
-                        <span className="material-symbols-outlined text-lg text-primary">pause</span>
+                        <span className="material-symbols-outlined text-lg text-primary">{resuming ? "sync" : "pause"}</span>
                       </div>
                       <div>
                         <h3 className="text-sm font-bold text-white">
-                          {locale === "pl" ? "Lekcja wstrzymana" : "Lesson paused"}
+                          {resuming
+                            ? (locale === "pl" ? "Wznawiam lekcję…" : "Resuming lesson…")
+                            : (locale === "pl" ? "Lekcja wstrzymana" : "Lesson paused")}
                         </h3>
                         <p className="text-[11px] text-on-surface-variant">
-                          {locale === "pl" ? "Przeczytaj podpowiedzi, przemyśl odpowiedź" : "Read hints, think about your answer"}
+                          {resuming
+                            ? (locale === "pl" ? "Łączę z tutorem" : "Reconnecting to your tutor")
+                            : (locale === "pl" ? "Agent zatrzymany — przeczytaj podpowiedzi, przemyśl odpowiedź" : "Tutor stopped — read hints, think about your answer")}
                         </p>
                       </div>
                     </div>
-                    <button onClick={resumeLesson} className="rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-primary/90 transition-all flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-sm">play_arrow</span>
-                      {locale === "pl" ? "Wznów" : "Resume"}
+                    <button onClick={resumeLesson} disabled={resuming} className="rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-primary/90 transition-all flex items-center gap-1.5 disabled:opacity-60">
+                      <span className={`material-symbols-outlined text-sm ${resuming ? "animate-spin" : ""}`}>{resuming ? "progress_activity" : "play_arrow"}</span>
+                      {resuming ? (locale === "pl" ? "Łączę…" : "Connecting…") : (locale === "pl" ? "Wznów" : "Resume")}
                     </button>
                   </div>
                 )}

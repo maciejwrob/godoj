@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     const now = new Date().toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" });
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL ?? "maciej@godoj.co",
-      to: "maciej.wrob@gmail.com",
+      to: "maciej@godoj.co",
       subject: `Nowy użytkownik Godoj.co — ${display_name}`,
       html: `<p><strong>${display_name}</strong> (${invitation.email}) właśnie utworzył konto na Godoj.co</p><p>Rola: ${invitation.role}</p><p>Data: ${now}</p>`,
     });

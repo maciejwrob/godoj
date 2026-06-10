@@ -31,7 +31,7 @@ export default function TermsPage() {
           </p>
           <p>
             Operatorem Serwisu jest Maciej Wróblewski, prowadzący działalność
-            pod adresem e-mail: maciej.wrob@gmail.com (dalej: &bdquo;Operator&rdquo;).
+            pod adresem e-mail: hello@godoj.co (dalej: &bdquo;Operator&rdquo;).
           </p>
           <p>
             Korzystanie z Serwisu oznacza akceptację niniejszego Regulaminu
@@ -125,7 +125,7 @@ export default function TermsPage() {
           <h3>4.4. Zwroty</h3>
           <p>
             Zwroty rozpatrywane są indywidualnie. W celu uzyskania zwrotu
-            prosimy o kontakt na adres maciej.wrob@gmail.com.
+            prosimy o kontakt na adres hello@godoj.co.
           </p>
         </section>
 
@@ -264,7 +264,7 @@ export default function TermsPage() {
             do sądu właściwego dla swojego miejsca zamieszkania.
           </p>
           <p>
-            Kontakt: maciej.wrob@gmail.com
+            Kontakt: hello@godoj.co
           </p>
         </section>
       </div>

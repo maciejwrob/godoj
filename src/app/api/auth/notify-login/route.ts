@@ -28,7 +28,7 @@ export async function POST() {
 
   await resend.emails.send({
     from: `Maciej z Godoj.co <${process.env.RESEND_FROM_EMAIL ?? "maciej@godoj.co"}>`,
-    to: "maciej.wrob@gmail.com",
+    to: "maciej@godoj.co",
     subject: `Logowanie do Godoj.co — ${user.email}`,
     html: `<p><strong>${user.email}</strong> zalogował/a się do Godoj.co</p><p>Data: ${now}</p>`,
   });
