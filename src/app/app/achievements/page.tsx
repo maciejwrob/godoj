@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { Trophy } from "lucide-react";
 import { BadgeIcon } from "@/components/badge-icon";
 import { getTranslations, resolveLocale } from "@/lib/i18n-data";
@@ -50,7 +51,9 @@ export default async function AchievementsPage() {
     supabase.from("users").select("ui_language, native_language").eq("id", user.id).single(),
   ]);
 
-  const locale = resolveLocale(userData?.ui_language ?? userData?.native_language);
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get("godoj_ui_locale")?.value;
+  const locale = resolveLocale(cookieLocale ?? userData?.ui_language ?? userData?.native_language);
   const t = getTranslations(locale);
   const useEn = locale === "en";
   const isKids = profileData?.is_kids_mode ?? false;

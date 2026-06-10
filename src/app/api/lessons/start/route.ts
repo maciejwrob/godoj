@@ -16,6 +16,8 @@ async function serverLogError(userId: string | null, page: string, message: stri
 const anthropic = new Anthropic();
 
 export async function POST(request: Request) {
+  let topicLocale: "pl" | "en" = "pl";
+  const m = (pl: string, en: string) => (topicLocale === "en" ? en : pl);
   try {
     const supabase = await createClient();
     const {
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
     }
 
     const { language, agent_id, ui_locale } = await request.json();
-    const topicLocale = ui_locale === "en" ? "en" : "pl";
+    topicLocale = ui_locale === "en" ? "en" : "pl";
 
     // Check subscription-based usage limits
     const lessonCheck = await checkCanStartLesson(user.id, user.email ?? undefined);
@@ -78,7 +80,7 @@ export async function POST(request: Request) {
     if (!agentConfig) {
       await serverLogError(user.id, "/api/lessons/start", "Agent not found in agents_config", { agent_id, language });
       return NextResponse.json(
-        { error: "Nie znaleziono tutora. Skontaktuj się z administratorem." },
+        { error: m("Nie znaleziono tutora. Skontaktuj się z administratorem.", "Tutor not found. Please contact support.") },
         { status: 400 }
       );
     }
@@ -86,7 +88,7 @@ export async function POST(request: Request) {
     if (!agentConfig.elevenlabs_agent_id) {
       await serverLogError(user.id, "/api/lessons/start", "Agent has no elevenlabs_agent_id", { agent_id });
       return NextResponse.json(
-        { error: "Tutor nie ma skonfigurowanego identyfikatora ElevenLabs." },
+        { error: m("Tutor nie ma skonfigurowanego identyfikatora ElevenLabs.", "This tutor has no ElevenLabs ID configured.") },
         { status: 500 }
       );
     }
@@ -238,7 +240,7 @@ ZASADY:
       console.error("ElevenLabs signed URL error:", errorText);
       await serverLogError(user.id, "/api/lessons/start", "ElevenLabs signed URL failed", { status: signedUrlResponse.status, error: errorText, elevenlabs_agent_id: elevenlabsAgentId, agent_id: agent_id });
       return NextResponse.json(
-        { error: "Nie udało się połączyć z tutorem" },
+        { error: m("Nie udało się połączyć z tutorem", "Could not connect to the tutor") },
         { status: 502 }
       );
     }
@@ -261,7 +263,7 @@ ZASADY:
     if (lessonError) {
       console.error("Lesson creation error:", lessonError);
       return NextResponse.json(
-        { error: "Nie udało się utworzyć lekcji" },
+        { error: m("Nie udało się utworzyć lekcji", "Could not create the lesson") },
         { status: 500 }
       );
     }
@@ -310,7 +312,7 @@ ZASADY:
     console.error("Start lesson error:", error);
     await serverLogError(null, "/api/lessons/start", "Unhandled error", { error: String(error) });
     return NextResponse.json(
-      { error: "Wystąpił błąd serwera" },
+      { error: m("Wystąpił błąd serwera", "A server error occurred") },
       { status: 500 }
     );
   }

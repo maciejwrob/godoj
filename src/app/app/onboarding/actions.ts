@@ -21,13 +21,14 @@ export type OnboardingData = {
 
 export async function saveOnboarding(data: OnboardingData) {
   const supabase = await createClient();
+  const m = (pl: string, en: string) => (data.uiLanguage === "en" ? en : pl);
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { success: false, error: "Nie jesteś zalogowany." };
+    return { success: false, error: m("Nie jesteś zalogowany.", "You are not logged in.") };
   }
 
   // Check beta user limit (only count users registered after baseline)
@@ -91,7 +92,7 @@ export async function saveOnboarding(data: OnboardingData) {
     );
 
   if (profileError) {
-    return { success: false, error: "Nie udało się zapisać profilu." };
+    return { success: false, error: m("Nie udało się zapisać profilu.", "Could not save your profile.") };
   }
 
   // Update user: mark onboarding complete + save native language + display name
@@ -106,7 +107,7 @@ export async function saveOnboarding(data: OnboardingData) {
     .eq("id", user.id);
 
   if (userError) {
-    return { success: false, error: "Nie udało się zaktualizować profilu." };
+    return { success: false, error: m("Nie udało się zaktualizować profilu.", "Could not update your profile.") };
   }
 
   // Create streaks row (admin client to bypass RLS)

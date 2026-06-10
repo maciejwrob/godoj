@@ -24,7 +24,7 @@ function FeedbackContent() {
   const router = useRouter();
   const lessonId = params.get("lesson_id") ?? "";
   const { languageName, level } = useLanguage();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const autoEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [state, setState] = useState<"loading" | "ready" | "connecting" | "active" | "ending">("loading");
@@ -103,7 +103,7 @@ function FeedbackContent() {
         },
       });
     } catch {
-      setError("Nie udało się połączyć. Sprawdź mikrofon.");
+      setError(locale === "pl" ? "Nie udało się połączyć. Sprawdź mikrofon." : "Could not connect. Check your microphone.");
       setState("ready");
     }
   };

@@ -29,6 +29,7 @@ const TIERS = [
     yearlyPrice: 854,
     minutes: 90,
     weeklyMin: 20,
+    languages: 1,
     popular: false,
   },
   {
@@ -39,6 +40,7 @@ const TIERS = [
     yearlyPrice: 1717,
     minutes: 250,
     weeklyMin: 57,
+    languages: 2,
     popular: true,
   },
 ];
@@ -79,7 +81,7 @@ export default function PricingPage() {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier: tierId }),
+        body: JSON.stringify({ tier: tierId, ui_locale: locale }),
       });
 
       const data = await res.json();
@@ -100,7 +102,11 @@ export default function PricingPage() {
     if (topupLoading) return;
     setTopupLoading(true);
     try {
-      const res = await fetch("/api/stripe/topup", { method: "POST" });
+      const res = await fetch("/api/stripe/topup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ui_locale: locale }),
+      });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
@@ -303,10 +309,18 @@ export default function PricingPage() {
                   )}
                 </div>
 
-                {/* Minutes + price per hour */}
-                <div className="mt-4 space-y-2">
-                  <p className="text-sm font-medium text-white/80">
-                    {tier.minutes} {t("pricingMinPerMonth")}
+                {/* Minutes — the headline feature of every plan */}
+                <div className="mt-4 space-y-2.5">
+                  <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                    <span className="material-symbols-outlined text-primary">schedule</span>
+                    <span className="text-xl font-extrabold text-white">{tier.minutes} {locale === "pl" ? "minut" : "minutes"}</span>
+                    <span className="text-sm text-slate-400">/ {locale === "pl" ? "mies." : "mo"}</span>
+                  </div>
+                  <p className="flex items-center gap-1.5 text-sm text-white/70">
+                    <span className="material-symbols-outlined text-base text-slate-400">language</span>
+                    {tier.languages === 1
+                      ? (locale === "pl" ? "1 język do nauki" : "1 language")
+                      : (locale === "pl" ? `${tier.languages} języki jednocześnie` : `${tier.languages} languages at once`)}
                   </p>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-bold text-emerald-400">
@@ -360,8 +374,8 @@ export default function PricingPage() {
         })}
       </div>
 
-      {/* Top-up section — only for paid subscribers */}
-      {currentTierBase !== "free" && (
+      {/* Top-up section — only for paid subscribers (not trial, not friends & family) */}
+      {currentTierBase !== "free" && !subscription?.isUnlimited && (
         <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-white/10 bg-surface-container p-6">
           <div className="flex items-center justify-between">
             <div>

@@ -95,7 +95,7 @@ export async function POST(request: Request) {
         case "lessons_count": qualifies = completedLessons.length >= a.requirement_value; break;
         case "total_minutes": qualifies = totalMinutes >= a.requirement_value; break;
         case "streak_days": qualifies = (streak?.current_streak ?? 0) >= a.requirement_value; break;
-        case "weekly_goals": qualifies = false; break; // TODO: track weekly goal completions
+        case "weekly_goals": qualifies = (streak?.weekly_minutes_done ?? 0) >= (streak?.weekly_minutes_goal ?? 30); break;
         case "vocab_count": qualifies = totalVocab >= a.requirement_value; break;
         case "mastery_count": qualifies = totalMastered >= a.requirement_value; break;
         case "words_per_lesson": qualifies = newWordsInLesson >= a.requirement_value; break;

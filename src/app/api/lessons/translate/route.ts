@@ -10,13 +10,18 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { word, context, source_language, ui_language } = await request.json();
+    const { word, context, source_language, native_language, ui_language } = await request.json();
 
     if (!word || typeof word !== "string") {
       return NextResponse.json({ error: "Word is required" }, { status: 400 });
     }
 
-    const targetLang = ui_language === "en" ? "English" : "Polish";
+    // Translate into the user's NATIVE language (fallback: UI language)
+    const targetCode = native_language || (ui_language === "en" ? "en" : "pl");
+    let targetLang = "Polish";
+    try {
+      targetLang = new Intl.DisplayNames(["en"], { type: "language" }).of(targetCode) ?? "Polish";
+    } catch {}
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -29,8 +34,8 @@ ${context ? `Context sentence: "${context}"` : ""}
 Reply ONLY in this JSON format (no markdown):
 {"translation": "...", "note": "..."}
 
-- "translation": the most fitting translation given the context
-- "note": optional very brief grammar/usage note (max 8 words), or empty string if not needed`,
+- "translation": the most fitting translation given the context, written in ${targetLang}
+- "note": optional very brief grammar/usage note (max 8 words) written in ${targetLang}, or empty string if not needed`,
       }],
     });
 

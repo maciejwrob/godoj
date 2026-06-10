@@ -55,16 +55,19 @@ export function LanguageProvider({
   // On mount: check localStorage for saved language
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && serverProfiles.some((p) => p.target_language === stored)) {
-      setActiveLang(stored);
-    }
+    const resolved = stored && serverProfiles.some((p) => p.target_language === stored) ? stored : defaultLanguage;
+    if (resolved !== activeLang) setActiveLang(resolved);
+    // Sync cookie so server components (progress) know the active language
+    document.cookie = `${STORAGE_KEY}=${resolved}; path=/; max-age=31536000; samesite=lax`;
     setReady(true);
-  }, [serverProfiles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverProfiles, defaultLanguage]);
 
   const activeProfile = serverProfiles.find((p) => p.target_language === activeLang) ?? serverProfiles[0] ?? null;
 
   const switchLanguage = useCallback((lang: string) => {
     localStorage.setItem(STORAGE_KEY, lang);
+    document.cookie = `${STORAGE_KEY}=${lang}; path=/; max-age=31536000; samesite=lax`;
     setActiveLang(lang);
     // Full reload to clear all stale data from server components
     window.location.reload();

@@ -81,7 +81,9 @@ export default async function LessonSummaryPage({
     .select("ui_language, native_language")
     .eq("id", user.id)
     .single();
-  const locale = resolveLocale(userData?.ui_language ?? userData?.native_language);
+  const { cookies } = await import("next/headers");
+  const cookieLocale = (await cookies()).get("godoj_ui_locale")?.value;
+  const locale = resolveLocale(cookieLocale ?? userData?.ui_language ?? userData?.native_language);
   const t = getTranslations(locale);
 
   const durationMin = lesson.duration_seconds

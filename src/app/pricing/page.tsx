@@ -131,9 +131,14 @@ export default function PricingPage() {
                 </div>
               </div>
 
-              {/* Minutes */}
-              <p className="text-base text-on-surface-variant mb-2">
-                {pt("90 minut rozmów", "90 minutes of conversations")}
+              {/* Minutes — the headline feature */}
+              <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                <span className="text-xl">🕐</span>
+                <span className="text-lg font-extrabold text-white">{pt("90 minut rozmów", "90 minutes of speaking")}</span>
+                <span className="text-sm text-white/50">/ {pt("mies.", "mo")}</span>
+              </div>
+              <p className="mb-2 flex items-center gap-2 text-sm text-white/70">
+                <span>🌐</span>{pt("1 język do nauki", "1 language")}
               </p>
 
               {/* Per hour comparison */}
@@ -188,9 +193,14 @@ export default function PricingPage() {
                 </div>
               </div>
 
-              {/* Minutes */}
-              <p className="text-base text-on-surface-variant mb-2">
-                {pt("250 minut rozmów", "250 minutes of conversations")}
+              {/* Minutes — the headline feature */}
+              <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-godoj-blue/20 bg-godoj-blue/10 px-4 py-3">
+                <span className="text-xl">🕐</span>
+                <span className="text-lg font-extrabold text-white">{pt("250 minut rozmów", "250 minutes of speaking")}</span>
+                <span className="text-sm text-white/50">/ {pt("mies.", "mo")}</span>
+              </div>
+              <p className="mb-2 flex items-center gap-2 text-sm text-white/70">
+                <span>🌐</span>{pt("2 języki jednocześnie", "2 languages at once")}
               </p>
 
               {/* Per hour comparison */}

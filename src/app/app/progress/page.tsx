@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import {
   Flame,
@@ -50,25 +51,42 @@ export default async function ProgressPage() {
   calendarStart.setDate(calendarStart.getDate() - 83);
   calendarStart.setHours(0, 0, 0, 0);
 
+  // Resolve active language + UI locale from cookies (synced by client components)
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get("godoj_ui_locale")?.value;
+  const cookieLang = cookieStore.get("godoj_active_lang")?.value;
+
+  // Profiles first — everything below is filtered by the ACTIVE language
+  const [{ data: profiles }, { data: userData }] = await Promise.all([
+    supabase
+      .from("user_profiles")
+      .select("target_language, current_level, xp_current, xp_total")
+      .eq("user_id", user.id),
+    supabase
+      .from("users")
+      .select("ui_language, native_language")
+      .eq("id", user.id)
+      .single(),
+  ]);
+
+  const profile =
+    (profiles ?? []).find((p) => p.target_language === cookieLang) ??
+    (profiles ?? [])[0] ??
+    null;
+  const activeLang = profile?.target_language ?? "__none__";
+
   const [
     { data: streak },
-    { data: profile },
     { data: allLessons },
     { data: recentLessons },
     { count: vocabTotal },
     { count: vocabMastered },
-    { data: userData },
   ] = await Promise.all([
     supabase
       .from("streaks")
       .select(
         "current_streak, longest_streak, last_lesson_date, weekly_minutes_goal, weekly_minutes_done, week_start"
       )
-      .eq("user_id", user.id)
-      .single(),
-    supabase
-      .from("user_profiles")
-      .select("current_level, xp_current, xp_total")
       .eq("user_id", user.id)
       .single(),
     // All lessons in calendar range (for contribution grid + level timeline)
@@ -78,6 +96,7 @@ export default async function ProgressPage() {
         "id, started_at, ended_at, duration_seconds, topic, fluency_score, summary_json, level_at_start, level_at_end"
       )
       .eq("user_id", user.id)
+      .eq("language", activeLang)
       .gte("started_at", calendarStart.toISOString())
       .order("started_at", { ascending: false }),
     // Recent 10 for lesson history
@@ -87,26 +106,24 @@ export default async function ProgressPage() {
         "id, started_at, duration_seconds, topic, fluency_score, summary_json"
       )
       .eq("user_id", user.id)
+      .eq("language", activeLang)
       .order("started_at", { ascending: false })
       .limit(10),
     // Vocabulary counts
     supabase
       .from("vocabulary")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id),
+      .eq("user_id", user.id)
+      .eq("language", activeLang),
     supabase
       .from("vocabulary")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
+      .eq("language", activeLang)
       .gte("mastery_level", 4),
-    supabase
-      .from("users")
-      .select("ui_language, native_language")
-      .eq("id", user.id)
-      .single(),
   ]);
 
-  const locale = resolveLocale(userData?.ui_language ?? userData?.native_language);
+  const locale = resolveLocale(cookieLocale ?? userData?.ui_language ?? userData?.native_language);
   const t = getTranslations(locale);
   const CEFR_LABELS: Record<string, string> = {
     "A1": t.cefrBeginner,

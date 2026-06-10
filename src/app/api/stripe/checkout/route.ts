@@ -3,7 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe, getOrCreateStripeCustomer } from "@/lib/stripe";
 
+// Amount-off beta coupons (clean 45/90 PLN charge instead of 44.50/89.50 from %-off)
+const BETA_COUPONS: Record<string, string> = {
+  starter: "GoqEnEez", // 44 PLN off for 3 months → 45 PLN
+  pro: "hsmzNVhS",     // 89 PLN off for 3 months → 90 PLN
+};
+
 export async function POST(request: Request) {
+  let uiLocale = "pl";
+  const m = (pl: string, en: string) => (uiLocale === "en" ? en : pl);
   try {
     const supabase = await createClient();
     const {
@@ -14,7 +22,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { tier } = await request.json();
+    const { tier, ui_locale } = await request.json();
+    if (ui_locale === "en") uiLocale = "en";
 
     if (!tier || !["starter", "pro", "starter_yearly", "pro_yearly"].includes(tier)) {
       return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
@@ -33,7 +42,7 @@ export async function POST(request: Request) {
 
     if (!tierData?.stripe_price_id) {
       return NextResponse.json(
-        { error: "Plan nie jest jeszcze skonfigurowany" },
+        { error: m("Plan nie jest jeszcze skonfigurowany", "This plan is not configured yet") },
         { status: 400 }
       );
     }
@@ -67,10 +76,10 @@ export async function POST(request: Request) {
       ],
       success_url: `${baseUrl}/app/settings/billing?success=true`,
       cancel_url: `${baseUrl}/app/settings/plans`,
-      locale: "pl",
-      // Auto-apply beta -50% coupon for monthly plans (until 30.06.2026)
-      ...(isMonthly && new Date() < new Date("2026-07-01")
-        ? { discounts: [{ coupon: "LZfmj9ya" }] }
+      locale: uiLocale === "en" ? "en" : "pl",
+      // Auto-apply beta -50% amount-off coupon for monthly plans (until 30.06.2026)
+      ...(isMonthly && new Date() < new Date("2026-07-01") && BETA_COUPONS[tier]
+        ? { discounts: [{ coupon: BETA_COUPONS[tier] }] }
         : { allow_promotion_codes: true }),
       billing_address_collection: "auto",
     });
@@ -79,7 +88,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[stripe/checkout] Error:", error);
     return NextResponse.json(
-      { error: "Nie udało się utworzyć sesji płatności" },
+      { error: m("Nie udało się utworzyć sesji płatności", "Could not create the payment session") },
       { status: 500 }
     );
   }

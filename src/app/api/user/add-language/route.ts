@@ -1,14 +1,24 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getUserSubscription } from "@/lib/subscription";
+
+// Language slots per plan: Free/Starter = 1, Pro = 2, Friends & Family = no cap
+function maxLanguagesForTier(tier: string, isUnlimited: boolean): number {
+  if (isUnlimited) return 99;
+  return tier.replace("_yearly", "") === "pro" ? 2 : 1;
+}
 
 export async function POST(request: Request) {
+  let uiLocale = "pl";
+  const m = (pl: string, en: string) => (uiLocale === "en" ? en : pl);
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { target_language, language_variant, current_level, selected_agent_id } = await request.json();
+    const { target_language, language_variant, current_level, selected_agent_id, ui_locale } = await request.json();
+    if (ui_locale === "en") uiLocale = "en";
 
     // Check if profile already exists for this language
     const { data: existing } = await supabase
@@ -19,7 +29,26 @@ export async function POST(request: Request) {
       .single();
 
     if (existing) {
-      return NextResponse.json({ error: "Masz juz profil dla tego jezyka." }, { status: 400 });
+      return NextResponse.json({ error: m("Masz już profil dla tego języka.", "You already have a profile for this language.") }, { status: 400 });
+    }
+
+    // Enforce plan-based language limit
+    const [{ count: profileCount }, sub] = await Promise.all([
+      supabase.from("user_profiles").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      getUserSubscription(user.id, user.email ?? undefined),
+    ]);
+    const maxLangs = maxLanguagesForTier(sub.tier ?? "free", sub.isUnlimited);
+    if ((profileCount ?? 0) >= maxLangs) {
+      const isPro = (sub.tier ?? "").replace("_yearly", "") === "pro";
+      return NextResponse.json(
+        {
+          error: isPro
+            ? m("Plan Pro obejmuje maksymalnie 2 języki.", "The Pro plan includes up to 2 languages.")
+            : m("Twój plan obejmuje 1 język. Przejdź na Pro, aby uczyć się 2 języków.", "Your plan includes 1 language. Upgrade to Pro to learn 2 languages."),
+          upgrade: !isPro,
+        },
+        { status: 403 }
+      );
     }
 
     // Resolve default agent if not provided

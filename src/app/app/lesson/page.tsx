@@ -423,7 +423,7 @@ export default function LessonPage() {
       profileRef.current = { language: lang, agentId: agId };
       setAgentId(agId);
       await prepareLesson(lang, agId);
-    } catch (err) { const msg = "Nie udało się załadować danych."; setError(msg); setLessonState("error"); logError("/app/lesson", msg, { step: "loadLessonData", error: String(err) }); }
+    } catch (err) { const msg = locale === "pl" ? "Nie udało się załadować danych." : "Failed to load lesson data."; setError(msg); setLessonState("error"); logError("/app/lesson", msg, { step: "loadLessonData", error: String(err) }); }
   };
 
   const prepareLesson = async (language: string, agId?: string) => {
@@ -449,7 +449,7 @@ export default function LessonPage() {
             return;
           }
         }
-        throw new Error(data.error ?? "Blad serwera");
+        throw new Error(data.error ?? (locale === "pl" ? "Błąd serwera" : "Server error"));
       }
       const data = await res.json();
       setLessonId(data.lesson_id); setTopic(data.topic); setSignedUrl(data.signed_url);
@@ -464,7 +464,7 @@ export default function LessonPage() {
       setIsUnlimited(data.unlimited ?? false);
       setPlanMinutesRemaining(data.minutes_remaining ?? null);
       setLessonState("ready");
-    } catch (err) { const msg = err instanceof Error ? err.message : "Blad"; setError(msg); setLessonState("error"); logError("/app/lesson", msg, { step: "prepareLesson", language, agent_id: agId }); }
+    } catch (err) { const msg = err instanceof Error ? err.message : (locale === "pl" ? "Błąd" : "Error"); setError(msg); setLessonState("error"); logError("/app/lesson", msg, { step: "prepareLesson", language, agent_id: agId }); }
   };
 
   const startConversation = async () => {
@@ -484,7 +484,7 @@ export default function LessonPage() {
       console.log("[ElevenLabs] Mic granted. signedUrl present:", !!signedUrl);
 
       if (!signedUrl) {
-        throw new Error("Brak signed URL — odśwież stronę.");
+        throw new Error(locale === "pl" ? "Brak signed URL — odśwież stronę." : "Missing signed URL — refresh the page.");
       }
 
       console.log("[ElevenLabs] Starting session...");
@@ -499,11 +499,11 @@ export default function LessonPage() {
       });
     } catch (err) {
       console.error("[ElevenLabs] startConversation error:", err);
-      let msg = "Nie udało się połączyć.";
+      let msg = locale === "pl" ? "Nie udało się połączyć." : "Could not connect.";
       if (err instanceof DOMException) {
-        if (err.name === "NotAllowedError") msg = "Zezwól na dostęp do mikrofonu.";
-        else if (err.name === "NotFoundError") msg = "Nie znaleziono mikrofonu. Podłącz mikrofon i spróbuj ponownie.";
-      } else if (err instanceof Error && err.message.startsWith("Brak signed URL")) {
+        if (err.name === "NotAllowedError") msg = locale === "pl" ? "Zezwól na dostęp do mikrofonu." : "Please allow microphone access.";
+        else if (err.name === "NotFoundError") msg = locale === "pl" ? "Nie znaleziono mikrofonu. Podłącz mikrofon i spróbuj ponownie." : "No microphone found. Connect one and try again.";
+      } else if (err instanceof Error && (err.message.startsWith("Brak signed URL") || err.message.startsWith("Missing signed URL"))) {
         msg = err.message;
       }
       setError(msg); setLessonState("error"); logError("/app/lesson", msg, { step: "startConversation", error: String(err) });
@@ -599,6 +599,7 @@ export default function LessonPage() {
           word: word.replace(/[.,!?;:"""''()[\]{}]/g, ""),
           context: fullSentence,
           source_language: languageName,
+          native_language: nativeLanguage,
           ui_language: locale,
         }),
       });
@@ -783,9 +784,11 @@ export default function LessonPage() {
             <div className={`flex items-center gap-2 rounded-full px-4 py-2 border transition-all ${
               isPaused ? "bg-amber-500/10 border-amber-500/20" : isSpeaking ? "bg-primary/10 border-primary/20" : "bg-emerald-500/10 border-emerald-500/20"
             }`}>
-              <span className={`h-2 w-2 rounded-full ${
-                isPaused ? "bg-amber-400" : isSpeaking ? "bg-primary animate-pulse" : "bg-emerald-400 animate-pulse"
-              }`} />
+              <span className={`material-symbols-outlined text-base ${
+                isPaused ? "text-amber-400" : isSpeaking ? "text-primary animate-pulse" : "text-emerald-400"
+              }`}>
+                {isPaused ? "pause" : isSpeaking ? "volume_up" : "hearing"}
+              </span>
               <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
                 {isPaused ? (locale === "pl" ? "Pauza" : "Paused") : isSpeaking ? `${agentName} ${t("speaking")}` : t("listening")}
               </span>
@@ -910,9 +913,11 @@ export default function LessonPage() {
               <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 pointer-events-auto border transition-all ${
                 isPaused ? "bg-amber-500/10 border-amber-500/20" : isSpeaking ? "bg-primary/10 border-primary/20" : "bg-emerald-500/10 border-emerald-500/20"
               }`}>
-                <span className={`h-2 w-2 rounded-full ${
-                  isPaused ? "bg-amber-400" : isSpeaking ? "bg-primary animate-pulse" : "bg-emerald-400 animate-pulse"
-                }`} />
+                <span className={`material-symbols-outlined text-sm ${
+                  isPaused ? "text-amber-400" : isSpeaking ? "text-primary animate-pulse" : "text-emerald-400"
+                }`}>
+                  {isPaused ? "pause" : isSpeaking ? "volume_up" : "hearing"}
+                </span>
                 <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
                   {isPaused ? (locale === "pl" ? "Pauza" : "Paused") : isSpeaking ? `${agentName} ${t("speaking")}` : hintsLoading ? t("searchingHints") : t("listening")}
                 </span>
@@ -946,7 +951,7 @@ export default function LessonPage() {
                   isPaused ? "bg-surface-container-high/90 ring-1 ring-white/10" : isSpeaking ? "bg-surface-container-high/90 ring-2 ring-primary/30" : "bg-primary hover:scale-105 active:scale-95"
                 }`}>
                   <span className="material-symbols-outlined text-2xl text-white" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    {isPaused ? "mic_off" : isSpeaking ? "volume_up" : "mic"}
+                    {isPaused ? "mic_off" : "mic"}
                   </span>
                 </div>
               </div>

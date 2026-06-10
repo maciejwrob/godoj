@@ -100,8 +100,8 @@ export default function DashboardPage() {
             <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-primary/20">
               <img src="/avatars/maciej.png" alt="Maciej" className="w-full h-full object-cover object-top" />
             </div>
-            <p className="flex-1 text-sm text-on-surface-variant">Nie dałeś feedbacku do ostatniej lekcji — Maciej będzie wdzięczny!</p>
-            <Link href={`/app/feedback?lesson_id=${feedbackLessonId}`} className="shrink-0 rounded-xl bg-godoj-blue px-4 py-2 text-sm font-bold text-white">Daj feedback</Link>
+            <p className="flex-1 text-sm text-on-surface-variant">{t("feedbackBanner")}</p>
+            <Link href={`/app/feedback?lesson_id=${feedbackLessonId}`} className="shrink-0 rounded-xl bg-godoj-blue px-4 py-2 text-sm font-bold text-white">{t("giveFeedback")}</Link>
             <button onClick={() => setFeedbackDismissed(true)} className="text-slate-500 hover:text-white"><span className="material-symbols-outlined text-sm">close</span></button>
           </div>
         )}

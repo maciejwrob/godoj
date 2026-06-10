@@ -13,6 +13,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const uiLocale = body.ui_locale === "en" ? "en" : "pl";
+    const m = (pl: string, en: string) => (uiLocale === "en" ? en : pl);
     const {
       display_name,
       native_language,
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (usersError) {
       console.error("Users update error:", usersError);
       return NextResponse.json(
-        { error: "Nie udalo sie zaktualizowac profilu" },
+        { error: m("Nie udało się zaktualizować profilu", "Could not update your profile") },
         { status: 500 }
       );
     }
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (profileError) {
       console.error("Profile update error:", profileError);
       return NextResponse.json(
-        { error: "Nie udalo sie zaktualizowac preferencji nauki" },
+        { error: m("Nie udało się zaktualizować preferencji nauki", "Could not update learning preferences") },
         { status: 500 }
       );
     }
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (streakError) {
       console.error("Streak update error:", streakError);
       return NextResponse.json(
-        { error: "Nie udalo sie zaktualizowac celu tygodniowego" },
+        { error: m("Nie udało się zaktualizować celu tygodniowego", "Could not update the weekly goal") },
         { status: 500 }
       );
     }

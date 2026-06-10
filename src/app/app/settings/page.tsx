@@ -53,7 +53,7 @@ const DURATIONS = [5, 10, 15];
 export default function SettingsPage() {
   const router = useRouter();
   const supabase = createClient();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -138,19 +138,21 @@ export default function SettingsPage() {
           ui_language: uiLanguage,
           preferred_duration_min: preferredDuration,
           reminders_enabled: reminders,
+          ui_locale: locale,
         }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error ?? "Blad zapisu");
+        throw new Error(data.error ?? (locale === "pl" ? "Błąd zapisu" : "Save failed"));
       }
 
       // Sync localStorage and reload so the whole UI updates
       localStorage.setItem("godoj_ui_locale", uiLanguage);
+      document.cookie = `godoj_ui_locale=${uiLanguage}; path=/; max-age=31536000; samesite=lax`;
       window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Blad zapisu ustawien");
+      setError(err instanceof Error ? err.message : (locale === "pl" ? "Błąd zapisu ustawień" : "Could not save settings"));
     } finally {
       setSaving(false);
     }

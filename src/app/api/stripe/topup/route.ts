@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe, getOrCreateStripeCustomer } from "@/lib/stripe";
 
-export async function POST() {
+export async function POST(request: Request) {
+  let uiLocale = "pl";
+  const m = (pl: string, en: string) => (uiLocale === "en" ? en : pl);
   try {
     const supabase = await createClient();
     const {
@@ -13,6 +15,9 @@ export async function POST() {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const body = await request.json().catch(() => ({}));
+    if (body?.ui_locale === "en") uiLocale = "en";
 
     // Only allow top-up for paid subscribers
     const db = createAdminClient();
@@ -27,7 +32,7 @@ export async function POST() {
 
     if (!sub || sub.tier_id === "free") {
       return NextResponse.json(
-        { error: "Doładowanie dostępne tylko dla płatnych planów" },
+        { error: m("Doładowanie dostępne tylko dla płatnych planów", "Top-ups are only available on paid plans") },
         { status: 400 }
       );
     }
@@ -42,7 +47,7 @@ export async function POST() {
 
     if (!topupTier?.stripe_price_id) {
       return NextResponse.json(
-        { error: "Doładowanie nie jest jeszcze skonfigurowane" },
+        { error: m("Doładowanie nie jest jeszcze skonfigurowane", "Top-up is not configured yet") },
         { status: 400 }
       );
     }
@@ -76,7 +81,7 @@ export async function POST() {
       ],
       success_url: `${baseUrl}/app/settings/billing?topup=true`,
       cancel_url: `${baseUrl}/app/settings/plans`,
-      locale: "pl",
+      locale: uiLocale === "en" ? "en" : "pl",
       metadata: {
         type: "topup",
         user_id: user.id,
@@ -87,7 +92,7 @@ export async function POST() {
   } catch (error) {
     console.error("[stripe/topup] Error:", error);
     return NextResponse.json(
-      { error: "Nie udało się utworzyć sesji płatności" },
+      { error: m("Nie udało się utworzyć sesji płatności", "Could not create the payment session") },
       { status: 500 }
     );
   }

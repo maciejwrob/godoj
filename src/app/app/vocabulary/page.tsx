@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { BookOpen, Search, Volume2, Filter } from "lucide-react";
 import VocabularyClient from "./vocabulary-client";
 import { getTranslations, resolveLocale } from "@/lib/i18n-data";
@@ -29,20 +30,15 @@ export default async function VocabularyPage() {
     redirect("/login");
   }
 
-  const [{ data: words }, { data: profile }, { data: userData }] = await Promise.all([
-    supabase
-      .from("vocabulary")
-      .select(
-        "id, language, word, translation, context_sentence, lesson_id, times_used, mastery_level, last_seen_at, pronunciation_url, created_at"
-      )
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false }),
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get("godoj_ui_locale")?.value;
+  const cookieLang = cookieStore.get("godoj_active_lang")?.value;
+
+  const [{ data: profiles }, { data: userData }] = await Promise.all([
     supabase
       .from("user_profiles")
       .select("target_language")
-      .eq("user_id", user.id)
-      .limit(1)
-      .single(),
+      .eq("user_id", user.id),
     supabase
       .from("users")
       .select("ui_language, native_language")
@@ -50,9 +46,22 @@ export default async function VocabularyPage() {
       .single(),
   ]);
 
+  const language =
+    (profiles ?? []).find((p) => p.target_language === cookieLang)?.target_language ??
+    (profiles ?? [])[0]?.target_language ??
+    "en";
+
+  const { data: words } = await supabase
+    .from("vocabulary")
+    .select(
+      "id, language, word, translation, context_sentence, lesson_id, times_used, mastery_level, last_seen_at, pronunciation_url, created_at"
+    )
+    .eq("user_id", user.id)
+    .eq("language", language)
+    .order("created_at", { ascending: false });
+
   const vocabulary: VocabularyWord[] = words ?? [];
-  const language = profile?.target_language ?? "en";
-  const t = getTranslations(resolveLocale(userData?.ui_language ?? userData?.native_language));
+  const t = getTranslations(resolveLocale(cookieLocale ?? userData?.ui_language ?? userData?.native_language));
 
   // Compute stats
   const now = new Date();

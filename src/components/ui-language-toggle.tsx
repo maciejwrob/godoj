@@ -14,22 +14,31 @@ export function getStoredUILocale(): "pl" | "en" {
   return "en";
 }
 
+function setLocaleCookie(value: string) {
+  document.cookie = `${STORAGE_KEY}=${value}; path=/; max-age=31536000; samesite=lax`;
+}
+
 export function UILanguageToggle({ className }: { className?: string }) {
   const [locale, setLocale] = useState<"pl" | "en">("en");
 
   useEffect(() => {
-    setLocale(getStoredUILocale());
+    const stored = getStoredUILocale();
+    setLocale(stored);
+    // Sync cookie so server components (progress, achievements) render the same locale
+    setLocaleCookie(stored);
   }, []);
 
   const toggle = () => {
     const next = locale === "pl" ? "en" : "pl";
     localStorage.setItem(STORAGE_KEY, next);
+    setLocaleCookie(next);
     setLocale(next);
-    // Fire-and-forget DB sync — page reloads anyway
+    // keepalive so the request survives the imminent page reload
     fetch("/api/user/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ui_language: next }),
+      keepalive: true,
     }).catch(() => {});
     window.location.reload();
   };

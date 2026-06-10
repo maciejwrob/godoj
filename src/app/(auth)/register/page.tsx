@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { UserPlus, Mail, AlertCircle, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { getStoredUILocale } from "@/components/ui-language-toggle";
 
 type Status = "loading" | "invalid" | "form" | "submitting" | "success";
 
@@ -74,14 +75,14 @@ function RegisterForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Coś poszło nie tak");
+        setError(data.error ?? (getStoredUILocale() === "pl" ? "Coś poszło nie tak" : "Something went wrong"));
         setStatus("form");
         return;
       }
 
       setStatus("success");
     } catch {
-      setError("Nie udało się połączyć z serwerem");
+      setError(getStoredUILocale() === "pl" ? "Nie udało się połączyć z serwerem" : "Could not connect to the server");
       setStatus("form");
     }
   };
