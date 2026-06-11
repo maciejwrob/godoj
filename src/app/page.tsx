@@ -331,7 +331,7 @@ export default function Home() {
         </div>
 
         {/* Maciej quote — larger, always visible */}
-        <div className="max-w-[420px] mt-4 lg:mt-0">
+        <div className="max-w-[420px] mt-5 lg:mt-7">
           <div className="flex gap-3.5 rounded-xl border border-white/5 bg-white/[0.02] p-4">
             <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border-2 border-godoj-blue/20">
               <Image src="/avatars/maciej.png" alt="Maciej" width={88} height={88} className="h-full w-full object-cover" />
