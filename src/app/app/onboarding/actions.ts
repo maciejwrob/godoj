@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { Resend } from "resend";
+import { buildDripEmail } from "@/lib/drip-content";
 
 export type OnboardingData = {
   displayName: string;
@@ -122,6 +124,36 @@ export async function saveOnboarding(data: OnboardingData) {
     },
     { onConflict: "user_id" }
   );
+
+  // Welcome email — first line greets in the user's NATIVE language
+  try {
+    const { data: existing } = await adminDb
+      .from("drip_emails")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("email_key", "welcome")
+      .single();
+    if (!existing && user.email) {
+      const locale = data.uiLanguage === "en" ? "en" : "pl";
+      const { subject, html } = buildDripEmail("welcome", {
+        name: data.displayName,
+        locale,
+        nativeLang: data.nativeLanguage,
+        appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://www.godoj.co",
+      });
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const { error: sendErr } = await resend.emails.send({
+        from: `Maciej z Godoj.co <${process.env.RESEND_FROM_EMAIL ?? "maciej@godoj.co"}>`,
+        to: user.email,
+        replyTo: "maciej@godoj.co",
+        subject,
+        html,
+      });
+      if (!sendErr) await adminDb.from("drip_emails").insert({ user_id: user.id, email_key: "welcome" });
+    }
+  } catch (err) {
+    console.error("[onboarding] welcome email failed:", err);
+  }
 
   return { success: true as const };
 }

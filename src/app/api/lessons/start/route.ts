@@ -107,7 +107,7 @@ export async function POST(request: Request) {
 
     // Get user data + recent topics + agent prompt config in parallel
     const adminDb = createAdminClient();
-    const [{ data: userData }, { data: profile }, { data: lastLesson }, { data: recentLessonsData }, { data: configRow }] =
+    const [{ data: userData }, { data: profile }, { data: lastLesson }, { data: recentLessonsData }, { data: configRow }, { data: queuedTopic }, { count: completedCount }] =
       await Promise.all([
         supabase
           .from("users")
@@ -140,6 +140,21 @@ export async function POST(request: Request) {
           .order("started_at", { ascending: false })
           .limit(10),
         adminDb.from("app_config").select("value").eq("key", "agent_system_prompt").single(),
+        supabase
+          .from("user_topics")
+          .select("id, topic")
+          .eq("user_id", user.id)
+          .eq("language", language)
+          .is("used_at", null)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single(),
+        supabase
+          .from("lessons")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("language", language)
+          .not("ended_at", "is", null),
       ]);
 
     const level = profile?.current_level ?? "A1";
@@ -165,6 +180,13 @@ export async function POST(request: Request) {
 
     const recentTopics = (recentLessonsData ?? []).map(l => l.topic).filter(Boolean);
 
+    // TOPIC ENGINE: lesson #1 = strictly interest-matched; every 3rd lesson =
+    // wildcard (deliberately unrelated, for variety); otherwise consume the
+    // oldest queued post-lesson topic (generated from previous conversations).
+    const lessonNumber = (completedCount ?? 0) + 1;
+    const isWildcard = lessonNumber > 1 && lessonNumber % 3 === 0;
+    const presetTopic = !isWildcard && queuedTopic ? queuedTopic.topic : null;
+
     // Get topic pool for this level
     const levelKey = level.startsWith("A1") ? "A1" : level.startsWith("A2") ? "A2" : level.startsWith("B1") ? "B1" : level.startsWith("B2") ? "B2" : "C1";
     const topicPool = CONVERSATION_TOPICS[levelKey] ?? CONVERSATION_TOPICS["A1"];
@@ -189,14 +211,19 @@ export async function POST(request: Request) {
         messages: [{
           role: "user",
           content: `You are helping prepare a ${languageNameEn} lesson at level ${level} for ${displayName}.
-${interests.length > 0 ? "User interests: " + interests.join(", ") + "." : ""}
+${presetTopic
+  ? `The conversation topic is ALREADY CHOSEN: "${presetTopic}" — it builds on a previous lesson. Echo it back EXACTLY as given.`
+  : isWildcard
+    ? "VARIETY LESSON: pick a topic COMPLETELY UNRELATED to the user's interests and recent topics — surprise the student with something fresh."
+    : interests.length > 0 ? "User interests: " + interests.join(", ") + "." : ""}
+${lessonNumber === 1 && interests.length > 0 ? "FIRST LESSON: the topic MUST directly relate to one of the user's interests." : ""}
 ${recentTopics.length > 0 ? "AVOID these recent topics: " + recentTopics.slice(0, 5).join(", ") : ""}
 ${lastLessonSummary ? `Previous lesson context: ${lastLessonSummary}` : "This is the user's first lesson."}
-Get inspired by these topic ideas: ${sampleTopics}
+${presetTopic ? "" : `Get inspired by these topic ideas: ${sampleTopics}`}
 
 Reply in EXACTLY this format (2 lines, nothing else):
 TOPIC: [conversation topic in ${topicLocale === "en" ? "English" : "Polish with proper diacritical marks (ą, ć, ę, ł, ń, ó, ś, ź, ż)"}, max 8 words, no period]
-GREETING: [natural greeting in ${languageNameEn} as ${agentName} the tutor, max 2 short sentences at ${level} level]`,
+GREETING: [natural greeting in ${languageNameEn} as ${agentName} the tutor, max 2 short sentences at ${level} level. ${presetTopic ? "Naturally reference that you are continuing/deepening a topic from before." : ""}]`,
         }],
       });
       const raw = combinedResponse.content[0].type === "text" ? combinedResponse.content[0].text.trim() : "";
@@ -208,6 +235,9 @@ GREETING: [natural greeting in ${languageNameEn} as ${agentName} the tutor, max 
       }
       if (greetingMatch?.[1]) firstMessage = greetingMatch[1].trim();
     } catch {}
+
+    // Preset topic wins regardless of what the model echoed
+    if (presetTopic) topic = presetTopic;
 
     // Fallback: pick random from available pool
     if (!topic) {
@@ -271,6 +301,12 @@ ZASADY:
         { error: m("Nie udało się utworzyć lekcji", "Could not create the lesson") },
         { status: 500 }
       );
+    }
+
+    // Consume the queued topic (FIFO) so it's not repeated next time
+    if (presetTopic && queuedTopic) {
+      adminDb.from("user_topics").update({ used_at: new Date().toISOString() }).eq("id", queuedTopic.id)
+        .then(undefined, (err: unknown) => console.error("Topic consume error:", err));
     }
 
     // Build full system prompt with all variables filled in

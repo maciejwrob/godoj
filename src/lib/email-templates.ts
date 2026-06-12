@@ -66,6 +66,30 @@ function emailShell(content: string, footer: string, helpLine: string): string {
 </body></html>`;
 }
 
+// Generic drip/lifecycle email built on the same shell.
+// `lead` is the first line (e.g. native-language greeting "Hei Tomasz!").
+export function dripEmail(opts: {
+  locale: "pl" | "en";
+  lead?: string;
+  title: string;
+  bodyHtml: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  closing?: string;
+}): string {
+  const s = emailStrings[opts.locale];
+  const content = `
+      ${opts.lead ? `<p style="color:#dee5ff;font-size:18px;font-weight:700;text-align:left;margin:0 0 6px 0;">${opts.lead}</p>` : ""}
+      <h1 style="color:#dee5ff;font-size:20px;font-weight:700;text-align:left;margin:0 0 16px 0;">${opts.title}</h1>
+      <div style="color:#a3aac4;font-size:14px;line-height:1.7;text-align:left;margin:0 0 28px 0;">${opts.bodyHtml}</div>
+      ${opts.ctaText && opts.ctaUrl ? `
+      <div style="text-align:center;margin-bottom:8px;">
+        <a href="${opts.ctaUrl}" style="display:inline-block;background-color:#1A73E8;color:#FFFFFF;font-size:16px;font-weight:700;text-decoration:none;padding:15px 30px;border-radius:12px;">${opts.ctaText}</a>
+      </div>` : ""}
+      ${opts.closing ? `<p style="color:#dee5ff;font-size:14px;font-weight:600;text-align:left;margin:20px 0 0 0;">${opts.closing}</p>` : ""}`;
+  return emailShell(content, s.footer, s.helpLine);
+}
+
 export function magicLinkEmail(magicLinkUrl: string, nativeLang?: string | null): string {
   const locale = resolveEmailLocale(nativeLang);
   const s = emailStrings[locale];

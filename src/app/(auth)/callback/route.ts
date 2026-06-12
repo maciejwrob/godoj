@@ -48,6 +48,20 @@ export async function GET(request: Request) {
   // Use admin client for DB operations (bypass RLS)
   const adminDb = createAdminClient();
 
+  // Log IP + geo for this login (first row for a user = registration context).
+  // Non-blocking, best-effort — used in the admin panel for multi-account detection.
+  try {
+    const h = request.headers;
+    const ip = (h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip") ?? "").trim() || null;
+    const country = h.get("x-vercel-ip-country") ?? null;
+    const cityRaw = h.get("x-vercel-ip-city");
+    const city = cityRaw ? decodeURIComponent(cityRaw) : null;
+    const userAgent = h.get("user-agent")?.slice(0, 300) ?? null;
+    await adminDb.from("auth_events").insert({ user_id: user.id, ip, country, city, user_agent: userAgent });
+  } catch (err) {
+    console.error("[callback] auth_events insert failed:", err);
+  }
+
   // Mark invitation as accepted
   await adminDb
     .from("invitations")

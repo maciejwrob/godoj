@@ -89,6 +89,11 @@ export async function POST(request: Request) {
         type: "topup",
         user_id: user.id,
       },
+      // One-time payments don't create invoices by default — enable so the
+      // customer gets a proper document
+      invoice_creation: { enabled: true },
+      tax_id_collection: { enabled: true },
+      customer_update: { name: "auto", address: "auto" },
     });
 
     return NextResponse.json({ url: session.url });

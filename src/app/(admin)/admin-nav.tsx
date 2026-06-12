@@ -12,6 +12,7 @@ import {
   FileText,
   ArrowLeft,
   AlertTriangle,
+  Activity,
 } from "lucide-react";
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/admin/agents", label: "Agenci", icon: Bot },
   { href: "/admin/prompt", label: "System Prompt", icon: FileText },
   { href: "/admin/usage", label: "Użycie", icon: BarChart3 },
+  { href: "/admin/events", label: "Aktywność", icon: Activity },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
   { href: "/admin/errors", label: "Error Log", icon: AlertTriangle },
 ];

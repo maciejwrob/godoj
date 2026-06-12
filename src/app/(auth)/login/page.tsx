@@ -119,26 +119,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Marketing consent — optional, unchecked by default */}
-          <label className="flex items-start gap-3 cursor-pointer group">
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={marketingConsent}
-              onClick={() => setMarketingConsent(!marketingConsent)}
-              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
-                marketingConsent
-                  ? "border-primary bg-primary"
-                  : "border-border bg-bg-card group-hover:border-text-secondary"
-              }`}
-            >
-              {marketingConsent && <Check className="h-3.5 w-3.5 text-white" />}
-            </button>
-            <span className="text-xs text-text-secondary leading-relaxed">
-              {t("marketingConsent")}
-            </span>
-          </label>
-
           {error && (
             <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
               {error}

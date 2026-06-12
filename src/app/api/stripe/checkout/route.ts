@@ -92,6 +92,9 @@ export async function POST(request: Request) {
         ? { discounts: [{ coupon: BETA_COUPONS[cur][tier] }] }
         : { allow_promotion_codes: true }),
       billing_address_collection: "auto",
+      // Let companies enter their VAT/NIP — appears on the Stripe invoice
+      tax_id_collection: { enabled: true },
+      customer_update: { name: "auto", address: "auto" },
     });
 
     return NextResponse.json({ url: session.url });

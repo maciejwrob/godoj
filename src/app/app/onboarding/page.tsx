@@ -12,6 +12,7 @@ import { LogoFull } from "@/components/logo";
 import { UILanguageToggle } from "@/components/ui-language-toggle";
 import { getLocalizedLevels, getLocalizedGoals, getLocalizedInterests } from "@/config/onboarding-data";
 import { NATIVE_LANGUAGES } from "@/config/native-languages";
+import { TutorAvatar } from "@/components/tutor-avatars";
 import { useTranslation } from "@/lib/i18n";
 
 const TOTAL_STEPS = 4;
@@ -69,6 +70,7 @@ export default function OnboardingPage() {
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [showVariants, setShowVariants] = useState(false);
   const [level, setLevel] = useState("");
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [goals, setGoals] = useState<string[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
 
@@ -109,6 +111,7 @@ export default function OnboardingPage() {
     if (!lang.active) return;
     setSelectedLang(lang.id);
     setSelectedVariant(null);
+    setSelectedAgentId(null);
     if (lang.variants) {
       setShowVariants(true);
     } else {
@@ -143,7 +146,7 @@ export default function OnboardingPage() {
         preferredFrequency: "3-4x",
         preferredTime: "any",
         remindersEnabled: false,
-        selectedAgentId: null,
+        selectedAgentId,
         uiLanguage: locale,
       };
 
@@ -226,6 +229,8 @@ export default function OnboardingPage() {
               selectedLanguage={selectedLanguage}
               onSelect={handleLanguageSelect}
               onVariant={setSelectedVariant}
+              selectedAgentId={selectedAgentId}
+              onAgentSelect={setSelectedAgentId}
             />
           )}
           {step === 3 && (
@@ -345,6 +350,8 @@ function StepLanguage({
   selectedLanguage,
   onSelect,
   onVariant,
+  selectedAgentId,
+  onAgentSelect,
 }: {
   languages: Language[];
   selected: string;
@@ -353,8 +360,50 @@ function StepLanguage({
   selectedLanguage: Language | undefined;
   onSelect: (l: Language) => void;
   onVariant: (v: string) => void;
+  selectedAgentId: string | null;
+  onAgentSelect: (id: string | null) => void;
 }) {
   const { t, locale } = useTranslation();
+  const [agents, setAgents] = useState<{ id: string; name: string; gender: "female" | "male" }[]>([]);
+
+  // Load tutors once a language is chosen (for EN: after the variant is chosen)
+  const variantReady = !selectedLanguage?.variants || !!variant;
+  useEffect(() => {
+    if (!selected || !variantReady) { setAgents([]); return; }
+    let cancelled = false;
+    const qs = new URLSearchParams({ language: selected });
+    if (variant) qs.set("variant", variant);
+    fetch(`/api/agents?${qs}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const list = data.agents ?? [];
+        setAgents(list);
+        // Preselect the first tutor so there is always a valid default
+        if (list.length > 0) onAgentSelect(list[0].id);
+        else onAgentSelect(null);
+      })
+      .catch(() => { if (!cancelled) setAgents([]); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, variant, variantReady]);
+
+  const females = agents.filter((a) => a.gender !== "male");
+  const males = agents.filter((a) => a.gender === "male");
+
+  const TutorCard = ({ a }: { a: { id: string; name: string } }) => (
+    <button
+      onClick={() => onAgentSelect(a.id)}
+      className={`flex flex-col items-center gap-2 rounded-xl border p-3 transition-all ${
+        selectedAgentId === a.id ? "border-primary bg-primary/10" : "border-border bg-bg-card hover:border-primary/50"
+      }`}
+    >
+      <div className="h-16 w-16 overflow-hidden rounded-full">
+        <TutorAvatar agentId={a.id} size={64} speaking={false} />
+      </div>
+      <span className="text-sm font-medium">{a.name}</span>
+    </button>
+  );
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [reqLang, setReqLang] = useState("");
   const [reqLevel, setReqLevel] = useState("");
@@ -486,6 +535,33 @@ function StepLanguage({
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Tutor (voice) picker — appears after language (and variant) is chosen */}
+      {selected && variantReady && agents.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-3 text-sm text-text-secondary">
+            {locale === "pl" ? "Wybierz swojego tutora" : "Choose your tutor"}
+          </p>
+          {males.length > 0 && females.length > 0 ? (
+            <div className="space-y-4">
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary/70">
+                  {locale === "pl" ? "Głos żeński" : "Female voice"}
+                </p>
+                <div className="grid grid-cols-3 gap-2">{females.map((a) => <TutorCard key={a.id} a={a} />)}</div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary/70">
+                  {locale === "pl" ? "Głos męski" : "Male voice"}
+                </p>
+                <div className="grid grid-cols-3 gap-2">{males.map((a) => <TutorCard key={a.id} a={a} />)}</div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">{agents.map((a) => <TutorCard key={a.id} a={a} />)}</div>
+          )}
         </div>
       )}
     </div>

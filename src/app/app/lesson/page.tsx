@@ -9,6 +9,7 @@ import { MicCheckModal } from "@/components/mic-check-modal";
 import { useLanguage } from "@/lib/language-context";
 import { useTranslation } from "@/lib/i18n";
 import { logError } from "@/lib/error-logger";
+import { track } from "@/lib/analytics";
 
 type Hint = { phrase: string; translation: string };
 type ChatMessage = {
@@ -92,6 +93,7 @@ export default function LessonPage() {
   const inLessonRef = useRef(false); // true from first connect until the lesson is truly ended (stays true while paused)
   const [resuming, setResuming] = useState(false); // UI: reconnect spinner on resume
   const endingRef = useRef(false); // synchronous guard against double end
+  const pausesCountRef = useRef(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const lessonStateRef = useRef<LessonState>(lessonState);
   useEffect(() => { lessonStateRef.current = lessonState; }, [lessonState]);
@@ -226,6 +228,7 @@ export default function LessonPage() {
       }
 
       startTimeRef.current = Date.now();
+      track("lesson_started", { lesson_id: lessonIdRef.current, language: profileRef.current.language });
 
       if (systemPrompt) conversation.sendContextualUpdate(systemPrompt);
 
@@ -375,6 +378,8 @@ export default function LessonPage() {
     isPausingRef.current = true;
     setPauseReason(reason);
     pausedAtRef.current = Date.now();
+    pausesCountRef.current += 1;
+    track("lesson_paused", { lesson_id: lessonIdRef.current, reason });
     clearHintTimers();
     // Fully stop the agent and ElevenLabs billing
     try { await conversation.endSession(); } catch {}
@@ -413,6 +418,7 @@ export default function LessonPage() {
       setIsPaused(false);
       isPausedRef.current = false;
       setPauseReason(null);
+      track("lesson_resumed", { lesson_id: lessonIdRef.current });
       // onConnect (reconnect branch) clears isReconnecting/isPausing + restores audio
     } catch (err) {
       console.error("[resume] failed:", err);
@@ -426,6 +432,7 @@ export default function LessonPage() {
 
   // ---- Fetch hints (add to chat as hint message) ----
   const fetchHint = async (hintLvl: 1 | 2, isUpgrade = false) => {
+    track("hint_shown", { level: hintLvl, lesson_id: lessonIdRef.current });
     if (hintLvl === 1) setHintsLoading(true);
     if (!isUpgrade) lastHintTimeRef.current = Date.now();
     hintShownThisTurnRef.current = true;
@@ -628,6 +635,19 @@ export default function LessonPage() {
     const pausedMs = pausedTotalRef.current + (isPausedRef.current && pausedAtRef.current ? Date.now() - pausedAtRef.current : 0);
     const durationSeconds = Math.max(0, Math.round((Date.now() - startTimeRef.current - pausedMs) / 1000));
     const transcriptText = transcriptRef.current.map((t) => `${t.source === "ai" ? "Tutor" : "User"}: ${t.message}`).join("\n");
+    {
+      const userMsgs = transcriptRef.current.filter((t) => t.source === "user");
+      const aiMsgs = transcriptRef.current.filter((t) => t.source === "ai");
+      track("lesson_ended", {
+        lesson_id: lessonId,
+        language: profileRef.current.language,
+        duration_seconds: durationSeconds,
+        user_messages: userMsgs.length,
+        ai_messages: aiMsgs.length,
+        user_words: userMsgs.reduce((n, t) => n + t.message.split(/\s+/).filter(Boolean).length, 0),
+        pauses: pausesCountRef.current,
+      });
+    }
     try {
       const res = await fetch("/api/lessons/end", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lesson_id: lessonId, transcript: transcriptText, duration_seconds: durationSeconds }) });
       fetch("/api/achievements/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lesson_id: lessonId }) }).catch(() => {});
@@ -637,6 +657,7 @@ export default function LessonPage() {
   }, [lessonState, lessonId, router]);
 
   const handleHintToggle = () => {
+    track(hintsEnabled ? "hints_disabled" : "hints_enabled", { lesson_id: lessonIdRef.current });
     if (hintsEnabled) {
       // First: show hints immediately
       if (!hintShownThisTurnRef.current) {
@@ -653,6 +674,7 @@ export default function LessonPage() {
   };
 
   const playTTS = async (text: string) => {
+    track("tts_play", { lesson_id: lessonIdRef.current });
     try {
       const res = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language: profileRef.current.language }) });
       if (res.ok) { const blob = await res.blob(); const url = URL.createObjectURL(blob); const audio = new Audio(url); audio.play(); audio.onended = () => URL.revokeObjectURL(url); }
@@ -661,6 +683,7 @@ export default function LessonPage() {
 
   const [refreshingTopic, setRefreshingTopic] = useState(false);
   const refreshTopic = async () => {
+    track("topic_refreshed", { language: profileRef.current.language });
     setRefreshingTopic(true);
     try {
       const res = await fetch("/api/lessons/start", {
@@ -700,6 +723,7 @@ export default function LessonPage() {
     // Close all other tooltips before opening a new one
     setWordTranslations(new Map());
     setTranslatingKey(key);
+    track("word_translate", { word: word.slice(0, 40), language: profileRef.current.language });
     try {
       const res = await fetch("/api/lessons/translate", {
         method: "POST",
@@ -1077,7 +1101,7 @@ export default function LessonPage() {
               {/* Send Now */}
               {!isSpeaking && conversation.status === "connected" && !isPaused && (
                 <button
-                  onClick={() => { try { conversation.sendUserMessage("..."); } catch {} }}
+                  onClick={() => { track("send_now", { lesson_id: lessonIdRef.current }); try { conversation.sendUserMessage("..."); } catch {} }}
                   className="h-12 w-12 rounded-full bg-godoj-blue/20 flex items-center justify-center text-godoj-blue hover:bg-godoj-blue/30 border border-godoj-blue/20 transition-all"
                   title={t("sendNow")}
                 >

@@ -228,8 +228,8 @@ export default function MetodaPage() {
             </h2>
             <p className="text-sm text-on-surface-variant mb-6 max-w-md mx-auto">
               {pt(
-                "15 minut za darmo. Bez karty. Bez zobowiązań.",
-                "15 minutes free. No card. No commitment."
+                "30 minut za darmo. Bez karty. Bez zobowiązań.",
+                "30 minutes free. No card. No commitment."
               )}
             </p>
             <Link

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import AppNav from "./nav";
 import { LanguageProvider } from "@/lib/language-context";
 import { LocaleWrapper } from "@/components/locale-wrapper";
+import { AnalyticsTracker } from "@/components/analytics-tracker";
 
 export default async function AppLayout({
   children,
@@ -32,6 +33,7 @@ export default async function AppLayout({
   return (
     <LocaleWrapper nativeLanguage={nativeLang}>
       <LanguageProvider serverProfiles={typedProfiles} defaultLanguage={defaultLang}>
+        <AnalyticsTracker />
         <div className="min-h-screen">
           {userData?.onboarding_complete && (
             <AppNav

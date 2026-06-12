@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
+import { track } from "@/lib/analytics";
 
 interface Subscription {
   tier: string;
@@ -68,6 +69,7 @@ export default function PricingPage() {
   const changeCurrency = (c: Currency) => {
     setCurrency(c);
     localStorage.setItem("godoj_currency", c);
+    track("currency_changed", { currency: c });
   };
 
   useEffect(() => {
@@ -82,6 +84,7 @@ export default function PricingPage() {
 
   const handleUpgrade = async (tierId: string) => {
     if (checkoutLoading) return;
+    track("checkout_clicked", { tier: tierId, currency });
     setCheckoutLoading(tierId);
 
     try {
@@ -107,6 +110,7 @@ export default function PricingPage() {
 
   const handleTopup = async () => {
     if (topupLoading) return;
+    track("topup_clicked", { currency });
     setTopupLoading(true);
     try {
       const res = await fetch("/api/stripe/topup", {

@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         .single(),
       supabase
         .from("user_profiles")
-        .select("current_level, target_language")
+        .select("current_level, target_language, interests")
         .eq("user_id", user.id)
         .limit(1)
         .single(),
@@ -478,6 +478,62 @@ Prepare the analysis in JSON format (no markdown, raw JSON only):
       recordUsage(user.id, duration_seconds).catch(err => {
         console.error("Subscription usage recording error:", err);
       })
+    );
+
+    // Post-lesson TOPIC ENGINE: generate 0-3 personalized follow-up topics
+    // from this conversation (consumed by future lessons/start, FIFO).
+    nonCritical.push(
+      (async () => {
+        if (isTooShort) return; // nothing meaningful to build on
+        const { data: uiRow } = await supabase.from("users").select("ui_language").eq("id", user.id).single();
+        const topicLang = uiRow?.ui_language === "en" ? "English" : "Polish";
+        const interests = (profile?.interests as string[] | null) ?? [];
+
+        const gen = await anthropic.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 200,
+          messages: [{
+            role: "user",
+            content: `A language student just finished a spoken lesson. Based on the lesson summary below, suggest follow-up conversation topics that BUILD ON what was discussed (continue threads the student found engaging, go deeper, or explore a closely related angle).
+${interests.length > 0 ? "Student's interests: " + interests.join(", ") : ""}
+Lesson summary: ${JSON.stringify(summary).slice(0, 1500)}
+
+Rules:
+- 0 to 3 topics. If the conversation was generic or shallow, return FEWER (or none) — quality over quantity.
+- Each topic: max 8 words, in ${topicLang}, no period, conversational (not academic).
+- Topics must feel like a natural "next conversation", not a repeat.
+
+Reply ONLY with a JSON array of strings (no markdown). Example: ["Topic one", "Topic two"]`,
+          }],
+        });
+        const raw = gen.content[0].type === "text" ? gen.content[0].text.trim() : "[]";
+        const topics: string[] = JSON.parse(raw.replace(/```json\n?|\n?```/g, "").trim());
+        if (!Array.isArray(topics) || topics.length === 0) return;
+
+        const adminTopics = createAdminClient();
+        await adminTopics.from("user_topics").insert(
+          topics.slice(0, 3).filter((t) => typeof t === "string" && t.length > 0 && t.length < 80).map((topic) => ({
+            user_id: user.id,
+            language: lesson.language,
+            topic,
+            source: "post_lesson",
+            origin_lesson_id: lesson_id,
+          }))
+        );
+
+        // Cap the unused queue at 6 per (user, language) — drop the oldest
+        const { data: unused } = await adminTopics
+          .from("user_topics")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("language", lesson.language)
+          .is("used_at", null)
+          .order("created_at", { ascending: false });
+        if (unused && unused.length > 6) {
+          const toDelete = unused.slice(6).map((r) => r.id);
+          await adminTopics.from("user_topics").delete().in("id", toDelete);
+        }
+      })().catch(err => console.error("Topic generation error:", err))
     );
 
     // Fire all non-critical writes — failures are logged, never thrown

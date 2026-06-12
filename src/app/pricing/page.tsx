@@ -197,7 +197,7 @@ export default function PricingPage() {
                   {pt("Zacznij za darmo", "Start for free")}
                 </Link>
                 <p className="text-center text-xs text-white/30 mt-2.5">
-                  {pt("15 minut za darmo na start", "15 free minutes to get started")}
+                  {pt("30 minut za darmo na start", "30 free minutes to get started")}
                 </p>
               </div>
             </div>
@@ -259,7 +259,7 @@ export default function PricingPage() {
                   {pt("Zacznij za darmo", "Start for free")}
                 </Link>
                 <p className="text-center text-xs text-white/30 mt-2.5">
-                  {pt("15 minut za darmo na start", "15 free minutes to get started")}
+                  {pt("30 minut za darmo na start", "30 free minutes to get started")}
                 </p>
               </div>
             </div>
@@ -402,8 +402,8 @@ export default function PricingPage() {
               style={{ fontFamily: "var(--font-manrope), sans-serif" }}
             >
               {pt(
-                "Wypróbuj za darmo — 15 minut bez zobowiązań",
-                "Try free — 15 minutes, no commitment"
+                "Wypróbuj za darmo — 30 minut bez zobowiązań",
+                "Try free — 30 minutes, no commitment"
               )}
             </h2>
             <p className="text-sm text-on-surface-variant mb-6 max-w-md mx-auto">
